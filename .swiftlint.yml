@@ -1,0 +1,106 @@
+# SwiftLint configuration for ThreadJournal2
+# Based on Technical Implementation Plan requirements
+
+# Rule configurations
+line_length:
+  warning: 100
+  error: 120
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 200
+  error: 250
+
+function_body_length:
+  warning: 15
+  error: 20
+
+cyclomatic_complexity:
+  warning: 5
+  error: 7
+
+# Paths
+included:
+  - ThreadJournal2
+  - ThreadJournal2Tests
+  - ThreadJournal2UITests
+
+excluded:
+  - Pods
+  - DerivedData
+  - .build
+  - .swiftpm
+
+# Rules
+opt_in_rules:
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - conditional_returns_on_newline
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - convenience_type
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - fatal_error_message
+  - file_header
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - last_where
+  - legacy_multiple
+  - let_var_whitespace
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_literal_brackets
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - operator_usage_whitespace
+  - overridden_super_call
+  - pattern_matching_keywords
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - single_test_class
+  - sorted_first_last
+  - sorted_imports
+  - static_operator
+  - strong_iboutlet
+  - toggle_bool
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
+  - unused_import
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+disabled_rules:
+  - trailing_whitespace
+  - identifier_name
+  - type_name
+
+# Custom rules
+custom_rules:
+  clean_architecture_imports:
+    name: "Clean Architecture Import Rules"
+    regex: "^import (Domain|Application|Interface|Infrastructure)"
+    message: "Verify that imports follow Clean Architecture principles"
+    severity: warning
+
+# Reporter
+reporter: "xcode"

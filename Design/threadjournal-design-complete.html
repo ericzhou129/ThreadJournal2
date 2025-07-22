@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Complete Design System v1.2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background-color: #F5F5F5;
+            color: #1C1C1E;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 20px;
+            padding-right: 320px; /* Space for fixed legend */
+        }
+        
+        /* Header */
+        .main-header {
+            background: #1C1C1E;
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .main-header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .main-header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        /* Reference Legend */
+        .reference-legend {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: white;
+            border: 2px solid #E5E5EA;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        .reference-legend h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #E5E5EA;
+        }
+        
+        .ref-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .ref-item:hover {
+            background: #F0F0F0;
+        }
+        
+        .ref-badge {
+            width: 24px;
+            height: 24px;
+            background: #007AFF;
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .ref-code {
+            font-family: 'SF Mono', monospace;
+            font-size: 12px;
+            color: #1C1C1E;
+            word-break: break-all;
+        }
+        
+        /* Component Badges */
+        .component-badge {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: #007AFF;
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .component-badge:hover {
+            transform: scale(1.2);
+            background: #0051D5;
+        }
+        
+        /* Section Styles */
+        .section {
+            margin-bottom: 60px;
+        }
+        
+        .section-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #E5E5EA;
+        }
+        
+        .screens-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 40px;
+            justify-items: center;
+        }
+        
+        .screen-wrapper {
+            position: relative;
+            padding: 20px;
+        }
+        
+        .screen-label {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        /* Screen Mockup Styles */
+        .screen {
+            width: 390px;
+            height: 844px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .screen-small {
+            height: 600px;
+        }
+        
+        .status-bar {
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .header h2 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .content {
+            height: calc(100% - 44px - 80px);
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        /* Thread List Styles */
+        .thread-list {
+            list-style: none;
+        }
+        
+        .thread-item {
+            margin-bottom: 16px;
+            padding: 20px;
+            background: #F8F8F8;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        
+        .thread-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-align: left;
+        }
+        
+        .thread-meta {
+            font-size: 12px;
+            color: #8E8E93;
+            text-align: left;
+        }
+        
+        /* Thread Entry Styles */
+        .thread-entry {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .thread-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .entry-timestamp {
+            font-size: 11px;
+            color: #8E8E93;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .entry-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1C1C1E;
+            text-align: left;
+        }
+        
+        /* Compose Area */
+        .compose-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #F2F2F7;
+            padding: 16px 16px 32px;
+        }
+        
+        .compose-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .compose-input {
+            flex: 1;
+            min-height: 44px;
+            padding: 12px 16px;
+            border: 1px solid #E5E5EA;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            text-align: left;
+        }
+        
+        .compose-input:focus {
+            border-color: #007AFF;
+        }
+        
+        /* Buttons */
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+        }
+        
+        .compose-send {
+            width: 44px;
+            height: 44px;
+            background: #1C1C1E;
+            color: white;
+            border: none;
+            border-radius: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .floating-add {
+            position: absolute;
+            bottom: 100px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #1C1C1E;
+            color: white;
+            border: none;
+            border-radius: 28px;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        
+        /* Keyboard Styles */
+        .keyboard {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 336px;
+            background: #D1D3D9;
+            border-top: 1px solid #AEB0B5;
+        }
+        
+        .keyboard-toolbar {
+            height: 44px;
+            background: #F7F7F7;
+            border-bottom: 1px solid #E5E5E7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+        }
+        
+        .keyboard-keys {
+            padding: 8px 3px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .key {
+            background: white;
+            border-radius: 5px;
+            width: 32px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 23px;
+            color: #000;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+        }
+        
+        .key-space {
+            width: 180px;
+            font-size: 16px;
+        }
+        
+        /* Copy feedback */
+        .copy-toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #34C759;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+        }
+        
+        /* Menu Dropdown */
+        .menu-dropdown {
+            position: absolute;
+            top: 52px;
+            right: 24px;
+            background: white;
+            border: 1px solid #E5E5EA;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            z-index: 100;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            font-size: 15px;
+            color: #1C1C1E;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .menu-item:hover {
+            background: #F2F2F7;
+        }
+        
+        .menu-item:first-child {
+            border-radius: 11px 11px 0 0;
+        }
+        
+        .menu-item:last-child {
+            border-radius: 0 0 11px 11px;
+        }
+        
+        /* iOS Share Sheet Mock */
+        .share-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            display: none;
+            z-index: 200;
+        }
+        
+        .share-sheet-header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #E5E5EA;
+        }
+        
+        .share-sheet-title {
+            font-size: 13px;
+            color: #8E8E93;
+            margin-bottom: 4px;
+        }
+        
+        .share-sheet-filename {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1C1C1E;
+        }
+        
+        .share-sheet-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 24px 0;
+        }
+        
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .share-icon {
+            width: 60px;
+            height: 60px;
+            background: #F2F2F7;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .share-label {
+            font-size: 12px;
+            color: #1C1C1E;
+        }
+        
+        .share-sheet-cancel {
+            width: 100%;
+            padding: 16px;
+            background: #F2F2F7;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            color: #007AFF;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1400px) {
+            body {
+                padding-right: 20px;
+            }
+            
+            .reference-legend {
+                position: static;
+                width: 100%;
+                max-width: 600px;
+                margin: 0 auto 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="main-header">
+        <h1>ThreadJournal Design System</h1>
+        <p>Complete design reference v1.2 • Click any numbered badge to copy component reference</p>
+    </div>
+    
+    <!-- Reference Legend -->
+    <div class="reference-legend">
+        <h3>📋 Component References</h3>
+        <div id="refLegend">
+            <!-- Will be populated by JavaScript -->
+        </div>
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E5EA;">
+            <h3>📱 Screen References</h3>
+            <div class="ref-item" onclick="copyRef('Design:v1.2/Screen/ThreadList')">
+                <div class="ref-badge">S1</div>
+                <div class="ref-code">Design:v1.2/Screen/ThreadList</div>
+            </div>
+            <div class="ref-item" onclick="copyRef('Design:v1.2/Screen/ThreadDetail')">
+                <div class="ref-badge">S2</div>
+                <div class="ref-code">Design:v1.2/Screen/ThreadDetail</div>
+            </div>
+            <div class="ref-item" onclick="copyRef('Design:v1.2/Screen/NewThread')">
+                <div class="ref-badge">S3</div>
+                <div class="ref-code">Design:v1.2/Screen/NewThread</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 1: Main Screens -->
+    <div class="section">
+        <h2 class="section-title">Main Application Screens</h2>
+        <div class="screens-grid">
+            <!-- Thread List Screen -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Thread List</div>
+                <div class="screen">
+                    <div class="component-badge" style="top: 130px; left: 40px;" onclick="copyRef('Design:v1.2/ThreadList')">1</div>
+                    <div class="component-badge" style="top: 200px; left: 40px;" onclick="copyRef('Design:v1.2/ThreadListItem')">2</div>
+                    <div class="component-badge" style="bottom: 120px; right: 40px;" onclick="copyRef('Design:v1.2/FAB')">3</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h1>Threads</h1>
+                    </div>
+                    
+                    <div class="content">
+                        <ul class="thread-list">
+                            <li class="thread-item">
+                                <div class="thread-title">Gratitude Journal</div>
+                                <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                            </li>
+                            <li class="thread-item">
+                                <div class="thread-title">Travel Diary</div>
+                                <div class="thread-meta">1 entry • Updated yesterday</div>
+                            </li>
+                            <li class="thread-item">
+                                <div class="thread-title">Daily Reflections</div>
+                                <div class="thread-meta">5 entries • Updated 3 days ago</div>
+                            </li>
+                            <li class="thread-item">
+                                <div class="thread-title">Book Notes</div>
+                                <div class="thread-meta">2 entries • Updated 1 week ago</div>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <button class="floating-add">+</button>
+                </div>
+            </div>
+            
+            <!-- Thread Detail Screen -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Thread Detail</div>
+                <div class="screen">
+                    <div class="component-badge" style="top: 200px; left: 40px;" onclick="copyRef('Design:v1.2/ThreadEntry')">4</div>
+                    <div class="component-badge" style="bottom: 90px; left: 40px;" onclick="copyRef('Design:v1.2/ComposeArea')">5</div>
+                    <div class="component-badge" style="bottom: 140px; right: 40px;" onclick="copyRef('Design:v1.2/ExpandButton')">6</div>
+                    <div class="component-badge" style="bottom: 90px; right: 40px;" onclick="copyRef('Design:v1.2/SendButton')">7</div>
+                    <div class="component-badge" style="top: 80px; right: 40px;" onclick="copyRef('Design:v1.2/MenuButton')">9</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                        <button class="icon-btn" style="position: absolute; top: 16px; right: 24px;" onclick="toggleMenu('threadMenu')">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="6" r="1.5" fill="#3C3C43"/>
+                                <circle cx="12" cy="12" r="1.5" fill="#3C3C43"/>
+                                <circle cx="12" cy="18" r="1.5" fill="#3C3C43"/>
+                            </svg>
+                        </button>
+                        <div id="threadMenu" class="menu-dropdown" style="display: none;">
+                            <div class="menu-item" onclick="exportCSV()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-right: 12px;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export as CSV
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="content" style="padding-bottom: 100px;">
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Dec 15, 7:00 AM</div>
+                            <div class="entry-content">
+                                I'm grateful for the peaceful walk I took in the park this morning. The fresh air and nature's beauty helped me clear my mind and appreciate the present moment.
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Yesterday, 9:30 PM</div>
+                            <div class="entry-content">
+                                I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Today, 2:15 PM</div>
+                            <div class="entry-content">
+                                Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="compose-area">
+                        <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 19L19 5M19 5V11M19 5H13M5 5L19 19M5 19V13M5 19H11" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="compose-wrapper">
+                            <textarea class="compose-input" placeholder="Add to journal..." rows="1"></textarea>
+                            <button class="compose-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- New Thread Screen -->
+            <div class="screen-wrapper">
+                <div class="screen-label">New Thread</div>
+                <div class="screen">
+                    <div class="component-badge" style="top: 130px; left: 40px;" onclick="copyRef('Design:v1.2/ThreadTitleInput')">8</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header" style="border-bottom: none;">
+                        <div style="display: flex; align-items: center;">
+                            <button class="icon-btn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <path d="M6 18L18 6M6 6L18 18" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                            <div style="flex: 1;"></div>
+                            <input type="text" placeholder="Thread title..." style="width: 100%; padding: 0; border: none; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; outline: none; margin-bottom: 8px;">
+                        </div>
+                    </div>
+                    
+                    <div class="content" style="padding-bottom: 100px; padding-top: 16px;">
+                    </div>
+                    
+                    <div class="compose-area">
+                        <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 19L19 5M19 5V11M19 5H13M5 5L19 19M5 19V13M5 19H11" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="compose-wrapper">
+                            <textarea class="compose-input" placeholder="Start your first entry..." rows="1"></textarea>
+                            <button class="compose-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 2: Keyboard States -->
+    <div class="section">
+        <h2 class="section-title">Keyboard Entry States</h2>
+        <div class="screens-grid">
+            <!-- Default State -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Default (2-3 lines)</div>
+                <div class="screen screen-small">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    
+                    <div class="content" style="height: calc(100% - 44px - 80px - 336px); padding-bottom: 100px;">
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Today, 2:15 PM</div>
+                            <div class="entry-content">
+                                Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="compose-area" style="bottom: 336px;">
+                        <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 19L19 5M19 5V11M19 5H13M5 5L19 19M5 19V13M5 19H11" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="compose-wrapper">
+                            <textarea class="compose-input" rows="2" style="border-color: #007AFF; height: 68px;">Today I experienced something wonderful...</textarea>
+                            <button class="compose-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="keyboard">
+                        <div class="keyboard-toolbar">
+                            <div style="display: flex; gap: 12px;">
+                                <span style="padding: 6px 12px; background: white; border-radius: 16px; font-size: 15px;">wonderful</span>
+                                <span style="padding: 6px 12px; background: white; border-radius: 16px; font-size: 15px;">wonder</span>
+                            </div>
+                            <span style="color: #007AFF; font-size: 15px; font-weight: 600;">Done</span>
+                        </div>
+                        <div class="keyboard-keys">
+                            <div class="keyboard-row">
+                                <div class="key">Q</div>
+                                <div class="key">W</div>
+                                <div class="key">E</div>
+                                <div class="key">R</div>
+                                <div class="key">T</div>
+                                <div class="key">Y</div>
+                                <div class="key">U</div>
+                                <div class="key">I</div>
+                                <div class="key">O</div>
+                                <div class="key">P</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Expanded State -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Auto-Expanded (up to 50%)</div>
+                <div class="screen screen-small">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    
+                    <div class="content" style="height: calc(100% - 44px - 80px - 336px - 100px);">
+                        <!-- Content pushed up more -->
+                    </div>
+                    
+                    <div class="compose-area" style="bottom: 336px; padding-top: 24px;">
+                        <button class="icon-btn" style="position: absolute; top: 16px; right: 16px; z-index: 10; background: rgba(0, 122, 255, 0.1);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 19L19 5M19 5V11M19 5H13M5 5L19 19M5 19V13M5 19H11" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="compose-wrapper">
+                            <textarea class="compose-input" style="border-color: #007AFF; height: 140px;">Today I experienced something wonderful. My colleague surprised me with coffee just when I needed it most.
+
+This act of kindness reminded me of the importance of small gestures...</textarea>
+                            <button class="compose-send">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="keyboard">
+                        <div class="keyboard-toolbar">
+                            <span style="color: #007AFF; font-size: 15px; font-weight: 600;">Done</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fullscreen State -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Fullscreen Focus Mode</div>
+                <div class="screen screen-small">
+                    <div style="position: absolute; inset: 0; background: white; z-index: 100;">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>•••</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid #F2F2F7;">
+                            <button style="background: none; border: none; color: #007AFF; font-size: 17px;">Cancel</button>
+                            <div style="font-size: 17px; font-weight: 600;">New Entry</div>
+                            <button style="background: none; border: none; color: #007AFF; font-size: 17px;">Done</button>
+                        </div>
+                        
+                        <div style="padding: 24px; height: calc(100% - 44px - 60px - 336px); overflow-y: auto;">
+                            <textarea style="width: 100%; height: 100%; border: none; font-size: 16px; line-height: 1.8; resize: none; outline: none;">Today I experienced something wonderful. My colleague surprised me with coffee just when I needed it most.
+
+This act of kindness reminded me of the importance of small gestures. It's not about grand displays but these little moments of connection that make life meaningful.
+
+I'm also grateful for the progress I made on my project today. After weeks of struggling with a particularly challenging feature, everything finally clicked into place.</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="keyboard" style="z-index: 101;">
+                        <div class="keyboard-toolbar">
+                            <span style="color: #007AFF; font-size: 15px; font-weight: 600;">Done</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 3: Typography Examples -->
+    <div class="section">
+        <h2 class="section-title">Typography & Dynamic Type</h2>
+        <div class="screens-grid">
+            <!-- Base 14pt -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Default (14pt base)</div>
+                <div class="screen" style="height: 400px;">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Today, 2:15 PM</div>
+                            <div class="entry-content">
+                                Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Yesterday, 9:30 PM</div>
+                            <div class="entry-content">
+                                I'm thankful for the laughter shared with my family during dinner tonight.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Large Text -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Large Text (18pt)</div>
+                <div class="screen" style="height: 400px;">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="thread-entry">
+                            <div class="entry-timestamp" style="font-size: 14px;">Today, 2:15 PM</div>
+                            <div class="entry-content" style="font-size: 18px; line-height: 1.6;">
+                                Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Copy Toast -->
+    <div class="copy-toast" id="copyToast">
+        ✓ Copied to clipboard!
+    </div>
+    
+    <!-- iOS Share Sheet Mock -->
+    <div class="share-sheet" id="shareSheet">
+        <div class="share-sheet-header">
+            <div class="share-sheet-title">Share</div>
+            <div class="share-sheet-filename">Gratitude Journal_20250718_1430.csv</div>
+        </div>
+        
+        <div class="share-sheet-options">
+            <div class="share-option">
+                <div class="share-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="13 2 13 9 20 9" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="share-label">Save to Files</div>
+            </div>
+            
+            <div class="share-option">
+                <div class="share-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="22,6 12,13 2,6" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="share-label">Mail</div>
+            </div>
+            
+            <div class="share-option">
+                <div class="share-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="share-label">Messages</div>
+            </div>
+            
+            <div class="share-option">
+                <div class="share-icon">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="9" y1="18" x2="9.01" y2="18" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="share-label">AirDrop</div>
+            </div>
+        </div>
+        
+        <button class="share-sheet-cancel" onclick="closeShareSheet()">Cancel</button>
+    </div>
+    
+    <script>
+        // Reference data
+        const references = [
+            { num: 1, code: 'Design:v1.2/ThreadList' },
+            { num: 2, code: 'Design:v1.2/ThreadListItem' },
+            { num: 3, code: 'Design:v1.2/FAB' },
+            { num: 4, code: 'Design:v1.2/ThreadEntry' },
+            { num: 5, code: 'Design:v1.2/ComposeArea' },
+            { num: 6, code: 'Design:v1.2/ExpandButton' },
+            { num: 7, code: 'Design:v1.2/SendButton' },
+            { num: 8, code: 'Design:v1.2/ThreadTitleInput' },
+            { num: 9, code: 'Design:v1.2/MenuButton' },
+            { num: 10, code: 'Design:v1.2/ExportMenu' }
+        ];
+        
+        // Populate legend
+        const legend = document.getElementById('refLegend');
+        references.forEach(ref => {
+            const item = document.createElement('div');
+            item.className = 'ref-item';
+            item.onclick = () => copyRef(ref.code);
+            item.innerHTML = `
+                <div class="ref-badge">${ref.num}</div>
+                <div class="ref-code">${ref.code}</div>
+            `;
+            legend.appendChild(item);
+        });
+        
+        // Copy function
+        function copyRef(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                const toast = document.getElementById('copyToast');
+                toast.style.display = 'block';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 2000);
+            });
+        }
+        
+        // Toggle menu
+        function toggleMenu(menuId) {
+            const menu = document.getElementById(menuId);
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Export CSV mock
+        function exportCSV() {
+            document.getElementById('threadMenu').style.display = 'none';
+            document.getElementById('shareSheet').style.display = 'block';
+        }
+        
+        // Close share sheet
+        function closeShareSheet() {
+            document.getElementById('shareSheet').style.display = 'none';
+        }
+        
+        // Click outside to close menus
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.icon-btn') && !e.target.closest('.menu-dropdown')) {
+                document.getElementById('threadMenu').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

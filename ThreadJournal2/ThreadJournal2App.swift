@@ -9,9 +9,21 @@ import SwiftUI
 
 @main
 struct ThreadJournal2App: App {
+    let persistenceController = PersistenceController.shared
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ThreadListView(viewModel: makeThreadListViewModel())
         }
+    }
+    
+    private func makeThreadListViewModel() -> ThreadListViewModel {
+        let repository = persistenceController.makeThreadRepository()
+        let createThreadUseCase = CreateThreadUseCase(repository: repository)
+        
+        return ThreadListViewModel(
+            repository: repository,
+            createThreadUseCase: createThreadUseCase
+        )
     }
 }

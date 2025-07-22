@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: SwiftLint
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install SwiftLint
+      run: brew install swiftlint
+    
+    - name: Run SwiftLint
+      run: swiftlint --reporter github-actions-logging
+
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        xcode: ['15.0']
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+    
+    - name: Show Xcode version
+      run: xcodebuild -version
+    
+    - name: Build
+      run: |
+        xcodebuild clean build \
+          -project ThreadJournal2.xcodeproj \
+          -scheme ThreadJournal2 \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+    
+    - name: Run Tests
+      run: |
+        xcodebuild test \
+          -project ThreadJournal2.xcodeproj \
+          -scheme ThreadJournal2 \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+          -resultBundlePath TestResults \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: failure()
+      with:
+        name: test-results
+        path: TestResults
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Select Xcode
+      run: sudo xcode-select -s /Applications/Xcode_15.0.app
+    
+    - name: Run Tests with Coverage
+      run: |
+        xcodebuild test \
+          -project ThreadJournal2.xcodeproj \
+          -scheme ThreadJournal2 \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.0' \
+          -enableCodeCoverage YES \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+    
+    - name: Generate Coverage Report
+      run: |
+        xcrun llvm-cov export \
+          -format="lcov" \
+          -instr-profile $(find ~/Library/Developer/Xcode/DerivedData -name '*.profdata' | head -1) \
+          $(find ~/Library/Developer/Xcode/DerivedData -name 'ThreadJournal2.app' -type d | head -1)/ThreadJournal2 \
+          > coverage.lcov
+    
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.lcov
+        fail_ci_if_error: false

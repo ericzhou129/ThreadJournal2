@@ -8,7 +8,7 @@
 import Foundation
 
 /// A continuous conversation/journal on a specific topic
-struct Thread {
+struct Thread: Identifiable, Hashable {
     let id: UUID
     let title: String
     let createdAt: Date

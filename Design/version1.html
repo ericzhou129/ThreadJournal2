@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Version 1 (Ultra Minimalist)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background-color: #FAFAFA;
+            color: #1C1C1E;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .screen {
+            width: 390px;
+            height: 844px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .header-simple {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            transition: background 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: #F2F2F7;
+        }
+        
+        .content {
+            height: calc(100% - 44px - 80px);
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .thread-list {
+            list-style: none;
+        }
+        
+        .thread-item {
+            margin-bottom: 16px;
+            padding: 20px;
+            background: #F8F8F8;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .thread-item:hover {
+            background: #F2F2F7;
+            transform: translateY(-1px);
+        }
+        
+        .thread-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            text-align: left;
+        }
+        
+        .thread-meta {
+            font-size: 12px;
+            color: #8E8E93;
+            text-align: left;
+        }
+        
+        .thread-entry {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .thread-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .entry-timestamp {
+            font-size: 11px;
+            color: #8E8E93;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        .entry-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1C1C1E;
+            text-align: left;
+        }
+        
+        .compose-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #F2F2F7;
+            padding: 16px 16px 32px;
+        }
+        
+        .compose-input {
+            width: 100%;
+            min-height: 44px;
+            padding: 12px 16px;
+            border: 1px solid #E5E5EA;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            text-align: left;
+        }
+        
+        .compose-input:focus {
+            border-color: #007AFF;
+        }
+        
+        .floating-add {
+            position: absolute;
+            bottom: 100px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: #1C1C1E;
+            color: white;
+            border: none;
+            border-radius: 28px;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .floating-add:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .compose-send {
+            width: 44px;
+            height: 44px;
+            background: #1C1C1E;
+            color: white;
+            border: none;
+            border-radius: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .compose-send:hover {
+            transform: scale(1.05);
+            background: #000;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple Reference Guide -->
+    <div style="background: #007AFF; color: white; padding: 20px; text-align: center; font-size: 18px; font-weight: 600;">
+        📋 For Complete Design Reference with All Components<br>
+        <span style="font-size: 16px;">Open <a href="threadjournal-design-complete.html" style="color: white; text-decoration: underline;">threadjournal-design-complete.html</a></span>
+    </div>
+    
+    <!-- Threads List Screen -->
+    <div class="screen" id="threadsScreen">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>•••</span>
+        </div>
+        
+        <div class="header">
+            <h1>Threads</h1>
+        </div>
+        
+        <div class="content">
+            <ul class="thread-list" data-component="thread-list">
+                <li class="thread-item" data-component="thread-list-item" data-state="default" onclick="showThread()">
+                    <div class="thread-title">Gratitude Journal</div>
+                    <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                </li>
+                <li class="thread-item" data-component="thread-list-item" data-state="default">
+                    <div class="thread-title">Travel Diary</div>
+                    <div class="thread-meta">1 entry • Updated yesterday</div>
+                </li>
+                <li class="thread-item" data-component="thread-list-item" data-state="default">
+                    <div class="thread-title">Daily Reflections</div>
+                    <div class="thread-meta">5 entries • Updated 3 days ago</div>
+                </li>
+                <li class="thread-item" data-component="thread-list-item" data-state="default">
+                    <div class="thread-title">Book Notes</div>
+                    <div class="thread-meta">2 entries • Updated 1 week ago</div>
+                </li>
+            </ul>
+        </div>
+        
+        <button class="floating-add" data-component="fab" data-action="new-thread" onclick="showNewThread()">+</button>
+    </div>
+    
+    <!-- Thread Detail Screen -->
+    <div class="screen hidden" id="threadScreen">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>•••</span>
+        </div>
+        
+        <div class="header">
+            <div class="header-simple">
+                <button class="icon-btn" onclick="showThreadsList()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <h1 style="font-size: 20px;">Gratitude Journal</h1>
+                <button class="icon-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="5" r="1.5" fill="#1C1C1E"/>
+                        <circle cx="12" cy="12" r="1.5" fill="#1C1C1E"/>
+                        <circle cx="12" cy="19" r="1.5" fill="#1C1C1E"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <div class="content" id="threadContent" style="padding-bottom: 100px;">
+            <div class="thread-entry" data-component="thread-entry" data-has-divider="true">
+                <div class="entry-timestamp" data-typography="timestamp">Dec 15, 7:00 AM</div>
+                <div class="entry-content" data-typography="body-text">
+                    I'm grateful for the peaceful walk I took in the park this morning. The fresh air and nature's beauty helped me clear my mind and appreciate the present moment.
+                </div>
+            </div>
+            
+            <div class="thread-entry" data-component="thread-entry" data-has-divider="true">
+                <div class="entry-timestamp" data-typography="timestamp">Yesterday, 9:30 PM</div>
+                <div class="entry-content" data-typography="body-text">
+                    I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.
+                </div>
+            </div>
+            
+            <div class="thread-entry" data-component="thread-entry" data-has-divider="true">
+                <div class="entry-timestamp" data-typography="timestamp">Today, 2:15 PM</div>
+                <div class="entry-content" data-typography="body-text">
+                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                </div>
+            </div>
+        </div>
+        
+        <div class="compose-area" data-component="compose-area">
+            <button class="icon-btn" data-component="expand-button" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 17L17 7M17 7H10M17 7V14" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div style="display: flex; gap: 12px; align-items: flex-end;">
+                <textarea class="compose-input" data-component="compose-input" placeholder="Add to journal..." rows="1" style="flex: 1;"></textarea>
+                <button class="compose-send" data-component="send-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Thread Screen -->
+    <div class="screen hidden" id="newThreadScreen">
+        <div class="status-bar">
+            <span>9:41</span>
+            <span>•••</span>
+        </div>
+        
+        <div class="header" style="padding: 16px 24px 0;">
+            <div class="header-simple" style="margin-bottom: 16px;">
+                <button class="icon-btn" onclick="showThreadsList()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 18L18 6M6 6L18 18" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div style="flex: 1;"></div>
+            </div>
+            <input type="text" data-component="thread-title-input" placeholder="Thread title..." style="width: 100%; padding: 0; border: none; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; outline: none; margin-bottom: 8px;">
+        </div>
+        
+        <div class="content" style="padding-bottom: 100px; padding-top: 16px;">
+        
+        <div class="compose-area" data-component="compose-area">
+            <button class="icon-btn" data-component="expand-button" style="position: absolute; top: 16px; right: 16px; z-index: 10;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 17L17 7M17 7H10M17 7V14" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div style="display: flex; gap: 12px; align-items: flex-end;">
+                <textarea class="compose-input" data-component="compose-input" placeholder="Start your first entry..." rows="1" style="flex: 1;"></textarea>
+                <button class="compose-send" data-component="send-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+
+    <script>
+        function showThread() {
+            document.getElementById('threadsScreen').classList.add('hidden');
+            document.getElementById('threadScreen').classList.remove('hidden');
+            // Scroll to bottom to show latest entry
+            setTimeout(() => {
+                const content = document.getElementById('threadContent');
+                content.scrollTop = content.scrollHeight;
+            }, 100);
+        }
+        
+        function showNewThread() {
+            document.getElementById('threadsScreen').classList.add('hidden');
+            document.getElementById('newThreadScreen').classList.remove('hidden');
+        }
+        
+        function showThreadsList() {
+            document.getElementById('threadScreen').classList.add('hidden');
+            document.getElementById('newThreadScreen').classList.add('hidden');
+            document.getElementById('threadsScreen').classList.remove('hidden');
+        }
+        
+        // Auto-resize textarea
+        document.querySelectorAll('.compose-input').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+    </script>
+</body>
+</html>
