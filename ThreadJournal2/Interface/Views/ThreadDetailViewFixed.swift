@@ -13,6 +13,7 @@ struct ThreadDetailViewFixed: View {
     
     @State private var isExpanded = false
     @State private var showingExportMenu = false
+    @State private var showingShareSheet = false
     @FocusState private var isComposeFieldFocused: Bool
     @State private var textEditorHeight: CGFloat = 44
     
@@ -21,12 +22,19 @@ struct ThreadDetailViewFixed: View {
     
     private let bottomID = "bottom"
     
-    init(threadId: UUID, repository: ThreadRepository, addEntryUseCase: AddEntryUseCase, draftManager: DraftManager) {
+    init(
+        threadId: UUID,
+        repository: ThreadRepository,
+        addEntryUseCase: AddEntryUseCase,
+        draftManager: DraftManager,
+        exportThreadUseCase: ExportThreadUseCase
+    ) {
         self.threadId = threadId
         let viewModel = ThreadDetailViewModel(
             repository: repository,
             addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager
+            draftManager: draftManager,
+            exportThreadUseCase: exportThreadUseCase
         )
         self._viewModel = StateObject(wrappedValue: viewModel)
     }
@@ -181,6 +189,37 @@ struct ThreadDetailViewFixed: View {
         .fullScreenCover(isPresented: $isExpanded) {
             expandedComposeView
         }
+        .sheet(isPresented: $showingShareSheet) {
+            if let fileURL = viewModel.exportedFileURL {
+                ShareSheet(activityItems: [fileURL])
+            }
+        }
+        .alert("Export Failed", isPresented: .constant(viewModel.exportError != nil)) {
+            Button("OK") {
+                viewModel.exportError = nil
+            }
+        } message: {
+            if let error = viewModel.exportError {
+                Text(error)
+            }
+        }
+        .onChange(of: viewModel.exportedFileURL) { _, newValue in
+            if newValue != nil {
+                showingShareSheet = true
+            }
+        }
+        .overlay {
+            if viewModel.isExporting {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .overlay(
+                        ProgressView("Exporting...")
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .cornerRadius(10)
+                    )
+            }
+        }
     }
     
     private func entryView(entry: Entry, isLast: Bool) -> some View {
@@ -210,7 +249,9 @@ struct ThreadDetailViewFixed: View {
     private var menuButton: some View {
         Menu {
             Button(action: {
-                showingExportMenu = true
+                Task {
+                    await viewModel.exportToCSV()
+                }
             }) {
                 Label("Export as CSV", systemImage: "square.and.arrow.up")
             }

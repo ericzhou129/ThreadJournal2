@@ -87,12 +87,18 @@ struct ThreadListView: View {
         .navigationDestination(for: Thread.self) { thread in
             let draftManager = InMemoryDraftManager()
             let addEntryUseCase = AddEntryUseCase(repository: viewModel.repository)
+            let csvExporter = CSVExporter()
+            let exportThreadUseCase = ExportThreadUseCase(
+                repository: viewModel.repository,
+                exporter: csvExporter
+            )
             
             ThreadDetailViewFixed(
                 threadId: thread.id,
                 repository: viewModel.repository,
                 addEntryUseCase: addEntryUseCase,
-                draftManager: draftManager
+                draftManager: draftManager,
+                exportThreadUseCase: exportThreadUseCase
             )
         }
     }

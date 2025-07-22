@@ -44,6 +44,11 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Flag indicating if UI should scroll to latest entry
     @Published private(set) var shouldScrollToLatest = false
     
+    /// Export state
+    @Published private(set) var isExporting = false
+    @Published var exportError: String?
+    @Published private(set) var exportedFileURL: URL?
+    
     // MARK: - Draft State Machine
     
     /// Current state of the draft
@@ -76,6 +81,7 @@ final class ThreadDetailViewModel: ObservableObject {
     private let repository: ThreadRepository
     private let addEntryUseCase: AddEntryUseCase
     private let draftManager: DraftManager
+    private let exportThreadUseCase: ExportThreadUseCase
     
     /// Current thread ID being displayed
     private var currentThreadId: UUID?
@@ -94,14 +100,17 @@ final class ThreadDetailViewModel: ObservableObject {
     ///   - repository: Thread repository for data access
     ///   - addEntryUseCase: Use case for adding entries
     ///   - draftManager: Manager for draft auto-save functionality
+    ///   - exportThreadUseCase: Use case for exporting threads to CSV
     init(
         repository: ThreadRepository,
         addEntryUseCase: AddEntryUseCase,
-        draftManager: DraftManager
+        draftManager: DraftManager,
+        exportThreadUseCase: ExportThreadUseCase
     ) {
         self.repository = repository
         self.addEntryUseCase = addEntryUseCase
         self.draftManager = draftManager
+        self.exportThreadUseCase = exportThreadUseCase
         
         // Configure draft manager auto-save callback
         if let inMemoryDraftManager = draftManager as? InMemoryDraftManager {
@@ -220,6 +229,35 @@ final class ThreadDetailViewModel: ObservableObject {
         retryCount += 1
         hasFailedSave = false
         await addEntry()
+    }
+    
+    /// Exports the current thread to CSV format
+    func exportToCSV() async {
+        guard let threadId = currentThreadId else { return }
+        
+        isExporting = true
+        exportError = nil
+        exportedFileURL = nil
+        
+        do {
+            // Export using the use case
+            let exportData = try await exportThreadUseCase.execute(threadId: threadId)
+            
+            // Save to temporary directory
+            let tempDirectory = FileManager.default.temporaryDirectory
+            let fileURL = tempDirectory.appendingPathComponent(exportData.fileName)
+            
+            // Write data to file
+            try exportData.data.write(to: fileURL)
+            
+            // Set the exported file URL for the UI to present share sheet
+            exportedFileURL = fileURL
+            
+        } catch {
+            exportError = error.localizedDescription
+        }
+        
+        isExporting = false
     }
     
     // MARK: - Private Methods

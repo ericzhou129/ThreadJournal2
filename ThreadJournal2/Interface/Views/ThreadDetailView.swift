@@ -26,13 +26,20 @@ struct ThreadDetailView: View {
     
     private let threadId: UUID
     
-    init(threadId: UUID, repository: ThreadRepository, addEntryUseCase: AddEntryUseCase, draftManager: DraftManager) {
+    init(
+        threadId: UUID,
+        repository: ThreadRepository,
+        addEntryUseCase: AddEntryUseCase,
+        draftManager: DraftManager,
+        exportThreadUseCase: ExportThreadUseCase
+    ) {
         self.threadId = threadId
         
         let viewModel = ThreadDetailViewModel(
             repository: repository,
             addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager
+            draftManager: draftManager,
+            exportThreadUseCase: exportThreadUseCase
         )
         self._viewModel = StateObject(wrappedValue: viewModel)
     }
@@ -462,11 +469,18 @@ struct ThreadDetailView: View {
             updatedAt: Date()
         )
         
+        let csvExporter = CSVExporter()
+        let exportThreadUseCase = ExportThreadUseCase(
+            repository: repository,
+            exporter: csvExporter
+        )
+        
         ThreadDetailView(
             threadId: sampleThread.id,
             repository: repository,
             addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager
+            draftManager: draftManager,
+            exportThreadUseCase: exportThreadUseCase
         )
     }
 }
