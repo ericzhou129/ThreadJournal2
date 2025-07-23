@@ -665,6 +665,290 @@ func testThreadListPerformanceWith100Threads() {
 
 ---
 
+## Epic 5: Entry Management
+
+### TICKET-018: Long Press Context Menu for Entries
+**Story ID**: TICKET-018  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want to** long press on any entry to see edit and delete options  
+**So that** I can manage my journal entries after they've been posted  
+
+**Acceptance Criteria**:
+1. Long press gesture (0.5 seconds) on any entry shows context menu
+2. Context menu appears with two options: "Edit" and "Delete"
+3. Menu has iOS-native appearance with SF Symbol icons
+4. Edit option has pencil icon (SF Symbol: pencil)
+5. Delete option has trash icon (SF Symbol: trash) in red
+6. Tapping outside menu dismisses it
+7. Visual feedback (haptic + slight scale) when long press detected
+8. Menu positioned above/below entry based on screen position
+- [Arch-Lint] Long press state managed by View, actions delegated to ViewModel
+- [Coverage] UI test for long press gesture and menu appearance
+- [Doc] Component matches Design:v1.2/EntryContextMenu
+
+**Component Reference**:
+- Design:v1.2/EntryContextMenu
+- Design:v1.2/ThreadEntry (base component)
+
+**Technical Reference**:
+- ViewModel methods from TIP Section 6 (API Contracts)
+- View implementation pattern from TIP Section 3 (Clean Architecture)
+
+**Technical Implementation**:
+- Use `.contextMenu` modifier on entry view
+- Add to entryView in ThreadDetailViewFixed:
+  ```swift
+  .contextMenu {
+      Button(action: { viewModel.startEditingEntry(entry) }) {
+          Label("Edit", systemImage: "pencil")
+      }
+      Button(role: .destructive, action: { viewModel.deleteEntry(entry) }) {
+          Label("Delete", systemImage: "trash")
+      }
+  }
+  ```
+- Add haptic feedback: `UIImpactFeedbackGenerator(style: .medium)`
+- ViewModel methods: `startEditingEntry(_:)`, `deleteEntry(_:)`
+
+**QA Test Criteria**:
+1. Test long press shows menu within 0.5 seconds
+2. Verify both Edit and Delete options appear
+3. Test haptic feedback triggers on long press
+4. Verify menu dismisses when tapping outside
+5. Test menu positioning near screen edges
+6. Verify delete option appears in red
+7. Test on both iPhone and iPad
+
+**Priority Score**: 6 (WSJF) - Important UX enhancement  
+**Dependencies**: TICKET-011 (Thread Detail UI)
+
+### TICKET-019: Edit Entry Mode Implementation
+**Story ID**: TICKET-019  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want to** edit an existing entry's content and save changes  
+**So that** I can correct mistakes or update my thoughts  
+
+**Acceptance Criteria**:
+1. Tapping "Edit" from context menu enters edit mode for that entry
+2. Entry content becomes editable TextEditor with existing text
+3. TextEditor automatically sizes to fit content height (no internal scrolling)
+4. Save and Cancel buttons appear in place of timestamp
+5. Original entry view replaced with edit UI inline
+6. Other entries remain visible but dimmed (50% opacity)
+7. Keyboard appears automatically when entering edit mode
+8. Save button disabled if content unchanged or empty
+9. After saving, entry shows with "(edited)" next to timestamp
+10. Escape/swipe down cancels edit without saving
+- [Arch-Lint] Edit state managed by ViewModel with original content backup
+- [Coverage] Test edit/save/cancel flows with state verification
+- [Doc] Component matches Design:v1.2/EditMode
+
+**Component Reference**:
+- Design:v1.2/EditMode
+- Design:v1.2/ComposeArea (reuse styling)
+
+**Technical Reference**:
+- UpdateEntryUseCase from TIP Section 6 (API Contracts)
+- Edit entry data flow from TIP Section 7 (Data Flow)
+- ViewModel edit methods from TIP Section 6
+
+**Technical Implementation**:
+- Add to ThreadDetailViewModel:
+  ```swift
+  @Published var editingEntry: Entry?
+  @Published var editingContent: String = ""
+  
+  func startEditingEntry(_ entry: Entry) {
+      editingEntry = entry
+      editingContent = entry.content
+  }
+  
+  func saveEditedEntry() async {
+      // Update entry via repository
+  }
+  
+  func cancelEditing() {
+      editingEntry = nil
+      editingContent = ""
+  }
+  ```
+- Replace entry view with edit UI when `entry.id == viewModel.editingEntry?.id`
+- Use TextEditor with `.fixedSize(horizontal: false, vertical: true)` for auto-height
+- Calculate initial height based on content length to avoid scrolling
+- Use same TextEditor styling as compose area
+- Add UpdateEntryUseCase to domain layer
+- Track edit history in Entry entity (optional for v1)
+
+**Component Reference**:
+- Reuse styling from Design:v1.2/ComposeArea
+- Button styling from existing Send button
+
+**QA Test Criteria**:
+1. Test edit mode replaces entry inline
+2. Verify TextEditor shows full content without internal scrolling
+3. Test TextEditor height adjusts when adding/removing lines
+4. Verify keyboard appears automatically
+5. Test Save button enables only when content changes
+6. Verify Cancel restores original content
+7. Test "(edited)" indicator appears after save
+8. Verify other entries dim during edit
+9. Test concurrent edits not allowed
+10. Test edit mode survives rotation (iPad)
+11. Verify edit changes persist after app restart
+
+**Priority Score**: 5 (WSJF) - Valuable but not critical path  
+**Dependencies**: TICKET-018 (Context Menu)
+
+### TICKET-020: Delete Entry Implementation (Soft Delete)
+**Story ID**: TICKET-020  
+**Context/Layer**: Journaling / domain + infrastructure + interface  
+**As a** user  
+**I want to** delete journal entries I no longer want to see  
+**So that** I can hide mistaken or unwanted entries from my journal (with ability to recover later)  
+
+**Acceptance Criteria**:
+1. Tapping "Delete" from context menu shows confirmation dialog
+2. Confirmation dialog title: "Delete Entry?"
+3. Dialog message: "This entry will be removed from your journal."
+4. Dialog has two buttons: "Cancel" (default) and "Delete" (destructive/red)
+5. Tapping Cancel dismisses dialog without action
+6. Tapping Delete marks entry as deleted (soft delete) with fade-out animation
+7. Deleted entries no longer appear in thread view
+8. Thread's updatedAt timestamp updates after deletion
+9. If deleted entry was the last visible one, show empty state
+10. Entry data remains in database with deletedAt timestamp
+- [Arch-Lint] Soft delete preserves data integrity per TIP Section 2
+- [Coverage] Test soft delete flow and filtering of deleted entries
+- [Doc] Component matches Design:v1.2/DeleteConfirmation
+
+**Component Reference**:
+- Design:v1.2/DeleteConfirmation
+- Design:v1.2/EntryContextMenu (trigger point)
+
+**Technical Reference**:
+- Updated Entry entity from TIP Section 2 with deletedAt field
+- DeleteEntryUseCase protocol from TIP Section 6
+- Repository soft delete method from TIP Section 6
+- Data flow diagram from TIP Section 7
+
+**Technical Implementation**:
+
+1. **Domain Layer Updates** (per TIP Section 3):
+   Create `Domain/UseCases/DeleteEntryUseCase.swift`:
+   ```swift
+   final class DeleteEntryUseCase {
+       private let repository: ThreadRepository
+       
+       init(repository: ThreadRepository) {
+           self.repository = repository
+       }
+       
+       func execute(entryId: UUID) async throws {
+           try await repository.softDeleteEntry(entryId: entryId)
+       }
+   }
+   ```
+
+2. **Infrastructure Updates** (per TIP Section 6):
+   Update `Infrastructure/Persistence/CoreDataThreadRepository.swift`:
+   ```swift
+   func softDeleteEntry(entryId: UUID) async throws {
+       let context = container.viewContext
+       
+       let request = CDEntry.fetchRequest()
+       request.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+       
+       guard let cdEntry = try context.fetch(request).first else {
+           throw PersistenceError.notFound(id: entryId)
+       }
+       
+       cdEntry.deletedAt = Date()
+       
+       // Update thread's updatedAt
+       if let cdThread = cdEntry.thread {
+           cdThread.updatedAt = Date()
+       }
+       
+       try context.save()
+   }
+   
+   func fetchEntries(for threadId: UUID, includeDeleted: Bool = false) async throws -> [Entry] {
+       var predicates = [NSPredicate(format: "thread.id == %@", threadId as CVarArg)]
+       
+       if !includeDeleted {
+           predicates.append(NSPredicate(format: "deletedAt == nil"))
+       }
+       
+       request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+       // ... rest of implementation
+   }
+   ```
+
+3. **Interface Layer Updates**:
+   Update ThreadDetailViewModel (following TIP Section 7 data flow):
+   ```swift
+   @Published var entryToDelete: Entry?
+   @Published var showDeleteConfirmation = false
+   @Published var isDeletingEntry = false
+   
+   func confirmDeleteEntry(_ entry: Entry) {
+       entryToDelete = entry
+       showDeleteConfirmation = true
+   }
+   
+   func deleteEntry() async {
+       guard let entry = entryToDelete else { return }
+       isDeletingEntry = true
+       
+       do {
+           try await deleteEntryUseCase.execute(entryId: entry.id)
+           
+           withAnimation(.easeOut(duration: 0.3)) {
+               entries.removeAll { $0.id == entry.id }
+           }
+           
+           if let thread = thread {
+               self.thread = try? Thread(
+                   id: thread.id,
+                   title: thread.title,
+                   createdAt: thread.createdAt,
+                   updatedAt: Date()
+               )
+           }
+       } catch {
+           // Handle error
+       }
+       
+       isDeletingEntry = false
+       entryToDelete = nil
+       showDeleteConfirmation = false
+   }
+   ```
+
+**Core Data Migration** (per TIP Core Data versioning):
+1. Create ThreadDataModel v1.1
+2. Add deletedAt attribute to CDEntry
+3. Lightweight migration will handle existing data
+
+**QA Test Criteria**:
+1. Test delete shows confirmation dialog
+2. Verify Cancel dismisses without deletion
+3. Test Delete removes entry from view with animation
+4. Verify entry still exists in database with deletedAt set
+5. Test deleted entries don't appear after app restart
+6. Verify thread updatedAt updates correctly
+7. Test deleting last visible entry shows empty state
+8. Test repository's includeDeleted parameter works
+9. Verify migration from v1.0 to v1.1 succeeds
+10. Test performance with many deleted entries
+
+**Priority Score**: 6 (WSJF) - Essential for entry management  
+**Dependencies**: TICKET-018 (Context Menu), TICKET-004 (Repository), TICKET-002 (Core Data Schema)
+
+---
+
 ## Sprint Plan
 
 ### Sprint 1 (Week 1) - Foundation
@@ -697,6 +981,14 @@ func testThreadListPerformanceWith100Threads() {
 | TICKET-014 | Export Implementation | 1 | domain/infrastructure |
 | TICKET-015 | Export UI | 1 | interface |
 | TICKET-017 | Performance Tests | 1 | infrastructure |
+**Total**: 3 points
+
+### Sprint 4 (Week 4) - Entry Management
+| Story ID | Story | Points | Layer |
+|----------|-------|--------|-------|
+| TICKET-018 | Context Menu | 1 | interface |
+| TICKET-019 | Edit Entry Mode | 1 | interface |
+| TICKET-020 | Delete Entry (Soft) | 1 | domain/infrastructure/interface |
 **Total**: 3 points
 
 ---

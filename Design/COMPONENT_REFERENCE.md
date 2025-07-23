@@ -468,8 +468,155 @@ ThreadTitleInput()
 
 ---
 
+### 8. Entry Management Components
+
+#### EntryContextMenu
+```html
+<div data-component="entry-context-menu"
+     data-trigger="long-press">
+```
+
+**Properties:**
+- `entry`: Entry
+- `onEdit`: () -> Void
+- `onDelete`: () -> Void
+
+**SwiftUI Implementation:**
+```swift
+struct EntryView: View {
+    let entry: Entry
+    @ObservedObject var viewModel: ThreadDetailViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Entry content...
+        }
+        .contextMenu {
+            Button(action: { 
+                viewModel.startEditingEntry(entry) 
+            }) {
+                Label("Edit", systemImage: "pencil")
+            }
+            
+            Button(role: .destructive, action: { 
+                viewModel.confirmDeleteEntry(entry) 
+            }) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+}
+```
+
+**Interaction:**
+- Trigger: Long press (0.5 seconds)
+- Haptic feedback: Medium impact
+- Menu position: Auto-positioned by iOS
+
+---
+
+#### EditMode
+```html
+<div data-component="edit-mode"
+     data-state="editing">
+```
+
+**Properties:**
+- `originalContent`: String
+- `editedContent`: String (binding)
+- `onSave`: () -> Void
+- `onCancel`: () -> Void
+- `autoHeight`: Bool (true) - TextEditor expands to fit content
+
+**SwiftUI Implementation:**
+```swift
+struct EditModeView: View {
+    @Binding var editingContent: String
+    let originalContent: String
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Cancel", action: onCancel)
+                    .foregroundColor(.accentColor)
+                
+                Spacer()
+                
+                Button("Save", action: onSave)
+                    .foregroundColor(.accentColor)
+                    .fontWeight(.semibold)
+                    .disabled(editingContent == originalContent || editingContent.isEmpty)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            
+            TextEditor(text: $editingContent)
+                .font(.system(size: 17))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .fixedSize(horizontal: false, vertical: true)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+        }
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+```
+
+**States:**
+- Save button disabled when content unchanged or empty
+- TextEditor auto-focused on appear
+- TextEditor height adjusts to content (no internal scrolling)
+- Other entries dimmed (50% opacity)
+
+---
+
+#### DeleteConfirmation
+```html
+<div data-component="delete-confirmation"
+     data-type="alert">
+```
+
+**Properties:**
+- `entryToDelete`: Entry?
+- `onConfirm`: () -> Void
+- `onCancel`: () -> Void
+
+**SwiftUI Implementation:**
+```swift
+.alert("Delete Entry?", isPresented: $viewModel.showDeleteConfirmation) {
+    Button("Cancel", role: .cancel) {
+        viewModel.entryToDelete = nil
+    }
+    
+    Button("Delete", role: .destructive) {
+        Task {
+            await viewModel.deleteEntry()
+        }
+    }
+} message: {
+    Text("This entry will be removed from your journal.")
+}
+```
+
+**Specifications:**
+- Title: "Delete Entry?"
+- Message: "This entry will be removed from your journal."
+- Cancel button: Default style
+- Delete button: Destructive (red)
+- Default focus: Cancel button
+
+---
+
 ## Component Versioning
-- Component Version: 1.1
+- Component Version: 1.2
+- Changes in v1.2:
+  - Added EntryContextMenu for edit/delete functionality
+  - Added EditMode component for inline editing
+  - Added DeleteConfirmation alert component
 - Changes in v1.1:
   - ComposeArea now includes send button in thread detail
   - Thread entries ordered chronologically (oldest to newest)

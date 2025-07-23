@@ -74,6 +74,8 @@ erDiagram
         UUID threadId FK
         String content "NOT NULL"
         Date timestamp "NOT NULL"
+        Date deletedAt "NULLABLE - for soft delete"
+        Date lastEditedAt "NULLABLE - for edit tracking"
     }
     
     Thread ||--o{ Entry : contains
@@ -97,7 +99,9 @@ ThreadJournal/
 │   ├── UseCases/
 │   │   ├── CreateThreadUseCase.swift
 │   │   ├── AddEntryUseCase.swift
-│   │   └── ExportThreadUseCase.swift
+│   │   ├── ExportThreadUseCase.swift
+│   │   ├── UpdateEntryUseCase.swift
+│   │   └── DeleteEntryUseCase.swift
 │   └── Repositories/       # Interfaces only
 │       └── ThreadRepository.swift
 │
@@ -233,6 +237,8 @@ graph TB
             CTU[CreateThreadUseCase]
             AEU[AddEntryUseCase]
             ETU[ExportThreadUseCase]
+            UEU[UpdateEntryUseCase]
+            DEU[DeleteEntryUseCase]
             TR[ThreadRepository Protocol]
         end
         
@@ -248,9 +254,13 @@ graph TB
     TLV --> CTU
     TDV --> AEU
     TDV --> ETU
+    TDV --> UEU
+    TDV --> DEU
     CTU --> TR
     AEU --> TR
     ETU --> TR
+    UEU --> TR
+    DEU --> TR
     CDR -.implements.-> TR
     ETU --> CSV
 ```
@@ -293,6 +303,9 @@ protocol ThreadRepository {
     func fetch(threadId: UUID) async throws -> Thread?
     func fetchAll() async throws -> [Thread]
     func addEntry(_ entry: Entry, to threadId: UUID) async throws
+    func updateEntry(_ entry: Entry) async throws
+    func softDeleteEntry(entryId: UUID) async throws
+    func fetchEntries(for threadId: UUID, includeDeleted: Bool) async throws -> [Entry]
 }
 
 // Use Case Protocols
@@ -306,6 +319,14 @@ protocol AddEntryUseCase {
 
 protocol ExportThreadUseCase {
     func execute(threadId: UUID) async throws -> ExportData
+}
+
+protocol UpdateEntryUseCase {
+    func execute(entryId: UUID, newContent: String) async throws -> Entry
+}
+
+protocol DeleteEntryUseCase {
+    func execute(entryId: UUID) async throws
 }
 
 // Export Protocol for future formats
@@ -338,11 +359,20 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     var isLoading: Bool { get }
     var draftContent: String { get set }
     var isSavingDraft: Bool { get }
+    var editingEntry: Entry? { get }
+    var editingContent: String { get set }
+    var entryToDelete: Entry? { get }
+    var showDeleteConfirmation: Bool { get }
     
     func loadThread(id: UUID) async
     func addEntry(content: String) async
     func saveDraft() async
     func exportToCSV() async throws -> URL
+    func startEditingEntry(_ entry: Entry)
+    func saveEditedEntry() async
+    func cancelEditing()
+    func confirmDeleteEntry(_ entry: Entry)
+    func deleteEntry() async
 }
 ```
 
@@ -378,6 +408,55 @@ sequenceDiagram
     end
 ```
 
+### Edit Entry Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as SwiftUI View
+    participant VM as ViewModel
+    participant UC as UpdateEntryUseCase
+    participant Repo as Repository
+    participant DB as Core Data
+
+    User->>UI: Long press entry
+    UI->>UI: Show context menu
+    User->>UI: Tap Edit
+    UI->>VM: startEditingEntry(entry)
+    VM->>UI: Replace entry with edit UI
+    User->>UI: Modify content
+    User->>UI: Tap Save
+    UI->>VM: saveEditedEntry()
+    VM->>UC: execute(entryId, newContent)
+    UC->>Repo: updateEntry(entry)
+    Repo->>DB: Update content & set lastEditedAt
+    DB-->>VM: Updated entry
+    VM->>UI: Show entry with "(edited)" indicator
+```
+
+### Delete Entry Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as SwiftUI View
+    participant VM as ViewModel
+    participant UC as DeleteEntryUseCase
+    participant Repo as Repository
+    participant DB as Core Data
+
+    User->>UI: Long press entry
+    UI->>UI: Show context menu
+    User->>UI: Tap Delete
+    UI->>VM: confirmDeleteEntry(entry)
+    VM->>UI: Show confirmation alert
+    User->>UI: Confirm delete
+    UI->>VM: deleteEntry()
+    VM->>UC: execute(entryId)
+    UC->>Repo: softDeleteEntry(entryId)
+    Repo->>DB: Set deletedAt = now
+    DB-->>VM: Success
+    VM->>UI: Remove entry with animation
+```
+
 ### Privacy & Security Controls (NIST 800-53)
 | Control | Implementation |
 |---------|---------------|
@@ -405,7 +484,56 @@ sequenceDiagram
 - Monitor performance, optimize only if needed
 - CSV export chunks if file > 10MB
 
-## 9. Dev Ops & CI/CD Pipeline
+## 9. Core Data Migration Strategy
+
+### Version 1.0 → 1.1 Migration
+**Changes**:
+- Add `deletedAt` (Date, Optional) to CDEntry entity
+- Add `lastEditedAt` (Date, Optional) to CDEntry entity
+
+**Migration Type**: Lightweight (automatic)
+
+**Migration Steps**:
+1. Create new model version: ThreadDataModel v1.1
+2. Set v1.1 as current model version
+3. Add new attributes with Optional setting
+4. Core Data handles migration automatically
+
+**Code Implementation**:
+```swift
+// Entry entity updates
+extension Entry {
+    var isDeleted: Bool {
+        deletedAt != nil
+    }
+    
+    var isEdited: Bool {
+        lastEditedAt != nil
+    }
+    
+    var displayTimestamp: String {
+        if let lastEditedAt = lastEditedAt {
+            return "\(formattedDate) (edited)"
+        }
+        return formattedDate
+    }
+}
+```
+
+**Testing Migration**:
+1. Install app with v1.0 schema
+2. Create test data (threads and entries)
+3. Update to v1.1 schema
+4. Verify existing data preserved
+5. Verify new fields default to nil
+
+### Future Migration Considerations
+- Keep lightweight migrations when possible
+- Document each version's changes
+- Test with production-like data volumes
+- Consider migration performance for large datasets
+
+## 10. Dev Ops & CI/CD Pipeline
 
 ### GitOps Workflow
 ```yaml
@@ -444,7 +572,7 @@ jobs:
 - Keychain Access for local development
 - No hardcoded keys in source
 
-## 10. Observability & SRE Practices
+## 11. Observability & SRE Practices
 
 ### SLIs/SLOs
 | SLI | SLO | Measurement |
@@ -463,7 +591,7 @@ print("[ThreadJournal] Action: \(action) Success: \(success)")
 // Phase 3: Add privacy-preserving telemetry
 ```
 
-## 11. Security Threat Model (STRIDE)
+## 12. Security Threat Model (STRIDE)
 
 | Threat | Category | Phase 1 Mitigation | Future Mitigation |
 |--------|----------|-------------------|-------------------|
@@ -472,7 +600,7 @@ print("[ThreadJournal] Action: \(action) Success: \(success)")
 | Malicious CSV injection | **T**ampering | Escape quotes in CSV | - |
 | Shoulder surfing | **I**nformation disclosure | - | Phase 2: Hide on background |
 
-## 12. Delivery Roadmap
+## 13. Delivery Roadmap
 
 ### Epic Breakdown
 ```mermaid
@@ -523,7 +651,7 @@ gantt
 - Phase 2 (Edit/Delete, iCloud): 2 weeks, $14,000
 - Phase 3 (Security, Tags, Speech): 3 weeks, $21,000
 
-## 14. LLM Implementation Guardrails
+## 15. LLM Implementation Guardrails
 
 ### Swift Protocol Templates
 ```swift

@@ -41,6 +41,9 @@ Design:v1.2/FAB
 Design:v1.2/ThreadTitleInput
 Design:v1.2/MenuButton
 Design:v1.2/ExportMenu
+Design:v1.2/EntryContextMenu
+Design:v1.2/EditMode
+Design:v1.2/DeleteConfirmation
 ```
 
 ### Example Ticket Usage

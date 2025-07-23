@@ -233,10 +233,20 @@
             margin-bottom: 24px;
             padding-bottom: 24px;
             border-bottom: 1px solid #F2F2F7;
+            position: relative;
+            transition: opacity 0.2s;
         }
         
         .thread-entry:last-child {
             border-bottom: none;
+        }
+        
+        .thread-entry.dimmed {
+            opacity: 0.5;
+        }
+        
+        .thread-entry.editing {
+            opacity: 1;
         }
         
         .entry-timestamp {
@@ -252,6 +262,148 @@
             line-height: 1.6;
             color: #1C1C1E;
             text-align: left;
+        }
+        
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #E5E5EA;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 4px;
+            z-index: 100;
+            display: none;
+        }
+        
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .context-menu-item:hover {
+            background: #F2F2F7;
+        }
+        
+        .context-menu-item.destructive {
+            color: #FF3B30;
+        }
+        
+        /* Edit Mode */
+        .edit-mode {
+            padding: 12px;
+            background: #F8F8F8;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .edit-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .edit-button {
+            padding: 6px 12px;
+            border: none;
+            background: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #007AFF;
+            font-weight: 500;
+        }
+        
+        .edit-button.primary {
+            font-weight: 600;
+        }
+        
+        .edit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .edit-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E5E5EA;
+            border-radius: 8px;
+            font-size: 17px;
+            font-family: inherit;
+            resize: none;
+            min-height: 60px;
+            height: auto;
+            outline: none;
+            overflow-y: hidden; /* No internal scrolling */
+            line-height: 1.5;
+        }
+        
+        .edit-textarea:focus {
+            border-color: #007AFF;
+        }
+        
+        /* Delete Confirmation */
+        .delete-confirmation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        
+        .delete-dialog {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            width: 270px;
+            text-align: center;
+        }
+        
+        .delete-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .delete-message {
+            font-size: 13px;
+            color: #3C3C43;
+            margin-bottom: 20px;
+        }
+        
+        .delete-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .delete-button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .delete-button.cancel {
+            background: #F2F2F7;
+            color: #007AFF;
+        }
+        
+        .delete-button.destructive {
+            background: #FF3B30;
+            color: white;
         }
         
         /* Compose Area */
@@ -632,24 +784,64 @@
                     </div>
                     
                     <div class="content" style="padding-bottom: 100px;">
-                        <div class="thread-entry">
+                        <div class="thread-entry" oncontextmenu="showContextMenu(event, 'entry1'); return false;">
                             <div class="entry-timestamp">Dec 15, 7:00 AM</div>
                             <div class="entry-content">
                                 I'm grateful for the peaceful walk I took in the park this morning. The fresh air and nature's beauty helped me clear my mind and appreciate the present moment.
                             </div>
                         </div>
                         
-                        <div class="thread-entry">
-                            <div class="entry-timestamp">Yesterday, 9:30 PM</div>
+                        <!-- Edit Mode Example (showing what it looks like when editing) -->
+                        <div class="edit-mode" id="editMode">
+                            <div class="component-badge" style="top: 10px; right: 10px;" onclick="copyRef('Design:v1.2/EditMode')">12</div>
+                            <div class="edit-actions">
+                                <button class="edit-button" onclick="cancelEdit()">Cancel</button>
+                                <button class="edit-button primary" onclick="saveEdit()">Save</button>
+                            </div>
+                            <!-- TextEditor auto-sizes to content height - no internal scrolling -->
+                            <textarea class="edit-textarea" id="editTextarea" style="height: 85px;">I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.</textarea>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">2 days ago, 3:45 PM</div>
                             <div class="entry-content">
-                                I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.
+                                Grateful for the unexpected call from an old friend today. It reminded me how important it is to maintain connections with people who matter.
                             </div>
                         </div>
                         
-                        <div class="thread-entry">
+                        <!-- Example of longer entry being edited -->
+                        <div class="edit-mode" style="margin-bottom: 24px;">
+                            <div class="edit-actions">
+                                <button class="edit-button">Cancel</button>
+                                <button class="edit-button primary">Save</button>
+                            </div>
+                            <!-- Longer content example showing auto-height -->
+                            <textarea class="edit-textarea" style="height: 160px;" readonly>Today was absolutely incredible! I had my final interview for the position I've been dreaming about for months. The conversation flowed naturally, and I felt like I could truly be myself. 
+
+The team seems amazing - exactly the kind of collaborative environment I've been looking for. I'm grateful for all the preparation, the mock interviews with friends, and especially for believing in myself throughout this journey.</textarea>
+                            <div style="font-size: 11px; color: #8E8E93; margin-top: 8px; text-align: center;">↑ TextEditor auto-sizes to content - no scrollbar needed</div>
+                        </div>
+                        
+                        <div class="thread-entry" style="position: relative;">
                             <div class="entry-timestamp">Today, 2:15 PM</div>
                             <div class="entry-content">
                                 Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                            </div>
+                            <!-- Context Menu Example (showing what appears on long press) -->
+                            <div class="context-menu" style="display: block; position: absolute; top: 40px; right: 20px;">
+                                <div class="component-badge" style="position: absolute; top: -20px; right: -20px; z-index: 101;" onclick="copyRef('Design:v1.2/EntryContextMenu')">11</div>
+                                <div class="context-menu-item">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Edit</span>
+                                </div>
+                                <div class="context-menu-item destructive">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Delete</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -711,6 +903,44 @@
                                     <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Confirmation Example -->
+        <div class="screen-wrapper">
+            <div class="screen-label">Delete Confirmation Dialog</div>
+            <div class="screen" style="position: relative; overflow: hidden;">
+                <!-- Blurred background content -->
+                <div style="filter: blur(3px); opacity: 0.5;">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    <div class="content">
+                        <div class="thread-entry">
+                            <div class="entry-timestamp">Today, 2:15 PM</div>
+                            <div class="entry-content">
+                                Today, I'm grateful for the unexpected kindness...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Delete confirmation overlay -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+                    <div class="delete-dialog" style="position: relative;">
+                        <div class="component-badge" style="position: absolute; top: -30px; right: -30px; z-index: 1001;" onclick="copyRef('Design:v1.2/DeleteConfirmation')">13</div>
+                        <div class="delete-title">Delete Entry?</div>
+                        <div class="delete-message">This entry will be removed from your journal.</div>
+                        <div class="delete-actions">
+                            <button class="delete-button cancel">Cancel</button>
+                            <button class="delete-button destructive">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -973,6 +1203,35 @@ I'm also grateful for the progress I made on my project today. After weeks of st
         <button class="share-sheet-cancel" onclick="closeShareSheet()">Cancel</button>
     </div>
     
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="startEdit()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Edit</span>
+        </div>
+        <div class="context-menu-item destructive" onclick="showDeleteConfirmation()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="#FF3B30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Delete</span>
+        </div>
+    </div>
+    
+    <!-- Delete Confirmation Dialog -->
+    <div id="deleteConfirmation" class="delete-confirmation">
+        <div class="delete-dialog">
+            <div class="component-badge" style="top: 10px; right: 10px;" onclick="copyRef('Design:v1.2/DeleteConfirmation')">13</div>
+            <div class="delete-title">Delete Entry?</div>
+            <div class="delete-message">This entry will be removed from your journal.</div>
+            <div class="delete-actions">
+                <button class="delete-button cancel" onclick="cancelDelete()">Cancel</button>
+                <button class="delete-button destructive" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Reference data
         const references = [
@@ -985,7 +1244,10 @@ I'm also grateful for the progress I made on my project today. After weeks of st
             { num: 7, code: 'Design:v1.2/SendButton' },
             { num: 8, code: 'Design:v1.2/ThreadTitleInput' },
             { num: 9, code: 'Design:v1.2/MenuButton' },
-            { num: 10, code: 'Design:v1.2/ExportMenu' }
+            { num: 10, code: 'Design:v1.2/ExportMenu' },
+            { num: 11, code: 'Design:v1.2/EntryContextMenu' },
+            { num: 12, code: 'Design:v1.2/EditMode' },
+            { num: 13, code: 'Design:v1.2/DeleteConfirmation' }
         ];
         
         // Populate legend
@@ -1034,7 +1296,94 @@ I'm also grateful for the progress I made on my project today. After weeks of st
             if (!e.target.closest('.icon-btn') && !e.target.closest('.menu-dropdown')) {
                 document.getElementById('threadMenu').style.display = 'none';
             }
+            if (!e.target.closest('.context-menu') && !e.target.closest('.thread-entry')) {
+                document.getElementById('contextMenu').style.display = 'none';
+            }
         });
+        
+        // Auto-resize textarea as user types
+        document.getElementById('editTextarea').addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+        
+        // Context menu functions
+        let selectedEntry = null;
+        
+        function showContextMenu(event, entryId) {
+            event.preventDefault();
+            selectedEntry = entryId;
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'block';
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+        }
+        
+        function startEdit() {
+            document.getElementById('contextMenu').style.display = 'none';
+            if (selectedEntry === 'entry2') {
+                document.getElementById('entry2').style.display = 'none';
+                document.getElementById('editMode').style.display = 'block';
+                const textarea = document.getElementById('editTextarea');
+                textarea.focus();
+                // Auto-resize textarea to fit content
+                autoResizeTextarea(textarea);
+                // Dim other entries
+                document.querySelectorAll('.thread-entry').forEach(entry => {
+                    if (entry.id !== 'entry2') {
+                        entry.classList.add('dimmed');
+                    }
+                });
+            }
+        }
+        
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+        
+        function cancelEdit() {
+            document.getElementById('editMode').style.display = 'none';
+            document.getElementById('entry2').style.display = 'block';
+            // Remove dimming
+            document.querySelectorAll('.thread-entry').forEach(entry => {
+                entry.classList.remove('dimmed');
+            });
+        }
+        
+        function saveEdit() {
+            // In real app, would save the edited content
+            cancelEdit();
+            // Update timestamp to show edited indicator
+            const timestamp = document.querySelector('#entry2 .entry-timestamp');
+            if (!timestamp.textContent.includes('(edited)')) {
+                timestamp.textContent += ' (edited)';
+            }
+        }
+        
+        function showDeleteConfirmation() {
+            document.getElementById('contextMenu').style.display = 'none';
+            document.getElementById('deleteConfirmation').style.display = 'flex';
+        }
+        
+        function cancelDelete() {
+            document.getElementById('deleteConfirmation').style.display = 'none';
+        }
+        
+        function confirmDelete() {
+            document.getElementById('deleteConfirmation').style.display = 'none';
+            // In real app, would perform soft delete
+            if (selectedEntry) {
+                const entry = document.getElementById(selectedEntry);
+                if (entry) {
+                    entry.style.transition = 'opacity 0.3s, transform 0.3s';
+                    entry.style.opacity = '0';
+                    entry.style.transform = 'translateX(-20px)';
+                    setTimeout(() => {
+                        entry.style.display = 'none';
+                    }, 300);
+                }
+            }
+        }
     </script>
 </body>
 </html>
