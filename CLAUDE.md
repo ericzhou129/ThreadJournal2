@@ -75,7 +75,15 @@ Sprint 2 (Core User Features) - COMPLETED:
 - ✅ TICKET-012: Add Entry UI
 - ✅ TICKET-013: Keyboard Enhancements
 
-Next: Sprint 3 (Export & Polish) - Tickets 014-015, 017
+Sprint 3 (Export & Polish) - COMPLETED:
+- ✅ TICKET-014: Export Thread Use Case
+- ✅ TICKET-015: Export UI
+- ✅ TICKET-017: Performance Tests
+
+Sprint 4 (Edit & Delete) - IN PROGRESS:
+- ✅ TICKET-018: Long Press Context Menu
+- 🚧 TICKET-019: Edit Entry Mode
+- 🚧 TICKET-020: Delete Entry (Soft Delete)
 
 ### 9. Common Commands
 ```bash

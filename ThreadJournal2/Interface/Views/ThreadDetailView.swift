@@ -15,6 +15,7 @@ struct ThreadDetailView: View {
     @State private var keyboardHeight: CGFloat = 0
     @State private var isExpanded = false
     @State private var textEditorHeight: CGFloat = 44
+    @State private var selectedEntry: Entry?
     
     // Dynamic Type support
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 20
@@ -148,6 +149,21 @@ struct ThreadDetailView: View {
         .fullScreenCover(isPresented: $isExpanded) {
             expandedComposeView
         }
+        .alert("Delete Entry?", isPresented: .constant(selectedEntry != nil)) {
+            Button("Cancel", role: .cancel) {
+                selectedEntry = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let entry = selectedEntry {
+                    Task {
+                        await viewModel.deleteEntry(entry)
+                        selectedEntry = nil
+                    }
+                }
+            }
+        } message: {
+            Text("This entry will be removed from your journal.")
+        }
     }
     
     // MARK: - Subviews
@@ -176,6 +192,28 @@ struct ThreadDetailView: View {
             }
         }
         .padding(.bottom, isLast ? 0 : 24)
+        .contentShape(Rectangle()) // Make entire area tappable
+        .contextMenu {
+            // Edit button
+            Button {
+                // Edit action - will be implemented in TICKET-019
+                print("Edit entry: \(entry.id)")
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            
+            // Delete button
+            Button(role: .destructive) {
+                selectedEntry = entry
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.5, maximumDistance: .infinity) {
+            // Haptic feedback when long press detected
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+        }
     }
     
     private var composeArea: some View {

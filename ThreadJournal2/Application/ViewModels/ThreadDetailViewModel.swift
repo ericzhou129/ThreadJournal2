@@ -332,4 +332,15 @@ extension ThreadDetailViewModel {
         !draftContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !isLoading
     }
+    
+    /// Deletes an entry (placeholder for TICKET-020)
+    /// - Parameter entry: The entry to delete
+    func deleteEntry(_ entry: Entry) async {
+        // TODO: Implement soft delete in TICKET-020
+        print("Delete entry placeholder: \(entry.id)")
+        // For now, just remove from the local array to show UI behavior
+        withAnimation(.easeOut(duration: 0.3)) {
+            entries.removeAll { $0.id == entry.id }
+        }
+    }
 }
