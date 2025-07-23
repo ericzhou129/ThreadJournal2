@@ -125,7 +125,8 @@ struct ThreadDetailViewFixed: View {
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
                                 .focused($isComposeFieldFocused)
-                                .frame(height: textEditorHeight)
+                                .frame(minHeight: 44, idealHeight: textEditorHeight, maxHeight: 220)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .onChange(of: viewModel.draftContent) { _, _ in
                                     updateTextEditorHeight()
                                 }
@@ -275,13 +276,27 @@ struct ThreadDetailViewFixed: View {
         let lineHeight: CGFloat = 22
         let maxLines = 10
         
-        // Count approximate lines based on character count
-        let charactersPerLine = 40
-        let lineCount = max(1, (viewModel.draftContent.count / charactersPerLine) + 1)
-        let calculatedLines = min(lineCount, maxLines)
+        // Count actual newlines in the text
+        let newlineCount = viewModel.draftContent.components(separatedBy: .newlines).count
+        
+        // Also estimate wrapped lines based on character count
+        let charactersPerLine = 35 // Adjusted for typical iPhone width
+        let lines = viewModel.draftContent.components(separatedBy: .newlines)
+        var totalLines = 0
+        
+        for line in lines {
+            if line.isEmpty {
+                totalLines += 1
+            } else {
+                // Account for word wrapping
+                totalLines += max(1, (line.count + charactersPerLine - 1) / charactersPerLine)
+            }
+        }
+        
+        let calculatedLines = min(totalLines, maxLines)
         
         // Calculate height
-        let newHeight = baseHeight + (CGFloat(calculatedLines - 1) * lineHeight)
+        let newHeight = baseHeight + (CGFloat(max(0, calculatedLines - 1)) * lineHeight)
         
         // Update height with animation
         withAnimation(.easeInOut(duration: 0.15)) {
