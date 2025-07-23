@@ -85,6 +85,18 @@ The project uses GitHub Actions for continuous integration. The CI pipeline:
 - Runs unit and UI tests
 - Generates code coverage reports
 
+## Performance
+
+ThreadJournal is designed to handle large datasets efficiently:
+
+- **Thread List**: Loads 100 threads in < 200ms
+- **Thread Detail**: Opens threads with 1000 entries in < 300ms  
+- **Entry Creation**: Adds new entries in < 50ms
+- **CSV Export**: Exports 1000 entries in < 3 seconds
+- **Memory Usage**: Stays under 150MB with 100 threads and 15,000 entries
+
+See [Performance Benchmarks](ThreadJournal2Tests/Performance/PERFORMANCE_BENCHMARKS.md) for detailed metrics and testing methodology.
+
 ## Project Structure
 
 ```
@@ -99,6 +111,8 @@ ThreadJournal2/
 │   ├── Infrastructure/      # Data and external services
 │   └── Assets.xcassets/     # Image and color assets
 ├── ThreadJournal2Tests/     # Unit tests
+│   ├── Architecture/        # Architecture compliance tests
+│   └── Performance/         # Performance benchmark tests
 ├── ThreadJournal2UITests/   # UI tests
 ├── .swiftlint.yml          # SwiftLint configuration
 └── .gitignore              # Git ignore rules
