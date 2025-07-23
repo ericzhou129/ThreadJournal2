@@ -8,6 +8,7 @@
 import XCTest
 @testable import ThreadJournal2
 
+
 final class CSVExportPerformanceTests: XCTestCase {
     
     // MARK: - Properties
@@ -15,7 +16,7 @@ final class CSVExportPerformanceTests: XCTestCase {
     private var repository: MockThreadRepository!
     private var exportUseCase: ExportThreadUseCase!
     private var csvExporter: CSVExporter!
-    private var testThread: Thread!
+    private var testThread: ThreadJournal2.Thread!
     private var testEntries: [Entry]!
     
     // MARK: - Setup
@@ -55,9 +56,10 @@ final class CSVExportPerformanceTests: XCTestCase {
     
     func testExport1000Entries_CompletesUnder3Seconds() {
         // Given: Thread with 1000 entries
-        let expectation = XCTestExpectation(description: "Export completes")
         
         measure {
+            let expectation = XCTestExpectation(description: "Export completes")
+            
             // When: Exporting to CSV
             Task {
                 do {
@@ -65,7 +67,7 @@ final class CSVExportPerformanceTests: XCTestCase {
                     
                     // Then: Should produce valid CSV
                     XCTAssertFalse(exportData.data.isEmpty)
-                    XCTAssertTrue(exportData.filename.hasSuffix(".csv"))
+                    XCTAssertTrue(exportData.fileName.hasSuffix(".csv"))
                     XCTAssertEqual(exportData.mimeType, "text/csv")
                     
                     // Verify CSV content
@@ -78,6 +80,7 @@ final class CSVExportPerformanceTests: XCTestCase {
                     expectation.fulfill()
                 } catch {
                     XCTFail("Export failed: \(error)")
+                    expectation.fulfill()
                 }
             }
             
@@ -104,9 +107,10 @@ final class CSVExportPerformanceTests: XCTestCase {
         }
         
         repository.entriesByThread[testThread.id] = specialEntries
-        let expectation = XCTestExpectation(description: "Special export completes")
         
         measure {
+            let expectation = XCTestExpectation(description: "Special export completes")
+            
             // When: Exporting entries with special characters
             Task {
                 do {
@@ -122,6 +126,7 @@ final class CSVExportPerformanceTests: XCTestCase {
                     expectation.fulfill()
                 } catch {
                     XCTFail("Special export failed: \(error)")
+                    expectation.fulfill()
                 }
             }
             
@@ -142,9 +147,10 @@ final class CSVExportPerformanceTests: XCTestCase {
         }
         
         repository.entriesByThread[testThread.id] = largeEntries
-        let expectation = XCTestExpectation(description: "Large export completes")
         
         measure {
+            let expectation = XCTestExpectation(description: "Large export completes")
+            
             // When: Exporting large entries
             Task {
                 do {
@@ -157,6 +163,7 @@ final class CSVExportPerformanceTests: XCTestCase {
                     expectation.fulfill()
                 } catch {
                     XCTFail("Large export failed: \(error)")
+                    expectation.fulfill()
                 }
             }
             

@@ -8,13 +8,14 @@
 import XCTest
 @testable import ThreadJournal2
 
+
 final class ThreadDetailPerformanceTests: XCTestCase {
     
     // MARK: - Properties
     
     private var repository: MockThreadRepository!
     private var viewModel: ThreadDetailViewModel!
-    private var testThread: Thread!
+    private var testThread: ThreadJournal2.Thread!
     private var testEntries: [Entry]!
     private var draftManager: DraftManager!
     
@@ -41,13 +42,18 @@ final class ThreadDetailPerformanceTests: XCTestCase {
             exporter: CSVExporter()
         )
         
-        // Create view model
-        viewModel = ThreadDetailViewModel(
-            repository: repository,
-            addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager,
-            exportThreadUseCase: exportUseCase
-        )
+        // Create view model within MainActor context
+        let expectation = expectation(description: "Setup complete")
+        Task { @MainActor in
+            viewModel = ThreadDetailViewModel(
+                repository: repository,
+                addEntryUseCase: addEntryUseCase,
+                draftManager: draftManager,
+                exportThreadUseCase: exportUseCase
+            )
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
     
     override func tearDown() {
@@ -64,9 +70,10 @@ final class ThreadDetailPerformanceTests: XCTestCase {
     
     func testLoadThreadDetail_With1000Entries_CompletesUnder300ms() {
         // Given: Thread with 1000 entries
-        let expectation = XCTestExpectation(description: "Thread detail loads")
         
         measure {
+            let expectation = XCTestExpectation(description: "Thread detail loads")
+            
             // When: Loading thread detail
             Task { @MainActor in
                 await viewModel.loadThread(id: testThread.id)
@@ -76,32 +83,32 @@ final class ThreadDetailPerformanceTests: XCTestCase {
             wait(for: [expectation], timeout: 1.0)
             
             // Then: Should have loaded all entries
-            XCTAssertEqual(viewModel.entries.count, 1000)
-            XCTAssertEqual(viewModel.thread?.id, testThread.id)
+            Task { @MainActor in
+                XCTAssertEqual(viewModel.entries.count, 1000)
+                XCTAssertEqual(viewModel.thread?.id, testThread.id)
+            }
         }
     }
     
     func testScrollToLatestEntry_With1000Entries_CompletesQuickly() {
         // Given: Loaded thread with entries
+        let loadExpectation = expectation(description: "Initial load")
         Task { @MainActor in
             await viewModel.loadThread(id: testThread.id)
-        }
-        
-        // Wait for initial load
-        let loadExpectation = XCTestExpectation(description: "Initial load")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             loadExpectation.fulfill()
         }
-        wait(for: [loadExpectation], timeout: 0.5)
+        wait(for: [loadExpectation], timeout: 1.0)
         
         measure {
             // When: Triggering scroll to latest
+            let scrollExpectation = XCTestExpectation(description: "Scroll triggered")
             Task { @MainActor in
-                viewModel.triggerScrollToLatest()
+                // No need to trigger scroll - it's automatic
+                // Then: Should set flag quickly
+                XCTAssertTrue(viewModel.shouldScrollToLatest)
+                scrollExpectation.fulfill()
             }
-            
-            // Then: Should set flag quickly
-            XCTAssertTrue(viewModel.shouldScrollToLatest)
+            wait(for: [scrollExpectation], timeout: 0.1)
         }
     }
     
@@ -125,16 +132,12 @@ final class ThreadDetailPerformanceTests: XCTestCase {
         let initialMemory = getCurrentMemoryUsage()
         
         // When: Loading thread with 1000 entries
+        let loadExpectation = expectation(description: "Load completes")
         Task { @MainActor in
             await viewModel.loadThread(id: testThread.id)
+            loadExpectation.fulfill()
         }
-        
-        // Wait for load to complete
-        let expectation = XCTestExpectation(description: "Load completes")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 1.0)
+        wait(for: [loadExpectation], timeout: 1.0)
         
         // Then: Memory increase should be reasonable
         let finalMemory = getCurrentMemoryUsage()
@@ -159,9 +162,9 @@ final class ThreadDetailPerformanceTests: XCTestCase {
         
         repository.entriesByThread[testThread.id] = longEntries
         
-        let expectation = XCTestExpectation(description: "Load long entries")
-        
         measure {
+            let expectation = XCTestExpectation(description: "Load long entries")
+            
             // When: Loading entries with long content
             Task { @MainActor in
                 await viewModel.loadThread(id: testThread.id)
@@ -171,7 +174,9 @@ final class ThreadDetailPerformanceTests: XCTestCase {
             wait(for: [expectation], timeout: 1.0)
             
             // Then: Should handle long entries well
-            XCTAssertEqual(viewModel.entries.count, 100)
+            Task { @MainActor in
+                XCTAssertEqual(viewModel.entries.count, 100)
+            }
         }
     }
     

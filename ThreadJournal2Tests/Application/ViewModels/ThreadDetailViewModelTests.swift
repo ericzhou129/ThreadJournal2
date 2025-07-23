@@ -27,10 +27,18 @@ final class ThreadDetailViewModelTests: XCTestCase {
         mockDraftManager = MockDraftManager()
         addEntryUseCase = AddEntryUseCase(repository: mockRepository)
         
+        // Create mock exporter and export use case
+        let mockExporter = MockExporter()
+        let exportThreadUseCase = ExportThreadUseCase(
+            repository: mockRepository,
+            exporter: mockExporter
+        )
+        
         sut = ThreadDetailViewModel(
             repository: mockRepository,
             addEntryUseCase: addEntryUseCase,
-            draftManager: mockDraftManager
+            draftManager: mockDraftManager,
+            exportThreadUseCase: exportThreadUseCase
         )
     }
     

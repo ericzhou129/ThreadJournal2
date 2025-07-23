@@ -137,3 +137,6 @@ GoogleService-Info.plist
 
 # Archived builds
 Archives/
+# Test Results
+TestResults/
+*.xcresult/

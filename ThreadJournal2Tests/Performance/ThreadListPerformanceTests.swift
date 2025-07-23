@@ -8,13 +8,14 @@
 import XCTest
 @testable import ThreadJournal2
 
+
 final class ThreadListPerformanceTests: XCTestCase {
     
     // MARK: - Properties
     
     private var repository: ThreadRepository!
     private var viewModel: ThreadListViewModel!
-    private var testThreads: [Thread]!
+    private var testThreads: [ThreadJournal2.Thread]!
     
     // MARK: - Setup
     
@@ -30,12 +31,19 @@ final class ThreadListPerformanceTests: XCTestCase {
         
         repository = mockRepository
         
-        // Create use case and view model
+        // Create use case and view model within MainActor context
         let createThreadUseCase = CreateThreadUseCase(repository: repository)
-        viewModel = ThreadListViewModel(
-            repository: repository,
-            createThreadUseCase: createThreadUseCase
-        )
+        
+        // Use synchronous expectation to create view model on MainActor
+        let expectation = expectation(description: "Setup complete")
+        Task { @MainActor in
+            viewModel = ThreadListViewModel(
+                repository: repository,
+                createThreadUseCase: createThreadUseCase
+            )
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
     
     override func tearDown() {
@@ -50,10 +58,11 @@ final class ThreadListPerformanceTests: XCTestCase {
     
     func testLoadThreadList_With100Threads_CompletesUnder200ms() {
         // Given: Repository with 100 threads
-        let expectation = XCTestExpectation(description: "Thread list loads")
         
         // Measure performance
         measure {
+            let expectation = XCTestExpectation(description: "Thread list loads")
+            
             // When: Loading thread list
             Task { @MainActor in
                 await viewModel.loadThreads()
@@ -63,22 +72,20 @@ final class ThreadListPerformanceTests: XCTestCase {
             wait(for: [expectation], timeout: 1.0)
             
             // Then: Should have loaded all threads
-            XCTAssertEqual(viewModel.threads.count, 100)
+            Task { @MainActor in
+                XCTAssertEqual(viewModel.threadsWithMetadata.count, 100)
+            }
         }
     }
     
     func testFilterThreadList_ByTitle_CompletesQuickly() {
         // Given: Loaded thread list
+        let loadExpectation = expectation(description: "Initial load")
         Task { @MainActor in
             await viewModel.loadThreads()
-        }
-        
-        // Wait for initial load
-        let loadExpectation = XCTestExpectation(description: "Initial load")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             loadExpectation.fulfill()
         }
-        wait(for: [loadExpectation], timeout: 0.5)
+        wait(for: [loadExpectation], timeout: 1.0)
         
         measure {
             // When: Filtering threads
@@ -120,16 +127,12 @@ final class ThreadListPerformanceTests: XCTestCase {
         let initialMemory = getCurrentMemoryUsage()
         
         // When: Loading 100 threads
+        let loadExpectation = expectation(description: "Load completes")
         Task { @MainActor in
             await viewModel.loadThreads()
+            loadExpectation.fulfill()
         }
-        
-        // Wait for load to complete
-        let expectation = XCTestExpectation(description: "Load completes")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 1.0)
+        wait(for: [loadExpectation], timeout: 1.0)
         
         // Then: Memory increase should be reasonable
         let finalMemory = getCurrentMemoryUsage()

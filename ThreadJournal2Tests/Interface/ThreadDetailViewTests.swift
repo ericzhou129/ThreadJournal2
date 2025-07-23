@@ -9,6 +9,7 @@ import XCTest
 import SwiftUI
 @testable import ThreadJournal2
 
+
 final class ThreadDetailViewTests: XCTestCase {
     
     private var repository: MockThreadRepository!
@@ -39,11 +40,18 @@ final class ThreadDetailViewTests: XCTestCase {
         )
         
         // When
+        let mockExporter = MockExporter()
+        let exportThreadUseCase = ExportThreadUseCase(
+            repository: repository,
+            exporter: mockExporter
+        )
+        
         let view = ThreadDetailView(
             threadId: thread.id,
             repository: repository,
             addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager
+            draftManager: draftManager,
+            exportThreadUseCase: exportThreadUseCase
         )
         
         // Then
@@ -81,10 +89,17 @@ final class ThreadDetailViewTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Load thread")
         
         Task { @MainActor in
+            let mockExporter = MockExporter()
+            let exportThreadUseCase = ExportThreadUseCase(
+                repository: repository,
+                exporter: mockExporter
+            )
+            
             let viewModel = ThreadDetailViewModel(
                 repository: repository,
                 addEntryUseCase: addEntryUseCase,
-                draftManager: draftManager
+                draftManager: draftManager,
+                exportThreadUseCase: exportThreadUseCase
             )
             
             await viewModel.loadThread(id: threadId)

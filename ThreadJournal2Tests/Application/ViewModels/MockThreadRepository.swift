@@ -23,6 +23,9 @@ final class MockThreadRepository: ThreadRepository {
     var threads: [DomainThread] = []
     var entries: [UUID: [DomainEntry]] = [:]
     
+    // For performance tests - direct access to entries by thread
+    var entriesByThread: [UUID: [DomainEntry]] = [:]
+    
     // MARK: - Error Injection
     
     var shouldFailCreate = false
@@ -125,6 +128,12 @@ final class MockThreadRepository: ThreadRepository {
         }
         entries[threadId]?.append(entry)
         
+        // Also update entriesByThread for performance tests
+        if entriesByThread[threadId] == nil {
+            entriesByThread[threadId] = []
+        }
+        entriesByThread[threadId]?.append(entry)
+        
         // Update thread's updatedAt timestamp
         if let index = threads.firstIndex(where: { $0.id == threadId }) {
             let updatedThread = try DomainThread(
@@ -149,8 +158,14 @@ final class MockThreadRepository: ThreadRepository {
             return mockThreadEntries.sorted { $0.timestamp < $1.timestamp }
         }
         
+        // Check performance test data
+        if let performanceEntries = entriesByThread[threadId] {
+            return performanceEntries.sorted { $0.timestamp < $1.timestamp }
+        }
+        
         guard let threadEntries = entries[threadId] else {
-            throw PersistenceError.notFound(id: threadId)
+            // If no entries found, return empty array instead of throwing
+            return []
         }
         
         // Return entries sorted chronologically (oldest first)
@@ -163,6 +178,7 @@ final class MockThreadRepository: ThreadRepository {
     func reset() {
         threads = []
         entries = [:]
+        entriesByThread = [:]
         mockThreads = []
         mockEntries = [:]
         

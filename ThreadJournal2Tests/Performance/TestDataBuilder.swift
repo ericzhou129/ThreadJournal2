@@ -16,9 +16,9 @@ final class TestDataBuilder {
     /// Creates multiple threads with varying entry counts
     /// - Parameter count: Number of threads to create
     /// - Returns: Array of test threads
-    static func createThreads(count: Int) -> [Thread] {
+    static func createThreads(count: Int) -> [ThreadJournal2.Thread] {
         (0..<count).map { index in
-            try! Thread(
+            try! ThreadJournal2.Thread(
                 id: UUID(),
                 title: "Test Thread \(index + 1)",
                 createdAt: Date().addingTimeInterval(TimeInterval(-index * 3600)),
@@ -35,8 +35,8 @@ final class TestDataBuilder {
     static func createThread(
         title: String = "Test Thread",
         createdAt: Date = Date()
-    ) -> Thread {
-        try! Thread(
+    ) -> ThreadJournal2.Thread {
+        try! ThreadJournal2.Thread(
             id: UUID(),
             title: title,
             createdAt: createdAt,
@@ -113,7 +113,7 @@ final class TestDataBuilder {
     static func createCompleteScenario(
         threadCount: Int,
         entriesPerThread: Int
-    ) -> (threads: [Thread], entriesByThread: [UUID: [Entry]]) {
+    ) -> (threads: [ThreadJournal2.Thread], entriesByThread: [UUID: [Entry]]) {
         let threads = createThreads(count: threadCount)
         var entriesByThread: [UUID: [Entry]] = [:]
         
@@ -133,7 +133,7 @@ final class TestDataBuilder {
     /// - Returns: Thread with entries distributed over days
     static func createThreadWithDistribution(
         entryDistribution: [Int]
-    ) -> (thread: Thread, entries: [Entry]) {
+    ) -> (thread: ThreadJournal2.Thread, entries: [Entry]) {
         let thread = createThread()
         var allEntries: [Entry] = []
         
@@ -165,13 +165,13 @@ extension TestDataBuilder {
     
     /// Creates data for thread list performance testing
     /// - Returns: Array of 100 threads
-    static func createThreadListTestData() -> [Thread] {
+    static func createThreadListTestData() -> [ThreadJournal2.Thread] {
         createThreads(count: 100)
     }
     
     /// Creates data for thread detail performance testing
     /// - Returns: Thread with 1000 entries
-    static func createThreadDetailTestData() -> (thread: Thread, entries: [Entry]) {
+    static func createThreadDetailTestData() -> (thread: ThreadJournal2.Thread, entries: [Entry]) {
         let thread = createThread(title: "Performance Test Thread")
         let entries = createEntries(count: 1000, for: thread.id)
         return (thread, entries)
@@ -179,7 +179,7 @@ extension TestDataBuilder {
     
     /// Creates data for CSV export performance testing
     /// - Returns: Thread with 1000 entries containing varied content
-    static func createCSVExportTestData() -> (thread: Thread, entries: [Entry]) {
+    static func createCSVExportTestData() -> (thread: ThreadJournal2.Thread, entries: [Entry]) {
         let thread = createThread(title: "CSV Export Test")
         let entries = (0..<1000).map { index in
             let content = generateEntryContent(index: index)

@@ -8,6 +8,7 @@
 import XCTest
 @testable import ThreadJournal2
 
+
 final class ExportThreadUseCaseTests: XCTestCase {
     
     private var sut: ExportThreadUseCase!
@@ -37,8 +38,8 @@ final class ExportThreadUseCaseTests: XCTestCase {
             try Entry(id: UUID(), threadId: threadId, content: "Second entry", timestamp: Date())
         ]
         
-        mockRepository.fetchThreadResult = thread
-        mockRepository.fetchEntriesResult = entries
+        mockRepository.mockThreads = [thread]
+        mockRepository.mockEntries[threadId] = entries
         
         let expectedData = "test export data".data(using: .utf8)!
         mockExporter.exportResult = MockExportData(
@@ -55,7 +56,7 @@ final class ExportThreadUseCaseTests: XCTestCase {
         XCTAssertEqual(result.mimeType, "text/csv")
         XCTAssertEqual(result.data, expectedData)
         
-        XCTAssertEqual(mockRepository.fetchThreadCallCount, 1)
+        XCTAssertEqual(mockRepository.fetchCallCount, 1)
         XCTAssertEqual(mockRepository.fetchEntriesCallCount, 1)
         XCTAssertEqual(mockExporter.exportCallCount, 1)
     }
@@ -63,7 +64,7 @@ final class ExportThreadUseCaseTests: XCTestCase {
     func testExecute_WhenThreadNotFound_ThrowsError() async {
         // Given
         let threadId = UUID()
-        mockRepository.fetchThreadResult = nil
+        mockRepository.mockThreads = []
         
         // When/Then
         do {
@@ -85,7 +86,7 @@ final class ExportThreadUseCaseTests: XCTestCase {
     func testExecute_WhenRepositoryThrows_PropagatesError() async {
         // Given
         let threadId = UUID()
-        mockRepository.error = NSError(domain: "test", code: 1, userInfo: nil)
+        mockRepository.shouldFailFetch = true
         
         // When/Then
         do {
@@ -97,24 +98,4 @@ final class ExportThreadUseCaseTests: XCTestCase {
     }
 }
 
-// MARK: - Mock Classes
-
-private final class MockExporter: Exporter {
-    var exportCallCount = 0
-    var exportResult: ExportData?
-    
-    func export(thread: Thread, entries: [Entry]) -> ExportData {
-        exportCallCount += 1
-        return exportResult ?? MockExportData(
-            fileName: "mock.csv",
-            mimeType: "text/csv",
-            data: Data()
-        )
-    }
-}
-
-private struct MockExportData: ExportData {
-    let fileName: String
-    let mimeType: String
-    let data: Data
-}
+// Mock classes are now in MockExporter.swift

@@ -8,6 +8,7 @@
 import XCTest
 @testable import ThreadJournal2
 
+
 final class EntryCreationPerformanceTests: XCTestCase {
     
     // MARK: - Properties
@@ -15,7 +16,7 @@ final class EntryCreationPerformanceTests: XCTestCase {
     private var repository: MockThreadRepository!
     private var addEntryUseCase: AddEntryUseCase!
     private var viewModel: ThreadDetailViewModel!
-    private var testThread: Thread!
+    private var testThread: ThreadJournal2.Thread!
     private var draftManager: DraftManager!
     
     // MARK: - Setup
@@ -41,12 +42,18 @@ final class EntryCreationPerformanceTests: XCTestCase {
             exporter: CSVExporter()
         )
         
-        viewModel = ThreadDetailViewModel(
-            repository: repository,
-            addEntryUseCase: addEntryUseCase,
-            draftManager: draftManager,
-            exportThreadUseCase: exportUseCase
-        )
+        // Create view model within MainActor context
+        let expectation = expectation(description: "Setup complete")
+        Task { @MainActor in
+            viewModel = ThreadDetailViewModel(
+                repository: repository,
+                addEntryUseCase: addEntryUseCase,
+                draftManager: draftManager,
+                exportThreadUseCase: exportUseCase
+            )
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
     }
     
     override func tearDown() {
@@ -64,9 +71,10 @@ final class EntryCreationPerformanceTests: XCTestCase {
     func testCreateSingleEntry_CompletesUnder50ms() {
         // Given: A thread ready for new entries
         let content = "This is a test entry for performance measurement."
-        let expectation = XCTestExpectation(description: "Entry created")
         
         measure {
+            let expectation = XCTestExpectation(description: "Entry created")
+            
             // When: Creating a new entry
             Task {
                 do {
@@ -81,6 +89,7 @@ final class EntryCreationPerformanceTests: XCTestCase {
                     expectation.fulfill()
                 } catch {
                     XCTFail("Failed to create entry: \(error)")
+                    expectation.fulfill()
                 }
             }
             
@@ -91,10 +100,14 @@ final class EntryCreationPerformanceTests: XCTestCase {
     func testCreateMultipleEntries_Sequential_MaintainsPerformance() {
         // Given: Need to create 10 entries sequentially
         let entryCount = 10
-        let expectation = XCTestExpectation(description: "All entries created")
-        expectation.expectedFulfillmentCount = entryCount
         
         measure {
+            let expectation = XCTestExpectation(description: "All entries created")
+            expectation.expectedFulfillmentCount = entryCount
+            
+            // Clear entries for each measure iteration
+            repository.entriesByThread[testThread.id] = []
+            
             // When: Creating entries one after another
             Task {
                 for i in 0..<entryCount {
@@ -107,6 +120,7 @@ final class EntryCreationPerformanceTests: XCTestCase {
                         expectation.fulfill()
                     } catch {
                         XCTFail("Failed to create entry: \(error)")
+                        expectation.fulfill()
                     }
                 }
             }
@@ -121,9 +135,10 @@ final class EntryCreationPerformanceTests: XCTestCase {
     func testCreateEntryWithLongContent_HandlesWell() {
         // Given: Very long content
         let longContent = String(repeating: "This is a long journal entry. ", count: 100)
-        let expectation = XCTestExpectation(description: "Long entry created")
         
         measure {
+            let expectation = XCTestExpectation(description: "Long entry created")
+            
             // When: Creating entry with long content
             Task {
                 do {
@@ -137,6 +152,7 @@ final class EntryCreationPerformanceTests: XCTestCase {
                     expectation.fulfill()
                 } catch {
                     XCTFail("Failed to create long entry: \(error)")
+                    expectation.fulfill()
                 }
             }
             
@@ -155,7 +171,7 @@ final class EntryCreationPerformanceTests: XCTestCase {
             }
             
             // Wait briefly for debounce
-            Thread.sleep(forTimeInterval: 0.01)
+            Foundation.Thread.sleep(forTimeInterval: 0.01)
             
             // Then: Draft should be scheduled for saving
             XCTAssertEqual(viewModel.draftContent, draftContent)
