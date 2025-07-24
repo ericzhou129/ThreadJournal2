@@ -193,6 +193,26 @@ struct ThreadDetailView: View {
         }
         .padding(.bottom, isLast ? 0 : 24)
         .opacity(editingEntry != nil && editingEntry?.id != entry.id ? 0.5 : 1.0) // Dim other entries
+        .contentShape(Rectangle()) // Make entire area tappable
+        .contextMenu {
+            if editingEntry == nil { // Don't show context menu while editing
+                // Edit button
+                Button {
+                    editingEntry = entry
+                    editedContent = entry.content
+                    isEditFieldFocused = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                
+                // Delete button
+                Button(role: .destructive) {
+                    selectedEntry = entry
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
     }
     
     private func normalEntryView(entry: Entry, isLast: Bool) -> some View {
@@ -221,29 +241,6 @@ struct ThreadDetailView: View {
                     .frame(height: 0.5)
                     .padding(.top, 16)
             }
-        }
-        .contentShape(Rectangle())
-        .contextMenu {
-            // Edit button
-            Button {
-                editingEntry = entry
-                editedContent = entry.content
-                isEditFieldFocused = true
-            } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            
-            // Delete button
-            Button(role: .destructive) {
-                selectedEntry = entry
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
-        .onLongPressGesture(minimumDuration: 0.5, maximumDistance: .infinity) {
-            // Haptic feedback when long press detected
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
         }
     }
     
