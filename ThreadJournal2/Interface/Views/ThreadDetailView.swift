@@ -66,6 +66,7 @@ struct ThreadDetailView: View {
                             VStack(alignment: .leading, spacing: 0) {
                                 ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
                                     entryView(entry: entry, isLast: index == viewModel.entries.count - 1)
+                                        .id(entry.id) // Ensure proper view identity
                                 }
                                 
                                 // Invisible anchor for scrolling to bottom
@@ -193,26 +194,6 @@ struct ThreadDetailView: View {
         }
         .padding(.bottom, isLast ? 0 : 24)
         .opacity(editingEntry != nil && editingEntry?.id != entry.id ? 0.5 : 1.0) // Dim other entries
-        .contentShape(Rectangle()) // Make entire area tappable
-        .contextMenu {
-            if editingEntry == nil { // Don't show context menu while editing
-                // Edit button
-                Button {
-                    editingEntry = entry
-                    editedContent = entry.content
-                    isEditFieldFocused = true
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                
-                // Delete button
-                Button(role: .destructive) {
-                    selectedEntry = entry
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-            }
-        }
     }
     
     private func normalEntryView(entry: Entry, isLast: Bool) -> some View {
@@ -226,13 +207,28 @@ struct ThreadDetailView: View {
                 // TODO: Show (edited) when we have edit tracking
             }
             
-            // Content
+            // Content with context menu directly attached
             Text(entry.content)
                 .font(.system(size: contentSize))
                 .foregroundColor(Color(.label))
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contextMenu {
+                    Button {
+                        editingEntry = entry
+                        editedContent = entry.content
+                        isEditFieldFocused = true
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive) {
+                        selectedEntry = entry
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             
             // Divider (except for last entry)
             if !isLast {
