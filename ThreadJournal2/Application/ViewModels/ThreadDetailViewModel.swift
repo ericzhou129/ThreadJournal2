@@ -343,4 +343,28 @@ extension ThreadDetailViewModel {
             entries.removeAll { $0.id == entry.id }
         }
     }
+    
+    /// Updates an entry's content
+    /// - Parameters:
+    ///   - entry: The entry to update
+    ///   - newContent: The new content for the entry
+    func updateEntry(_ entry: Entry, newContent: String) async {
+        // TODO: Implement with UpdateEntryUseCase
+        print("Update entry placeholder: \(entry.id) with content: \(newContent)")
+        
+        // For now, update the local array to show UI behavior
+        if let index = entries.firstIndex(where: { $0.id == entry.id }) {
+            // Create updated entry (entries are immutable)
+            if let updatedEntry = try? Entry(
+                id: entry.id,
+                threadId: entry.threadId,
+                content: newContent,
+                timestamp: entry.timestamp
+            ) {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    entries[index] = updatedEntry
+                }
+            }
+        }
+    }
 }

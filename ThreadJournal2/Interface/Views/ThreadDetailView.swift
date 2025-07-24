@@ -16,6 +16,9 @@ struct ThreadDetailView: View {
     @State private var isExpanded = false
     @State private var textEditorHeight: CGFloat = 44
     @State private var selectedEntry: Entry?
+    @State private var editingEntry: Entry?
+    @State private var editedContent: String = ""
+    @FocusState private var isEditFieldFocused: Bool
     
     // Dynamic Type support
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 20
@@ -106,6 +109,16 @@ struct ThreadDetailView: View {
                                 }
                             }
                         }
+                        .onChange(of: isEditFieldFocused) { _, isFocused in
+                            // Handle escape key by monitoring focus change
+                            if !isFocused && editingEntry != nil {
+                                // User dismissed keyboard - cancel edit
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    editingEntry = nil
+                                    editedContent = ""
+                                }
+                            }
+                        }
                         .onChange(of: viewModel.draftContent) { _, _ in
                             // Auto-scroll to bottom when user is typing
                             if isComposeFieldFocused {
@@ -170,10 +183,28 @@ struct ThreadDetailView: View {
     
     private func entryView(entry: Entry, isLast: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Timestamp
-            Text(formatTimestamp(entry.timestamp))
-                .font(.system(size: timestampSize, weight: .medium))
-                .foregroundColor(Color(.secondaryLabel))
+            if editingEntry?.id == entry.id {
+                // Edit mode UI
+                editModeView(entry: entry)
+            } else {
+                // Normal display mode
+                normalEntryView(entry: entry, isLast: isLast)
+            }
+        }
+        .padding(.bottom, isLast ? 0 : 24)
+        .opacity(editingEntry != nil && editingEntry?.id != entry.id ? 0.5 : 1.0) // Dim other entries
+    }
+    
+    private func normalEntryView(entry: Entry, isLast: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Timestamp with edited indicator
+            HStack(spacing: 4) {
+                Text(formatTimestamp(entry.timestamp))
+                    .font(.system(size: timestampSize, weight: .medium))
+                    .foregroundColor(Color(.secondaryLabel))
+                
+                // TODO: Show (edited) when we have edit tracking
+            }
             
             // Content
             Text(entry.content)
@@ -191,13 +222,13 @@ struct ThreadDetailView: View {
                     .padding(.top, 16)
             }
         }
-        .padding(.bottom, isLast ? 0 : 24)
-        .contentShape(Rectangle()) // Make entire area tappable
+        .contentShape(Rectangle())
         .contextMenu {
             // Edit button
             Button {
-                // Edit action - will be implemented in TICKET-019
-                print("Edit entry: \(entry.id)")
+                editingEntry = entry
+                editedContent = entry.content
+                isEditFieldFocused = true
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
@@ -213,6 +244,65 @@ struct ThreadDetailView: View {
             // Haptic feedback when long press detected
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             impactFeedback.impactOccurred()
+        }
+    }
+    
+    private func editModeView(entry: Entry) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Save/Cancel buttons in place of timestamp
+            HStack {
+                Button("Cancel") {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        editingEntry = nil
+                        editedContent = ""
+                        isEditFieldFocused = false
+                    }
+                }
+                .foregroundColor(Color(.systemBlue))
+                
+                Spacer()
+                
+                Button("Save") {
+                    Task {
+                        await viewModel.updateEntry(entry, newContent: editedContent)
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            editingEntry = nil
+                            editedContent = ""
+                            isEditFieldFocused = false
+                        }
+                    }
+                }
+                .foregroundColor(Color(.systemBlue))
+                .disabled(editedContent == entry.content || editedContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .font(.system(size: contentSize, weight: .medium))
+            
+            // Edit field
+            TextEditor(text: $editedContent)
+                .font(.system(size: contentSize))
+                .foregroundColor(Color(.label))
+                .lineSpacing(4)
+                .focused($isEditFieldFocused)
+                .frame(minHeight: 60)
+                .fixedSize(horizontal: false, vertical: true)
+                .background(Color(.systemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.separator), lineWidth: 1)
+                )
+                .onSubmit {
+                    // Save on keyboard submit if content changed
+                    if editedContent != entry.content && !editedContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Task {
+                            await viewModel.updateEntry(entry, newContent: editedContent)
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                editingEntry = nil
+                                editedContent = ""
+                                isEditFieldFocused = false
+                            }
+                        }
+                    }
+                }
         }
     }
     
