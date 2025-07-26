@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Edit Mode Final Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .mockup-group {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+        
+        .mockup-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        
+        .mockup-description {
+            font-size: 17px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .phone-frame {
+            width: 390px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            margin: 0 auto 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .phone-screen {
+            background: #fff;
+            border-radius: 30px;
+            height: 700px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .nav-bar {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 0.5px solid #E5E5E7;
+        }
+        
+        .nav-back {
+            color: #007AFF;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .nav-menu {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .content {
+            padding: 16px 24px;
+            height: calc(100% - 88px);
+            overflow-y: auto;
+        }
+        
+        .thread-entry {
+            margin-bottom: 24px;
+        }
+        
+        .entry-timestamp {
+            font-size: 11px;
+            color: #8E8E93;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .entry-content {
+            font-size: 14px;
+            color: #000;
+            line-height: 1.5;
+        }
+        
+        /* Edit Mode Container */
+        .edit-mode-container {
+            margin-bottom: 24px;
+        }
+        
+        /* Edit box with blue border */
+        .edit-box {
+            background: #F8F8F8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 2px solid #007AFF;
+            margin-top: 8px;
+        }
+        
+        .edit-textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            color: #000;
+            padding: 0;
+        }
+        
+        /* Button container */
+        .edit-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 1px solid #E5E5E7;
+            border-radius: 8px;
+            color: #007AFF;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-outline:hover {
+            background: #F2F2F7;
+        }
+        
+        .btn-outline.primary {
+            border-color: #007AFF;
+            font-weight: 600;
+        }
+        
+        .btn-outline:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Other entries dimmed */
+        .dimmed {
+            opacity: 0.5;
+        }
+        
+        /* Menu button on entries */
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
+        .entry-menu {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: -12px -12px -12px 0;
+            color: #8E8E93;
+            font-size: 16px;
+        }
+        
+        /* Compose area at bottom */
+        .compose-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(248, 248, 248, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 0.5px solid #E5E5E7;
+            padding: 12px 16px;
+        }
+        
+        .code-block {
+            background: #F8F8F8;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background: #FFEB3B;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-group">
+            <h1 class="mockup-title">Edit Mode - Final Design</h1>
+            <p class="mockup-description">
+                Based on Option 3: Timestamp visible above the edit box, buttons float below. 
+                This maintains context while keeping the interface clean and the buttons easily accessible.
+            </p>
+        </div>
+
+        <div class="mockup-group">
+            <h2 class="mockup-title">Visual Design</h2>
+            
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <div class="status-bar">
+                        <span>11:26</span>
+                        <span>📶 📶 🔋</span>
+                    </div>
+                    <div class="nav-bar">
+                        <div class="nav-back">‹ Threads</div>
+                        <div class="nav-title">My first thread</div>
+                        <div class="nav-menu">⋯</div>
+                    </div>
+                    <div class="content" style="padding-bottom: 100px;">
+                        <!-- Previous entries (dimmed) -->
+                        <div class="thread-entry dimmed">
+                            <div class="entry-header">
+                                <div class="entry-timestamp">Today at 11:23 AM</div>
+                                <div class="entry-menu">⋮</div>
+                            </div>
+                            <div class="entry-content">Hello world!</div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-header">
+                                <div class="entry-timestamp">Today at 11:24 AM</div>
+                                <div class="entry-menu">⋮</div>
+                            </div>
+                            <div class="entry-content">My name is eric</div>
+                        </div>
+                        
+                        <!-- Entry being edited -->
+                        <div class="edit-mode-container">
+                            <div class="entry-timestamp">Today at 11:25 AM</div>
+                            <div class="edit-box">
+                                <textarea class="edit-textarea" style="height: 120px;">This is threadjournal
+A journal for your stream of conciousness
+The thread is long
+This</textarea>
+                            </div>
+                            <div class="edit-actions">
+                                <button class="btn-outline">Cancel</button>
+                                <button class="btn-outline primary">Save</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Subsequent entries (dimmed) -->
+                        <div class="thread-entry dimmed">
+                            <div class="entry-header">
+                                <div class="entry-timestamp">Today at 11:26 AM</div>
+                                <div class="entry-menu">⋮</div>
+                            </div>
+                            <div class="entry-content">A
+Longer
+Thread
+And
+It
+Is
+Good
+Nice
+Thread
+Nice
+Very good
+
+Hello!</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compose area -->
+                    <div class="compose-area dimmed">
+                        <div style="color: #C7C7CC; font-size: 17px;">Add to journal...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mockup-group">
+            <h2 class="mockup-title">Implementation Notes</h2>
+            <div class="mockup-description">
+                <h3 style="font-size: 20px; margin-bottom: 12px; color: #000;">Key Design Decisions:</h3>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Timestamp Position:</strong> Above the edit box to maintain context</li>
+                    <li><strong>Button Placement:</strong> Below the edit box, right-aligned</li>
+                    <li><strong>Button Style:</strong> Outline buttons with 16px font size</li>
+                    <li><strong>Edit Box:</strong> Blue border (2px), gray background (#F8F8F8)</li>
+                    <li><strong>Other Entries:</strong> 50% opacity while editing</li>
+                    <li><strong>No Scrolling:</strong> TextEditor expands to fit content</li>
+                </ul>
+                
+                <div class="code-block">
+<pre>// Edit Mode Structure
+VStack(alignment: .leading, spacing: 8) {
+    // 1. Timestamp (outside edit box)
+    Text(formatTimestamp(entry.timestamp))
+        .font(.system(size: 11, weight: .medium))
+        .foregroundColor(Color(.secondaryLabel))
+    
+    // 2. Edit box with blue border
+    <span class="highlight">TextEditor</span>(text: $viewModel.editedContent)
+        .scrollDisabled(true)  // No internal scrolling
+        .background(Color(.systemGray6))
+        .overlay(RoundedRectangle(cornerRadius: 8)
+            .stroke(Color.accentColor, lineWidth: 2))
+    
+    // 3. Buttons below, right-aligned
+    HStack {
+        Spacer()
+        Button("Cancel") { ... }
+            .buttonStyle(OutlineButtonStyle())
+        Button("Save") { ... }
+            .buttonStyle(OutlineButtonStyle(primary: true))
+    }
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="mockup-group">
+            <h2 class="mockup-title">Interaction States</h2>
+            <div class="mockup-description">
+                <h3 style="font-size: 20px; margin-bottom: 12px; color: #000;">Save Button States:</h3>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Enabled:</strong> When content has changed</li>
+                    <li><strong>Disabled:</strong> When content is unchanged or empty</li>
+                </ul>
+                
+                <h3 style="font-size: 20px; margin: 20px 0 12px; color: #000;">Focus Behavior:</h3>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>TextEditor receives focus automatically when entering edit mode</li>
+                    <li>Keyboard appears immediately</li>
+                    <li>Scroll view adjusts to show the editing entry</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

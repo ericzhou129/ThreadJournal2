@@ -8,7 +8,7 @@
 import Foundation
 
 /// A single timestamped thought within a thread
-struct Entry {
+struct Entry: Identifiable, Equatable {
     let id: UUID
     let threadId: UUID
     let content: String

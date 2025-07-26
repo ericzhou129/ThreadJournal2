@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Edit Mode Button Placement Options</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .mockup-group {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+        
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .mockup-description {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .phone-frame {
+            width: 375px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            margin: 0 auto 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .phone-screen {
+            background: #fff;
+            border-radius: 30px;
+            height: 600px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .nav-bar {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 0.5px solid #E5E5E7;
+        }
+        
+        .content {
+            padding: 16px;
+            height: calc(100% - 88px);
+            overflow-y: auto;
+        }
+        
+        .thread-entry {
+            margin-bottom: 24px;
+        }
+        
+        .entry-timestamp {
+            font-size: 11px;
+            color: #8E8E93;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .entry-content {
+            font-size: 14px;
+            color: #000;
+            line-height: 1.5;
+        }
+        
+        /* Edit Mode Styles */
+        .edit-container {
+            background: #F8F8F8;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 24px;
+            border: 2px solid #007AFF;
+        }
+        
+        .edit-textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            color: #000;
+            padding: 0;
+            margin-bottom: 12px;
+        }
+        
+        /* Option 1: Buttons at bottom right */
+        .edit-actions-bottom-right {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        
+        /* Option 2: Buttons full width at bottom */
+        .edit-actions-full-width {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .edit-actions-full-width button {
+            flex: 1;
+        }
+        
+        /* Option 3: Floating buttons outside edit area */
+        .edit-actions-floating {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        /* Button Styles */
+        .btn-text {
+            background: none;
+            border: none;
+            color: #007AFF;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        
+        .btn-text.primary {
+            font-weight: 600;
+        }
+        
+        .btn-solid {
+            background: #F2F2F7;
+            border: none;
+            border-radius: 8px;
+            color: #007AFF;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        
+        .btn-solid.primary {
+            background: #007AFF;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 1px solid #E5E5E7;
+            border-radius: 8px;
+            color: #007AFF;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        
+        .btn-outline.primary {
+            border-color: #007AFF;
+            font-weight: 600;
+        }
+        
+        /* Other entries dimmed */
+        .dimmed {
+            opacity: 0.5;
+        }
+        
+        .option-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #007AFF;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="mockup-group">
+            <h1 class="mockup-title">Edit Mode - Button Placement Options</h1>
+            <p class="mockup-description">Different approaches for positioning Save and Cancel buttons in edit mode</p>
+        </div>
+
+        <!-- Option 1: Bottom Right Text Buttons -->
+        <div class="mockup-group">
+            <h2 class="mockup-title">Option 1: Bottom Right Text Buttons</h2>
+            <p class="mockup-description">Minimal text buttons aligned to the right, similar to iOS patterns</p>
+            
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <div class="option-label">Option 1</div>
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>📶 📶 🔋</span>
+                    </div>
+                    <div class="nav-bar">
+                        <span style="color: #007AFF;">‹ Threads</span>
+                        <span style="font-weight: 600;">My first thread</span>
+                        <span>⋯</span>
+                    </div>
+                    <div class="content">
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:23 AM</div>
+                            <div class="entry-content">Hello world!</div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:24 AM</div>
+                            <div class="entry-content">My name is eric</div>
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div class="edit-container">
+                            <textarea class="edit-textarea" style="height: 120px;">This is threadjournal
+A journal for your stream of conciousness
+The thread is long
+This</textarea>
+                            <div class="edit-actions-bottom-right">
+                                <button class="btn-text">Cancel</button>
+                                <button class="btn-text primary">Save</button>
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:26 AM</div>
+                            <div class="entry-content">A
+Longer
+Thread
+And
+It
+Is
+Good
+Nice
+Thread
+Nice
+Very good
+
+Hello!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 2: Full Width Buttons -->
+        <div class="mockup-group">
+            <h2 class="mockup-title">Option 2: Full Width Solid Buttons</h2>
+            <p class="mockup-description">More prominent buttons that span the width of the edit area</p>
+            
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <div class="option-label">Option 2</div>
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>📶 📶 🔋</span>
+                    </div>
+                    <div class="nav-bar">
+                        <span style="color: #007AFF;">‹ Threads</span>
+                        <span style="font-weight: 600;">My first thread</span>
+                        <span>⋯</span>
+                    </div>
+                    <div class="content">
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:23 AM</div>
+                            <div class="entry-content">Hello world!</div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:24 AM</div>
+                            <div class="entry-content">My name is eric</div>
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div class="edit-container">
+                            <textarea class="edit-textarea" style="height: 120px;">This is threadjournal
+A journal for your stream of conciousness
+The thread is long
+This</textarea>
+                            <div class="edit-actions-full-width">
+                                <button class="btn-solid">Cancel</button>
+                                <button class="btn-solid primary">Save</button>
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:26 AM</div>
+                            <div class="entry-content">A
+Longer
+Thread
+And
+It
+Is
+Good
+Nice
+Thread
+Nice
+Very good
+
+Hello!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 3: Floating Outside -->
+        <div class="mockup-group">
+            <h2 class="mockup-title">Option 3: Buttons Outside Edit Area (With Timestamp)</h2>
+            <p class="mockup-description">Timestamp visible above edit box, buttons float below</p>
+            
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <div class="option-label">Option 3</div>
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>📶 📶 🔋</span>
+                    </div>
+                    <div class="nav-bar">
+                        <span style="color: #007AFF;">‹ Threads</span>
+                        <span style="font-weight: 600;">My first thread</span>
+                        <span>⋯</span>
+                    </div>
+                    <div class="content">
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:23 AM</div>
+                            <div class="entry-content">Hello world!</div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:24 AM</div>
+                            <div class="entry-content">My name is eric</div>
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div style="margin-bottom: 24px;">
+                            <div class="entry-timestamp">Today at 11:25 AM</div>
+                            <div class="edit-container" style="margin-bottom: 8px;">
+                                <textarea class="edit-textarea" style="height: 120px;">This is threadjournal
+A journal for your stream of conciousness
+The thread is long
+This</textarea>
+                            </div>
+                            <div class="edit-actions-floating">
+                                <button class="btn-outline">Cancel</button>
+                                <button class="btn-outline primary">Save</button>
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:26 AM</div>
+                            <div class="entry-content">A
+Longer
+Thread
+And
+It
+Is
+Good
+Nice
+Thread
+Nice
+Very good
+
+Hello!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option 4: Compact Single Line -->
+        <div class="mockup-group">
+            <h2 class="mockup-title">Option 4: Compact Single Line</h2>
+            <p class="mockup-description">Minimal approach with small buttons on same line as a hint</p>
+            
+            <div class="phone-frame">
+                <div class="phone-screen">
+                    <div class="option-label">Option 4</div>
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>📶 📶 🔋</span>
+                    </div>
+                    <div class="nav-bar">
+                        <span style="color: #007AFF;">‹ Threads</span>
+                        <span style="font-weight: 600;">My first thread</span>
+                        <span>⋯</span>
+                    </div>
+                    <div class="content">
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:23 AM</div>
+                            <div class="entry-content">Hello world!</div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:24 AM</div>
+                            <div class="entry-content">My name is eric</div>
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div class="edit-container">
+                            <textarea class="edit-textarea" style="height: 120px;">This is threadjournal
+A journal for your stream of conciousness
+The thread is long
+This</textarea>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 11px; color: #8E8E93;">Editing</span>
+                                <div style="display: flex; gap: 12px;">
+                                    <button class="btn-text" style="font-size: 14px; padding: 4px 8px;">Cancel</button>
+                                    <button class="btn-text primary" style="font-size: 14px; padding: 4px 8px;">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="thread-entry dimmed">
+                            <div class="entry-timestamp">Today at 11:26 AM</div>
+                            <div class="entry-content">A
+Longer
+Thread
+And
+It
+Is
+Good
+Nice
+Thread
+Nice
+Very good
+
+Hello!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

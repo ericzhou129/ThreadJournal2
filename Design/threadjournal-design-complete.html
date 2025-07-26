@@ -57,6 +57,60 @@
             overflow-y: auto;
         }
         
+        /* Swipe Action Styles */
+        .swipe-container {
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        
+        .swipe-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            display: flex;
+            align-items: stretch;
+            transform: translateX(100%);
+        }
+        
+        .swipe-action-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 24px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .swipe-action-edit {
+            background: #007AFF;
+        }
+        
+        .swipe-action-delete {
+            background: #FF3B30;
+        }
+        
+        .swipe-state-partial .thread-entry {
+            transform: translateX(-80px);
+        }
+        
+        .swipe-state-partial .swipe-actions {
+            transform: translateX(50%);
+        }
+        
+        .swipe-state-full .thread-entry {
+            transform: translateX(-150px);
+        }
+        
+        .swipe-state-full .swipe-actions {
+            transform: translateX(0);
+        }
+        
         .reference-legend h3 {
             font-size: 18px;
             margin-bottom: 16px;
@@ -948,7 +1002,146 @@ The team seems amazing - exactly the kind of collaborative environment I've been
         </div>
     </div>
     
-    <!-- Section 2: Keyboard States -->
+    <!-- Section 2: Swipe Actions -->
+    <div class="section">
+        <h2 class="section-title">Entry Swipe Actions</h2>
+        <div class="screens-grid">
+            <!-- Normal State -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Normal Entry</div>
+                <div class="screen" style="height: 400px;">
+                    <div class="component-badge" style="top: 180px; left: 40px;" onclick="copyRef('Design:v1.2/SwipeEntry')">14</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="swipe-container">
+                            <div class="swipe-actions">
+                                <button class="swipe-action-button swipe-action-edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button class="swipe-action-button swipe-action-delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 6h18m-2 0V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="thread-entry">
+                                <div class="entry-timestamp">Today, 2:15 PM</div>
+                                <div class="entry-content">
+                                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop.
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; font-size: 12px; color: #8E8E93; margin-top: 8px;">
+                            ↑ Swipe right-to-left to reveal actions
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Partial Swipe -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Partial Swipe (20%)</div>
+                <div class="screen" style="height: 400px;">
+                    <div class="component-badge" style="top: 180px; right: 100px;" onclick="copyRef('Design:v1.2/SwipeActions')">15</div>
+                    
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="swipe-container swipe-state-partial">
+                            <div class="swipe-actions">
+                                <button class="swipe-action-button swipe-action-edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button class="swipe-action-button swipe-action-delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 6h18m-2 0V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="thread-entry">
+                                <div class="entry-timestamp">Today, 2:15 PM</div>
+                                <div class="entry-content">
+                                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop.
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; padding: 8px; background: #F2F2F7; border-radius: 12px; font-size: 11px; color: #8E8E93; margin-top: 8px;">
+                            • Haptic feedback triggers at 80px •
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Full Swipe -->
+            <div class="screen-wrapper">
+                <div class="screen-label">Actions Revealed</div>
+                <div class="screen" style="height: 400px;">
+                    <div class="status-bar">
+                        <span>9:41</span>
+                        <span>•••</span>
+                    </div>
+                    
+                    <div class="header">
+                        <h2>Gratitude Journal</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="swipe-container swipe-state-full">
+                            <div class="swipe-actions">
+                                <button class="swipe-action-button swipe-action-edit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button class="swipe-action-button swipe-action-delete">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                        <path d="M3 6h18m-2 0V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="thread-entry">
+                                <div class="entry-timestamp">Today, 2:15 PM</div>
+                                <div class="entry-content">
+                                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop.
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; font-size: 12px; color: #8E8E93; margin-top: 8px;">
+                            Tap action buttons to Edit or Delete
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section 3: Keyboard States -->
     <div class="section">
         <h2 class="section-title">Keyboard Entry States</h2>
         <div class="screens-grid">
@@ -1247,7 +1440,9 @@ I'm also grateful for the progress I made on my project today. After weeks of st
             { num: 10, code: 'Design:v1.2/ExportMenu' },
             { num: 11, code: 'Design:v1.2/EntryContextMenu' },
             { num: 12, code: 'Design:v1.2/EditMode' },
-            { num: 13, code: 'Design:v1.2/DeleteConfirmation' }
+            { num: 13, code: 'Design:v1.2/DeleteConfirmation' },
+            { num: 14, code: 'Design:v1.2/SwipeEntry' },
+            { num: 15, code: 'Design:v1.2/SwipeActions' }
         ];
         
         // Populate legend

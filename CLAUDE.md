@@ -3,6 +3,9 @@
 ## Project Overview
 ThreadJournal2 is a journaling iOS app built with SwiftUI and Clean Architecture. The app allows users to create multiple journal threads and add entries to them over time.
 
+## Notes
+- For any ticket, always (1) write unit tests (2) 
+
 ## Important Instructions for Future Development
 
 ### 1. Architecture Requirements

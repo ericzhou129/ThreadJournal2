@@ -45,6 +45,18 @@ final class MockThreadRepository: ThreadRepository {
     var deleteCallCount = 0
     var addEntryCallCount = 0
     var fetchEntriesCallCount = 0
+    var fetchEntryCallCount = 0
+    var updateEntryCallCount = 0
+    var softDeleteEntryCallCount = 0
+    
+    // MARK: - Test Helpers for New Methods
+    
+    var fetchEntryResult: DomainEntry?
+    var updateEntryResult: DomainEntry?
+    var softDeleteEntryError: Error?
+    var lastSoftDeletedEntryId: UUID?
+    var lastFetchedEntryId: UUID?
+    var lastUpdatedEntry: DomainEntry?
     
     // MARK: - ThreadRepository Implementation
     
@@ -195,5 +207,66 @@ final class MockThreadRepository: ThreadRepository {
         deleteCallCount = 0
         addEntryCallCount = 0
         fetchEntriesCallCount = 0
+        fetchEntryCallCount = 0
+        updateEntryCallCount = 0
+        softDeleteEntryCallCount = 0
+        
+        fetchEntryResult = nil
+        updateEntryResult = nil
+        softDeleteEntryError = nil
+        lastSoftDeletedEntryId = nil
+        lastFetchedEntryId = nil
+        lastUpdatedEntry = nil
+    }
+    
+    // MARK: - New Repository Methods
+    
+    func fetchEntry(id: UUID) async throws -> DomainEntry? {
+        fetchEntryCallCount += 1
+        lastFetchedEntryId = id
+        
+        if shouldFailFetch {
+            throw injectedError
+        }
+        
+        return fetchEntryResult
+    }
+    
+    func updateEntry(_ entry: DomainEntry) async throws -> DomainEntry {
+        updateEntryCallCount += 1
+        lastUpdatedEntry = entry
+        
+        if shouldFailUpdate {
+            throw injectedError
+        }
+        
+        guard let result = updateEntryResult else {
+            // Default: return the same entry if no mock result specified
+            return entry
+        }
+        
+        return result
+    }
+    
+    func softDeleteEntry(entryId: UUID) async throws {
+        softDeleteEntryCallCount += 1
+        lastSoftDeletedEntryId = entryId
+        
+        if let error = softDeleteEntryError {
+            throw error
+        }
+        
+        if shouldFailDelete {
+            throw injectedError
+        }
+        
+        // Update internal state - mark entry as soft deleted
+        for (threadId, threadEntries) in entries {
+            if threadEntries.contains(where: { $0.id == entryId }) {
+                // Remove from entries collection to simulate soft delete
+                entries[threadId] = threadEntries.filter { $0.id != entryId }
+                break
+            }
+        }
     }
 }

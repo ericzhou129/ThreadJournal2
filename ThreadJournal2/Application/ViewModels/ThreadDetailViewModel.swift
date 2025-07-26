@@ -49,6 +49,26 @@ final class ThreadDetailViewModel: ObservableObject {
     @Published var exportError: String?
     @Published private(set) var exportedFileURL: URL?
     
+    // MARK: - Edit/Delete Entry State
+    
+    /// The entry currently being edited
+    @Published var editingEntry: Entry?
+    
+    /// The edited content for the editing entry
+    @Published var editedContent = ""
+    
+    /// Whether the edit field should be focused
+    @Published var isEditFieldFocused = false
+    
+    /// The entry pending deletion
+    @Published var entryToDelete: Entry?
+    
+    /// Whether to show delete confirmation dialog
+    @Published var showDeleteConfirmation = false
+    
+    /// Set of entry IDs that have been edited
+    @Published private(set) var editedEntryIds: Set<UUID> = []
+    
     // MARK: - Draft State Machine
     
     /// Current state of the draft
@@ -80,6 +100,8 @@ final class ThreadDetailViewModel: ObservableObject {
     
     private let repository: ThreadRepository
     private let addEntryUseCase: AddEntryUseCase
+    private let updateEntryUseCase: UpdateEntryUseCase
+    private let deleteEntryUseCase: DeleteEntryUseCase
     private let draftManager: DraftManager
     private let exportThreadUseCase: ExportThreadUseCase
     
@@ -99,16 +121,22 @@ final class ThreadDetailViewModel: ObservableObject {
     /// - Parameters:
     ///   - repository: Thread repository for data access
     ///   - addEntryUseCase: Use case for adding entries
+    ///   - updateEntryUseCase: Use case for updating entries
+    ///   - deleteEntryUseCase: Use case for deleting entries
     ///   - draftManager: Manager for draft auto-save functionality
     ///   - exportThreadUseCase: Use case for exporting threads to CSV
     init(
         repository: ThreadRepository,
         addEntryUseCase: AddEntryUseCase,
+        updateEntryUseCase: UpdateEntryUseCase,
+        deleteEntryUseCase: DeleteEntryUseCase,
         draftManager: DraftManager,
         exportThreadUseCase: ExportThreadUseCase
     ) {
         self.repository = repository
         self.addEntryUseCase = addEntryUseCase
+        self.updateEntryUseCase = updateEntryUseCase
+        self.deleteEntryUseCase = deleteEntryUseCase
         self.draftManager = draftManager
         self.exportThreadUseCase = exportThreadUseCase
         
@@ -333,14 +361,30 @@ extension ThreadDetailViewModel {
         !isLoading
     }
     
-    /// Deletes an entry (placeholder for TICKET-020)
+    /// Deletes an entry using soft delete
     /// - Parameter entry: The entry to delete
     func deleteEntry(_ entry: Entry) async {
-        // TODO: Implement soft delete in TICKET-020
-        print("Delete entry placeholder: \(entry.id)")
-        // For now, just remove from the local array to show UI behavior
-        withAnimation(.easeOut(duration: 0.3)) {
-            entries.removeAll { $0.id == entry.id }
+        do {
+            // Soft delete via use case
+            try await deleteEntryUseCase.execute(entryId: entry.id)
+            
+            // Remove from local array with animation
+            withAnimation(.easeOut(duration: 0.3)) {
+                entries.removeAll { $0.id == entry.id }
+            }
+            
+            // Update thread's updatedAt locally
+            if let currentThread = thread {
+                thread = try? Thread(
+                    id: currentThread.id,
+                    title: currentThread.title,
+                    createdAt: currentThread.createdAt,
+                    updatedAt: Date()
+                )
+            }
+        } catch {
+            // Handle error - could show alert
+            print("Failed to delete entry: \(error)")
         }
     }
     
@@ -349,22 +393,97 @@ extension ThreadDetailViewModel {
     ///   - entry: The entry to update
     ///   - newContent: The new content for the entry
     func updateEntry(_ entry: Entry, newContent: String) async {
-        // TODO: Implement with UpdateEntryUseCase
-        print("Update entry placeholder: \(entry.id) with content: \(newContent)")
-        
-        // For now, update the local array to show UI behavior
-        if let index = entries.firstIndex(where: { $0.id == entry.id }) {
-            // Create updated entry (entries are immutable)
-            if let updatedEntry = try? Entry(
-                id: entry.id,
-                threadId: entry.threadId,
-                content: newContent,
-                timestamp: entry.timestamp
-            ) {
+        do {
+            // Update via use case
+            let updatedEntry = try await updateEntryUseCase.execute(
+                entryId: entry.id,
+                newContent: newContent
+            )
+            
+            // Update the local array with the updated entry
+            if let index = entries.firstIndex(where: { $0.id == entry.id }) {
                 withAnimation(.easeOut(duration: 0.2)) {
                     entries[index] = updatedEntry
+                    // Mark as edited
+                    editedEntryIds.insert(entry.id)
                 }
             }
+            
+            // Update thread's updatedAt locally
+            if let currentThread = thread {
+                thread = try? Thread(
+                    id: currentThread.id,
+                    title: currentThread.title,
+                    createdAt: currentThread.createdAt,
+                    updatedAt: Date()
+                )
+            }
+        } catch {
+            // Handle error - could show alert
+            print("Failed to update entry: \(error)")
         }
+    }
+    
+    // MARK: - Edit Mode Management
+    
+    /// Starts editing an entry
+    /// - Parameter entry: The entry to edit
+    func startEditingEntry(_ entry: Entry) {
+        editingEntry = entry
+        editedContent = entry.content
+        isEditFieldFocused = true
+    }
+    
+    /// Saves the edited entry
+    func saveEditedEntry() async {
+        guard let entry = editingEntry else { return }
+        
+        let trimmedContent = editedContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Validate content not empty
+        guard !trimmedContent.isEmpty else {
+            cancelEditing()
+            return
+        }
+        
+        // Only save if content actually changed
+        if trimmedContent != entry.content {
+            await updateEntry(entry, newContent: trimmedContent)
+        }
+        
+        cancelEditing()
+    }
+    
+    /// Cancels editing without saving
+    func cancelEditing() {
+        editingEntry = nil
+        editedContent = ""
+        isEditFieldFocused = false
+    }
+    
+    // MARK: - Delete Confirmation
+    
+    /// Shows delete confirmation for an entry
+    /// - Parameter entry: The entry to delete
+    func confirmDeleteEntry(_ entry: Entry) {
+        entryToDelete = entry
+        showDeleteConfirmation = true
+    }
+    
+    /// Confirms and executes entry deletion
+    func executeDeleteEntry() async {
+        guard let entry = entryToDelete else { return }
+        
+        await deleteEntry(entry)
+        
+        // Clear deletion state
+        entryToDelete = nil
+        showDeleteConfirmation = false
+    }
+    
+    /// Cancels entry deletion
+    func cancelDeleteEntry() {
+        entryToDelete = nil
+        showDeleteConfirmation = false
     }
 }

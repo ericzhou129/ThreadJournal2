@@ -14,18 +14,24 @@ final class ThreadDetailViewTests: XCTestCase {
     
     private var repository: MockThreadRepository!
     private var addEntryUseCase: AddEntryUseCase!
+    private var updateEntryUseCase: UpdateEntryUseCase!
+    private var deleteEntryUseCase: DeleteEntryUseCase!
     private var draftManager: InMemoryDraftManager!
     
     override func setUp() {
         super.setUp()
         repository = MockThreadRepository()
         addEntryUseCase = AddEntryUseCase(repository: repository)
+        updateEntryUseCase = UpdateEntryUseCase(repository: repository)
+        deleteEntryUseCase = DeleteEntryUseCase(repository: repository)
         draftManager = InMemoryDraftManager()
     }
     
     override func tearDown() {
         repository = nil
         addEntryUseCase = nil
+        updateEntryUseCase = nil
+        deleteEntryUseCase = nil
         draftManager = nil
         super.tearDown()
     }
@@ -46,10 +52,12 @@ final class ThreadDetailViewTests: XCTestCase {
             exporter: mockExporter
         )
         
-        let view = ThreadDetailView(
+        let view = ThreadDetailViewFixed(
             threadId: thread.id,
             repository: repository,
             addEntryUseCase: addEntryUseCase,
+            updateEntryUseCase: updateEntryUseCase,
+            deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
             exportThreadUseCase: exportThreadUseCase
         )
@@ -98,6 +106,8 @@ final class ThreadDetailViewTests: XCTestCase {
             let viewModel = ThreadDetailViewModel(
                 repository: repository,
                 addEntryUseCase: addEntryUseCase,
+                updateEntryUseCase: updateEntryUseCase,
+                deleteEntryUseCase: deleteEntryUseCase,
                 draftManager: draftManager,
                 exportThreadUseCase: exportThreadUseCase
             )

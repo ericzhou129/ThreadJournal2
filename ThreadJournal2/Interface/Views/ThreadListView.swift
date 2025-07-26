@@ -87,6 +87,8 @@ struct ThreadListView: View {
         .navigationDestination(for: Thread.self) { thread in
             let draftManager = InMemoryDraftManager()
             let addEntryUseCase = AddEntryUseCase(repository: viewModel.repository)
+            let updateEntryUseCase = UpdateEntryUseCase(repository: viewModel.repository)
+            let deleteEntryUseCase = DeleteEntryUseCase(repository: viewModel.repository)
             let csvExporter = CSVExporter()
             let exportThreadUseCase = ExportThreadUseCase(
                 repository: viewModel.repository,
@@ -97,6 +99,8 @@ struct ThreadListView: View {
                 threadId: thread.id,
                 repository: viewModel.repository,
                 addEntryUseCase: addEntryUseCase,
+                updateEntryUseCase: updateEntryUseCase,
+                deleteEntryUseCase: deleteEntryUseCase,
                 draftManager: draftManager,
                 exportThreadUseCase: exportThreadUseCase
             )

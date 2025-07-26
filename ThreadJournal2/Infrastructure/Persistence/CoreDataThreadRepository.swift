@@ -174,7 +174,10 @@ final class CoreDataThreadRepository: ThreadRepository {
             guard let self = self else { return [] }
             
             let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Entry")
-            fetchRequest.predicate = NSPredicate(format: "threadId == %@", threadId as CVarArg)
+            // Filter out soft-deleted entries (deletedAt == nil)
+            let threadPredicate = NSPredicate(format: "threadId == %@", threadId as CVarArg)
+            let notDeletedPredicate = NSPredicate(format: "deletedAt == nil")
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [threadPredicate, notDeletedPredicate])
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
             
             do {
@@ -277,6 +280,99 @@ final class CoreDataThreadRepository: ThreadRepository {
         }
         
         return try Entry(id: id, threadId: threadId, content: content, timestamp: timestamp)
+    }
+    
+    // MARK: - Entry Update Operations
+    
+    func fetchEntry(id: UUID) async throws -> Entry? {
+        let context = persistentContainer.viewContext
+        
+        return try await context.perform { [weak self] in
+            guard let self = self else { return nil }
+            
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Entry")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            fetchRequest.fetchLimit = 1
+            
+            do {
+                let results = try context.fetch(fetchRequest)
+                guard let managedEntry = results.first else {
+                    return nil
+                }
+                
+                return try self.mapManagedObjectToEntry(managedEntry)
+            } catch {
+                throw PersistenceError.fetchFailed(underlying: error)
+            }
+        }
+    }
+    
+    func updateEntry(_ entry: Entry) async throws -> Entry {
+        let context = persistentContainer.viewContext
+        
+        var updatedEntry: Entry?
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { throw PersistenceError.updateFailed(underlying: NSError()) }
+            
+            // Fetch the existing entry
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Entry")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", entry.id as CVarArg)
+            fetchRequest.fetchLimit = 1
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedEntry = results.first else {
+                throw PersistenceError.notFound(id: entry.id)
+            }
+            
+            // Update the content
+            managedEntry.setValue(entry.content, forKey: "content")
+            
+            // Also update the thread's updatedAt timestamp
+            if let managedThread = managedEntry.value(forKey: "thread") as? NSManagedObject {
+                managedThread.setValue(Date(), forKey: "updatedAt")
+            }
+            
+            // Save context
+            try self.saveContext(context)
+            
+            updatedEntry = try self.mapManagedObjectToEntry(managedEntry)
+        }
+        
+        guard let result = updatedEntry else {
+            throw PersistenceError.updateFailed(underlying: NSError())
+        }
+        
+        return result
+    }
+    
+    func softDeleteEntry(entryId: UUID) async throws {
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { throw PersistenceError.deleteFailed(underlying: NSError()) }
+            
+            // Fetch the entry to delete
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Entry")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+            fetchRequest.fetchLimit = 1
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedEntry = results.first else {
+                throw PersistenceError.notFound(id: entryId)
+            }
+            
+            // Set deletedAt timestamp
+            managedEntry.setValue(Date(), forKey: "deletedAt")
+            
+            // Also update the thread's updatedAt timestamp
+            if let managedThread = managedEntry.value(forKey: "thread") as? NSManagedObject {
+                managedThread.setValue(Date(), forKey: "updatedAt")
+            }
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
 }
 

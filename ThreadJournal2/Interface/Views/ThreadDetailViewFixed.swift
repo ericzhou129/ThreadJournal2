@@ -22,10 +22,20 @@ struct ThreadDetailViewFixed: View {
     
     private let bottomID = "bottom"
     
+    // Timestamp background color that adapts to light/dark mode
+    @Environment(\.colorScheme) private var colorScheme
+    private var timestampBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(red: 0.15, green: 0.25, blue: 0.40) // Darker blue for dark mode
+            : Color(red: 0.91, green: 0.95, blue: 1.0)  // #E8F3FF for light mode
+    }
+    
     init(
         threadId: UUID,
         repository: ThreadRepository,
         addEntryUseCase: AddEntryUseCase,
+        updateEntryUseCase: UpdateEntryUseCase,
+        deleteEntryUseCase: DeleteEntryUseCase,
         draftManager: DraftManager,
         exportThreadUseCase: ExportThreadUseCase
     ) {
@@ -33,6 +43,8 @@ struct ThreadDetailViewFixed: View {
         let viewModel = ThreadDetailViewModel(
             repository: repository,
             addEntryUseCase: addEntryUseCase,
+            updateEntryUseCase: updateEntryUseCase,
+            deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
             exportThreadUseCase: exportThreadUseCase
         )
@@ -46,134 +58,10 @@ struct ThreadDetailViewFixed: View {
                 .ignoresSafeArea()
             
             // Entries list
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if viewModel.entries.isEmpty && !viewModel.isLoading {
-                            // Empty state
-                            VStack(spacing: 16) {
-                                Image(systemName: "text.bubble")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(Color(.tertiaryLabel))
-                                
-                                Text("No entries yet")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .foregroundColor(Color(.secondaryLabel))
-                                
-                                Text("Start journaling by typing below")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(Color(.tertiaryLabel))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 100)
-                        } else {
-                            ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
-                                entryView(entry: entry, isLast: index == viewModel.entries.count - 1)
-                            }
-                        }
-                        
-                        // Bottom spacer for compose area
-                        Color.clear
-                            .frame(height: 1)
-                            .id(bottomID)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                    .padding(.bottom, 120) // Space for compose area
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: viewModel.entries.count) { _, _ in
-                    withAnimation {
-                        proxy.scrollTo(bottomID, anchor: .bottom)
-                    }
-                }
-                .onChange(of: isComposeFieldFocused) { _, isFocused in
-                    if isFocused {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation {
-                                proxy.scrollTo(bottomID, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-            }
+            entriesListView
             
             // Compose area overlay at bottom
-            VStack(spacing: 0) {
-                Spacer()
-                
-                VStack(spacing: 0) {
-                    Divider()
-                    
-                    HStack(alignment: .bottom, spacing: 12) {
-                        // Text input field
-                        ZStack(alignment: .topLeading) {
-                            if viewModel.draftContent.isEmpty {
-                                Text("Add to journal...")
-                                    .font(.system(size: 17))
-                                    .foregroundColor(Color(.placeholderText))
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 11)
-                                    .allowsHitTesting(false)
-                            }
-                            
-                            TextEditor(text: $viewModel.draftContent)
-                                .font(.system(size: 17))
-                                .foregroundColor(Color(.label))
-                                .scrollContentBackground(.hidden)
-                                .background(Color.clear)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .focused($isComposeFieldFocused)
-                                .frame(minHeight: 44, idealHeight: textEditorHeight, maxHeight: 220)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .onChange(of: viewModel.draftContent) { _, _ in
-                                    updateTextEditorHeight()
-                                }
-                                .onAppear {
-                                    updateTextEditorHeight()
-                                }
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(Color(.systemGray6))
-                        )
-                        
-                        // Expand button
-                        Button(action: {
-                            isExpanded = true
-                        }) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(Color(.label))
-                                .frame(width: 36, height: 36)
-                                .background(Circle().fill(Color(.systemGray5)))
-                        }
-                            
-                        // Send button
-                        Button(action: {
-                            Task {
-                                await viewModel.addEntry()
-                                isComposeFieldFocused = true
-                                textEditorHeight = 44 // Reset height after sending
-                            }
-                        }) {
-                            Image(systemName: "arrow.up")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 36, height: 36)
-                                .background(
-                                    Circle()
-                                        .fill(viewModel.canSendEntry ? Color.accentColor : Color(.systemGray3))
-                                )
-                        }
-                        .disabled(!viewModel.canSendEntry)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
-                .background(.regularMaterial)
-            }
+            composeAreaView
         }
         .navigationTitle(viewModel.thread?.title ?? "")
         .navigationBarTitleDisplayMode(.large)
@@ -211,32 +99,316 @@ struct ThreadDetailViewFixed: View {
         }
         .overlay {
             if viewModel.isExporting {
-                Color.black.opacity(0.3)
-                    .ignoresSafeArea()
-                    .overlay(
-                        ProgressView("Exporting...")
-                            .padding()
-                            .background(Color(.systemBackground))
-                            .cornerRadius(10)
-                    )
+                exportingOverlay
+            }
+        }
+        .alert("Delete Entry?", isPresented: $viewModel.showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelDeleteEntry()
+            }
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.executeDeleteEntry()
+                }
+            }
+        } message: {
+            Text("This entry will be removed from your journal.")
+        }
+    }
+    
+    private var entriesListView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if viewModel.entries.isEmpty && !viewModel.isLoading {
+                        emptyStateView
+                    } else {
+                        entriesContentView
+                    }
+                    
+                    // Bottom spacer for compose area
+                    Color.clear
+                        .frame(height: 1)
+                        .id(bottomID)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 120) // Space for compose area
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: viewModel.entries.count) { _, _ in
+                withAnimation {
+                    proxy.scrollTo(bottomID, anchor: .bottom)
+                }
+            }
+            .onChange(of: isComposeFieldFocused) { _, isFocused in
+                if isFocused {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation {
+                            proxy.scrollTo(bottomID, anchor: .bottom)
+                        }
+                    }
+                }
             }
         }
     }
     
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 48))
+                .foregroundColor(Color(.tertiaryLabel))
+            
+            Text("No entries yet")
+                .font(.system(size: 20, weight: .medium))
+                .foregroundColor(Color(.secondaryLabel))
+            
+            Text("Start journaling by typing below")
+                .font(.system(size: 16))
+                .foregroundColor(Color(.tertiaryLabel))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 100)
+    }
+    
+    private var entriesContentView: some View {
+        ForEach(Array(viewModel.entries.enumerated()), id: \.element.id) { index, entry in
+            if viewModel.editingEntry?.id == entry.id {
+                // Edit mode UI
+                editModeView(entry: entry, isLast: index == viewModel.entries.count - 1)
+            } else {
+                // Normal entry view
+                entryView(entry: entry, isLast: index == viewModel.entries.count - 1)
+                    .opacity(viewModel.editingEntry != nil ? 0.5 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.editingEntry)
+            }
+        }
+    }
+    
+    private var composeAreaView: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            
+            VStack(spacing: 0) {
+                Divider()
+                
+                HStack(alignment: .bottom, spacing: 12) {
+                    composeTextField
+                    expandButton
+                    sendButton
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .background(.regularMaterial)
+        }
+    }
+    
+    private var composeTextField: some View {
+        ZStack(alignment: .topLeading) {
+            if viewModel.draftContent.isEmpty {
+                Text("Add to journal...")
+                    .font(.system(size: 17))
+                    .foregroundColor(Color(.placeholderText))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .allowsHitTesting(false)
+            }
+            
+            TextEditor(text: $viewModel.draftContent)
+                .font(.system(size: 17))
+                .foregroundColor(Color(.label))
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .focused($isComposeFieldFocused)
+                .frame(minHeight: 44, idealHeight: textEditorHeight, maxHeight: 220)
+                .fixedSize(horizontal: false, vertical: true)
+                .onChange(of: viewModel.draftContent) { _, _ in
+                    updateTextEditorHeight()
+                }
+                .onAppear {
+                    updateTextEditorHeight()
+                }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(.systemGray6))
+        )
+    }
+    
+    private var expandButton: some View {
+        Button(action: {
+            isExpanded = true
+        }) {
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color(.label))
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color(.systemGray5)))
+        }
+    }
+    
+    private var sendButton: some View {
+        Button(action: {
+            Task {
+                await viewModel.addEntry()
+                isComposeFieldFocused = true
+                textEditorHeight = 44 // Reset height after sending
+            }
+        }) {
+            Image(systemName: "arrow.up")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(viewModel.canSendEntry ? Color.accentColor : Color(.systemGray3))
+                )
+        }
+        .disabled(!viewModel.canSendEntry)
+    }
+    
+    private var exportingOverlay: some View {
+        Color.black.opacity(0.3)
+            .ignoresSafeArea()
+            .overlay(
+                ProgressView("Exporting...")
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+            )
+    }
+    
     private func entryView(entry: Entry, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            // Entry content
+            VStack(alignment: .leading, spacing: 8) {
+                // Timestamp with edited indicator
+                HStack(spacing: 4) {
+                    Text(formatTimestamp(entry.timestamp))
+                        .font(.system(size: timestampSize, weight: .medium))
+                        .foregroundColor(Color(.secondaryLabel))
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(timestampBackgroundColor)
+                                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 1.5, x: 0, y: 1)
+                        )
+                    
+                    if viewModel.editedEntryIds.contains(entry.id) {
+                        Text("(edited)")
+                            .font(.system(size: timestampSize, weight: .medium))
+                            .foregroundColor(Color(.secondaryLabel))
+                    }
+                }
+                
+                // Content
+                Text(entry.content)
+                    .font(.system(size: contentSize))
+                    .foregroundColor(Color(.label))
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Menu button
+            Menu {
+                Button {
+                    viewModel.startEditingEntry(entry)
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                
+                Button(role: .destructive) {
+                    viewModel.confirmDeleteEntry(entry)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(.secondaryLabel))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+            .simultaneousGesture(
+                TapGesture().onEnded { _ in
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            )
+        }
+        .padding(.bottom, isLast ? 0 : 24)
+        .overlay(alignment: .bottom) {
+            if !isLast {
+                Divider()
+                    .padding(.top, 40)
+            }
+        }
+    }
+    
+    private func editModeView(entry: Entry, isLast: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Timestamp
+            // Timestamp remains visible above edit box
             Text(formatTimestamp(entry.timestamp))
                 .font(.system(size: timestampSize, weight: .medium))
                 .foregroundColor(Color(.secondaryLabel))
+                .padding(.vertical, 2)
+                .padding(.horizontal, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(timestampBackgroundColor)
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.08), radius: 1.5, x: 0, y: 1)
+                )
             
-            // Content
-            Text(entry.content)
+            // Edit text field - no internal scrolling, expands to fit content
+            TextEditor(text: $viewModel.editedContent)
                 .font(.system(size: contentSize))
                 .foregroundColor(Color(.label))
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .scrollDisabled(true)
+                .frame(minHeight: 60) // Minimum height to match the screenshot
+                .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray6))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor, lineWidth: 2)
+            )
+            .focused($isComposeFieldFocused, equals: true)
+            .onChange(of: viewModel.isEditFieldFocused) { _, shouldFocus in
+                isComposeFieldFocused = shouldFocus
+            }
+            
+            // Save/Cancel buttons below edit box, right-aligned
+            HStack {
+                Spacer()
+                
+                Button("Cancel") {
+                    viewModel.cancelEditing()
+                }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(Color.accentColor)
+                
+                Button("Save") {
+                    Task {
+                        await viewModel.saveEditedEntry()
+                    }
+                }
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color.accentColor)
+                .disabled(viewModel.editedContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                         viewModel.editedContent == entry.content)
+            }
             
             // Divider (except for last entry)
             if !isLast {
@@ -277,7 +449,7 @@ struct ThreadDetailViewFixed: View {
         let maxLines = 10
         
         // Count actual newlines in the text
-        let newlineCount = viewModel.draftContent.components(separatedBy: .newlines).count
+        let _ = viewModel.draftContent.components(separatedBy: .newlines).count
         
         // Also estimate wrapped lines based on character count
         let charactersPerLine = 35 // Adjusted for typical iPhone width

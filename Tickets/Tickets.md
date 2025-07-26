@@ -670,6 +670,9 @@ func testThreadListPerformanceWith100Threads() {
 ### TICKET-018: Long Press Context Menu for Entries
 **Story ID**: TICKET-018  
 **Context/Layer**: Journaling / interface  
+
+THIS TICKET IS DEPRECIATED AND REMOVED FROM IMPLEMENTATION. 
+
 **As a** user  
 **I want to** long press on any entry to see edit and delete options  
 **So that** I can manage my journal entries after they've been posted  
@@ -703,13 +706,14 @@ func testThreadListPerformanceWith100Threads() {
       Button(action: { viewModel.startEditingEntry(entry) }) {
           Label("Edit", systemImage: "pencil")
       }
-      Button(role: .destructive, action: { viewModel.deleteEntry(entry) }) {
+      Button(role: .destructive, action: { viewModel.confirmDeleteEntry(entry) }) {
           Label("Delete", systemImage: "trash")
       }
   }
   ```
 - Add haptic feedback: `UIImpactFeedbackGenerator(style: .medium)`
-- ViewModel methods: `startEditingEntry(_:)`, `deleteEntry(_:)`
+- ViewModel methods: `startEditingEntry(_:)`, `confirmDeleteEntry(_:)`
+- Note: TICKET-021 adds swipe actions as an alternative interaction method
 
 **QA Test Criteria**:
 1. Test long press shows menu within 0.5 seconds
@@ -731,23 +735,25 @@ func testThreadListPerformanceWith100Threads() {
 **So that** I can correct mistakes or update my thoughts  
 
 **Acceptance Criteria**:
-1. Tapping "Edit" from context menu enters edit mode for that entry
+1. Tapping "Edit" from menu button enters edit mode for that entry
 2. Entry content becomes editable TextEditor with existing text
 3. TextEditor automatically sizes to fit content height (no internal scrolling)
-4. Save and Cancel buttons appear in place of timestamp
-5. Original entry view replaced with edit UI inline
-6. Other entries remain visible but dimmed (50% opacity)
-7. Keyboard appears automatically when entering edit mode
-8. Save button disabled if content unchanged or empty
-9. After saving, entry shows with "(edited)" next to timestamp
-10. Escape/swipe down cancels edit without saving
+4. Entry timestamp remains visible above the edit box
+5. Save and Cancel buttons appear below the edit area, right-aligned
+6. Original entry view replaced with edit UI inline
+7. Other entries remain visible but dimmed (50% opacity)
+8. Keyboard appears automatically when entering edit mode
+9. Save button disabled if content unchanged or empty
+10. After saving, entry shows with "(edited)" next to timestamp
+11. Escape/swipe down cancels edit without saving
 - [Arch-Lint] Edit state managed by ViewModel with original content backup
 - [Coverage] Test edit/save/cancel flows with state verification
-- [Doc] Component matches Design:v1.2/EditMode
+- [Doc] Component matches Design:v1.2/EditMode (revised)
 
 **Component Reference**:
-- Design:v1.2/EditMode
+- Design:v1.2/EditMode (revised)
 - Design:v1.2/ComposeArea (reuse styling)
+- Reference: `/Design/edit-mode-final-design.html`
 
 **Technical Reference**:
 - UpdateEntryUseCase from TIP Section 6 (API Contracts)
@@ -759,10 +765,12 @@ func testThreadListPerformanceWith100Threads() {
   ```swift
   @Published var editingEntry: Entry?
   @Published var editingContent: String = ""
+  @Published var isEditFieldFocused = false
   
   func startEditingEntry(_ entry: Entry) {
       editingEntry = entry
       editingContent = entry.content
+      isEditFieldFocused = true
   }
   
   func saveEditedEntry() async {
@@ -772,12 +780,36 @@ func testThreadListPerformanceWith100Threads() {
   func cancelEditing() {
       editingEntry = nil
       editingContent = ""
+      isEditFieldFocused = false
   }
   ```
-- Replace entry view with edit UI when `entry.id == viewModel.editingEntry?.id`
-- Use TextEditor with `.fixedSize(horizontal: false, vertical: true)` for auto-height
-- Calculate initial height based on content length to avoid scrolling
-- Use same TextEditor styling as compose area
+- Edit mode UI structure:
+  ```swift
+  VStack(alignment: .leading, spacing: 8) {
+      // 1. Timestamp remains visible
+      Text(formatTimestamp(entry.timestamp))
+          .font(.system(size: 11, weight: .medium))
+          .foregroundColor(Color(.secondaryLabel))
+      
+      // 2. Edit box with blue border
+      TextEditor(text: $viewModel.editedContent)
+          .scrollDisabled(true)  // No internal scrolling
+          .background(Color(.systemGray6))
+          .overlay(RoundedRectangle(cornerRadius: 8)
+              .stroke(Color.accentColor, lineWidth: 2))
+      
+      // 3. Buttons below, right-aligned
+      HStack {
+          Spacer()
+          Button("Cancel") { viewModel.cancelEditing() }
+              .font(.system(size: 16, weight: .medium))
+          Button("Save") { await viewModel.saveEditedEntry() }
+              .font(.system(size: 16, weight: .semibold))
+      }
+  }
+  ```
+- Use TextEditor with `.scrollDisabled(true)` for no internal scrolling
+- Expand to fit content using ZStack sizing technique
 - Add UpdateEntryUseCase to domain layer
 - Track edit history in Entry entity (optional for v1)
 
@@ -947,6 +979,144 @@ func testThreadListPerformanceWith100Threads() {
 **Priority Score**: 6 (WSJF) - Essential for entry management  
 **Dependencies**: TICKET-018 (Context Menu), TICKET-004 (Repository), TICKET-002 (Core Data Schema)
 
+### TICKET-021: Entry Menu Button for Entry Management
+**Story ID**: TICKET-021  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want to** tap a menu button on entries to access Edit and Delete actions  
+**So that** I have a clear and discoverable way to manage entries  
+
+**Acceptance Criteria**:
+1. Each entry displays a subtle three-dot menu button (⋮) in the top-right corner
+2. Menu button uses SF Symbol "ellipsis" with `.secondaryLabel` color
+3. Button has 44x44pt tap target with 20x20pt icon
+4. Tapping button shows native iOS context menu with two options
+5. Edit option has pencil icon (SF Symbol: pencil) in default blue
+6. Delete option has trash icon (SF Symbol: trash) in destructive red
+7. Light haptic feedback when menu button is tapped
+8. Edit action triggers same flow as TICKET-019 (edit mode)
+9. Delete action triggers same confirmation as TICKET-020 (delete dialog)
+10. Menu button positioned 8pt from right edge, vertically centered with timestamp
+11. Button always visible but subtle (no hover states needed)
+12. Menu dismisses when tapping outside or selecting an option
+- [Arch-Lint] Menu state handled by native iOS, actions delegate to ViewModel
+- [Coverage] UI test for menu button tap and option selection
+- [Doc] Component matches Design:v1.2/EntryMenuButton and Design:v1.2/EntryContextMenu
+
+**Component Reference**:
+- Design:v1.2/EntryMenuButton (menu button on each entry)
+- Design:v1.2/EntryContextMenu (menu that appears on tap)
+- Design:v1.2/ThreadEntry (parent component)
+
+**Technical Implementation**:
+
+1. **Menu Button Design** (per Design:v1.2/EntryMenuButton):
+   - Icon: SF Symbol "ellipsis" (vertical three dots)
+   - Size: 20x20pt icon with 44x44pt tap target
+   - Color: `.secondaryLabel` for subtle appearance
+   - Position: Top-right of entry, 8pt from edge
+   - Alignment: Vertically centered with timestamp line
+
+2. **Entry Layout Update**:
+   ```swift
+   private func entryView(entry: Entry, isLast: Bool) -> some View {
+       HStack(alignment: .top, spacing: 0) {
+           // Entry content
+           VStack(alignment: .leading, spacing: 8) {
+               Text(formatTimestamp(entry.timestamp))
+                   .font(.system(size: timestampSize, weight: .medium))
+                   .foregroundColor(Color(.secondaryLabel))
+               
+               Text(entry.content)
+                   .font(.system(size: contentSize))
+                   .foregroundColor(Color(.label))
+                   .lineSpacing(4)
+                   .frame(maxWidth: .infinity, alignment: .leading)
+           }
+           .frame(maxWidth: .infinity)
+           
+           // Menu button
+           Menu {
+               Button {
+                   viewModel.startEditingEntry(entry)
+               } label: {
+                   Label("Edit", systemImage: "pencil")
+               }
+               
+               Button(role: .destructive) {
+                   viewModel.confirmDeleteEntry(entry)
+               } label: {
+                   Label("Delete", systemImage: "trash")
+               }
+           } label: {
+               Image(systemName: "ellipsis")
+                   .font(.system(size: 16))
+                   .foregroundColor(Color(.secondaryLabel))
+                   .frame(width: 44, height: 44)
+                   .contentShape(Rectangle())
+           }
+           .buttonStyle(PlainButtonStyle())
+           .simultaneousGesture(
+               TapGesture().onEnded { _ in
+                   UIImpactFeedbackGenerator(style: .light).impactOccurred()
+               }
+           )
+       }
+       
+       // Divider logic remains the same
+   }
+   ```
+
+3. **ViewModel Integration**:
+   ```swift
+   // In ThreadDetailViewModel
+   func startEditingEntry(_ entry: Entry) {
+       editingEntry = entry
+       editedContent = entry.content
+       isEditFieldFocused = true
+   }
+   
+   func confirmDeleteEntry(_ entry: Entry) {
+       entryToDelete = entry
+       showDeleteConfirmation = true
+   }
+   ```
+
+4. **Key Implementation Notes**:
+   - Use native `Menu` component for iOS 14+ compatibility
+   - Button uses `.buttonStyle(PlainButtonStyle())` to prevent row highlighting
+   - `.contentShape(Rectangle())` ensures full 44x44pt tap area
+   - Haptic feedback via `.simultaneousGesture()` to not interfere with menu
+   - Menu dismisses automatically when tapping outside (native behavior)
+   - Works identically in both ScrollView and List containers
+
+5. **Accessibility Implementation**:
+   ```swift
+   .accessibilityLabel("More options for entry")
+   .accessibilityHint("Double tap to show edit and delete options")
+   .accessibilityAddTraits(.isButton)
+   ```
+
+**QA Test Criteria**:
+1. Verify menu button appears on all entries
+2. Test menu button tap shows context menu
+3. Verify haptic feedback on button tap
+4. Test Edit option launches edit mode
+5. Test Delete option shows confirmation dialog
+6. Verify menu dismisses when tapping outside
+7. Test menu positioning near screen edges
+8. Test on various device sizes
+9. Verify accessibility with VoiceOver
+10. Test button remains visible during scroll
+11. Verify button tap target is 44x44pt minimum
+12. Test behavior when keyboard opens
+13. Verify works with Dynamic Type sizes
+14. Test menu button doesn't interfere with text selection
+15. Verify works in both ScrollView and List
+
+**Priority Score**: 5 (WSJF) - More discoverable than swipe gestures, essential for entry management  
+**Dependencies**: TICKET-019 (Edit mode), TICKET-020 (Delete functionality)
+
 ---
 
 ## Sprint Plan
@@ -990,6 +1160,97 @@ func testThreadListPerformanceWith100Threads() {
 | TICKET-019 | Edit Entry Mode | 1 | interface |
 | TICKET-020 | Delete Entry (Soft) | 1 | domain/infrastructure/interface |
 **Total**: 3 points
+
+### Sprint 5 (Week 5) - Enhanced Interactions
+| Story ID | Story | Points | Layer |
+|----------|-------|--------|-------|
+| TICKET-021 | Swipe Actions | 1 | interface |
+| TICKET-022 | Blue Circle Timestamp | 1 | interface |
+**Total**: 2 points
+
+---
+
+### TICKET-022: Blue Circle Timestamp Enhancement
+**Story ID**: TICKET-022  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want** a subtle blue circle behind entry timestamps  
+**So that** I can more easily distinguish between separate entries when reading or scanning  
+
+**Acceptance Criteria**:
+1. Each entry timestamp displays with a light blue circular background
+2. Background color: #E8F3FF (or system equivalent)
+3. Border radius: 10px (rounded rectangle, not full circle)
+4. Padding: 2px vertical, 10px horizontal
+5. Subtle shadow: 0 1px 3px rgba(0,0,0,0.08)
+6. Timestamp text remains 11pt, color #8E8E93 (unchanged)
+7. Background adapts to Dynamic Type sizing
+8. Works with all timestamp formats ("Just now", "Today, 2:15 PM", "5 years ago")
+9. Maintains left alignment with entry content
+10. No animation or transitions - static visual enhancement
+11. Supports both light and dark mode appropriately
+- [Arch-Lint] Purely presentational change in Interface layer
+- [Coverage] Visual regression test for timestamp appearance
+- [Doc] Design mockup at Design/blue-circle-timestamp-mockup.html
+
+**Design Reference**:
+- Mockup: `/Design/blue-circle-timestamp-mockup.html`
+- Component: `Design:v1.2/ThreadEntry` (timestamp portion)
+- See mockup for exact visual specifications and variations
+
+**User Need**:
+- Problem: Hard to distinguish separate entries when scanning through journal
+- Use case: Quickly reading through entries or looking for specific ones to edit
+- Solution: Subtle visual indicator that maintains minimalist aesthetic
+
+**QA Test Criteria**:
+1. Verify timestamp background appears correctly in light mode
+2. Test with various timestamp lengths
+3. Verify Dynamic Type support (increase/decrease text size)
+4. Check dark mode appearance (adjust colors appropriately)
+5. Verify no performance impact with many entries
+6. Test with edited entries that show "(edited)" suffix
+
+**Priority Score**: 3 (WSJF) - Quality of life enhancement  
+**Dependencies**: None - can be implemented independently
+
+**Technical Implementation**:
+1. **Update DesignSystem.swift**:
+   - Add TimestampStyle struct with color, padding, and shadow constants
+   - Reference: Technical-Implementation-Plan.md Section 6.1
+   
+2. **Create TimestampBackground ViewModifier**:
+   ```swift
+   struct TimestampBackground: ViewModifier {
+       @Environment(\.colorScheme) var colorScheme
+       
+       func body(content: Content) -> some View {
+           content
+               .padding(.horizontal, 10)
+               .padding(.vertical, 2)
+               .background(
+                   RoundedRectangle(cornerRadius: 10)
+                       .fill(colorScheme == .dark ? Color(hex: "#1C3A52") : Color(hex: "#E8F3FF"))
+                       .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+               )
+       }
+   }
+   ```
+
+3. **Update ThreadDetailViewFixed.swift**:
+   - Apply modifier to timestamp Text view in entryView function
+   - Ensure Dynamic Type support is maintained
+   - Test with various colorScheme environments
+
+4. **Testing Approach**:
+   - Unit test: Verify modifier applies correct styling
+   - UI test: Screenshot comparison for visual regression
+   - Manual test: Dynamic Type scaling, dark mode
+
+**Files to Modify**:
+- `Interface/Theme/DesignSystem.swift` - Add TimestampStyle configuration
+- `Interface/Views/ThreadDetailViewFixed.swift` - Apply modifier to timestamps
+- `ThreadJournal2Tests/Interface/TimestampBackgroundTests.swift` - New test file
 
 ---
 
@@ -1081,7 +1342,11 @@ For a ticket to be considered "Done", ALL of the following must be satisfied:
 5. The ability to add 'snippets' to thread entries to fill out
 6. The ability to have a 'all threads' view that's sorted by time
 7. The ability to export more than one thread together (ie. select multiple threads to export)
-8. Editing thread entries, deleting entries
+8. ~~Editing thread entries, deleting entries~~ ✅ Completed in Sprint 4-5 (TICKET-018 through TICKET-021)
 9. Deleting entire threads (safety confirmation to do so - ie type a word)
-10. search functionality
-11. Add a setting option to shorten long entries and if a long entry is shortened there's a button to expand that in the thread.
+10. Search functionality
+11. Add a setting option to shorten long entries and if a long entry is shortened there's a button to expand that in the thread
+12. Pull-to-refresh on thread list
+13. Undo/redo for entry edits
+14. Archive threads instead of delete
+15. Entry templates/prompts

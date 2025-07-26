@@ -47,6 +47,23 @@ protocol ThreadRepository {
     /// - Returns: Array of entries sorted chronologically (oldest first)
     /// - Throws: PersistenceError if the operation fails
     func fetchEntries(for threadId: UUID) async throws -> [Entry]
+    
+    /// Fetches a specific entry by ID
+    /// - Parameter id: The ID of the entry to fetch
+    /// - Returns: The entry if found, nil otherwise
+    /// - Throws: PersistenceError if the operation fails
+    func fetchEntry(id: UUID) async throws -> Entry?
+    
+    /// Updates an existing entry
+    /// - Parameter entry: The entry with updated content
+    /// - Returns: The updated entry
+    /// - Throws: PersistenceError if the operation fails or entry not found
+    func updateEntry(_ entry: Entry) async throws -> Entry
+    
+    /// Soft deletes an entry by marking it with a deletion timestamp
+    /// - Parameter entryId: The ID of the entry to soft delete
+    /// - Throws: PersistenceError if the operation fails or entry not found
+    func softDeleteEntry(entryId: UUID) async throws
 }
 
 /// Errors that can occur during persistence operations

@@ -376,6 +376,84 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
 }
 ```
 
+## 6.1 UI Components & Design System
+
+### Theme Configuration (DesignSystem.swift)
+```swift
+struct DesignSystem {
+    // Typography
+    static let timestampSize: CGFloat = 11
+    static let contentSize: CGFloat = 14
+    static let titleSize: CGFloat = 17
+    
+    // Colors - use system colors only
+    static let timestampColor = Color(.secondaryLabel)
+    static let contentColor = Color(.label)
+    static let backgroundColor = Color(.systemBackground)
+    
+    // Spacing
+    static let entrySpacing: CGFloat = 24
+    static let contentPadding: CGFloat = 24
+    
+    // Timestamp Enhancement (TICKET-022)
+    struct TimestampStyle {
+        static let backgroundColor = Color(hex: "#E8F3FF")
+        static let darkModeBackgroundColor = Color(hex: "#1C3A52")
+        static let cornerRadius: CGFloat = 10
+        static let verticalPadding: CGFloat = 2
+        static let horizontalPadding: CGFloat = 10
+        static let shadowRadius: CGFloat = 3
+        static let shadowOpacity: Double = 0.08
+    }
+    
+    // Edit Mode Style (TICKET-019)
+    struct EditModeStyle {
+        static let editBoxBackgroundColor = Color(.systemGray6)
+        static let editBoxBorderColor = Color.accentColor
+        static let editBoxBorderWidth: CGFloat = 2
+        static let editBoxCornerRadius: CGFloat = 8
+        static let buttonFontSize: CGFloat = 16
+        static let cancelButtonWeight = Font.Weight.medium
+        static let saveButtonWeight = Font.Weight.semibold
+    }
+}
+```
+
+### Component Enhancements
+
+#### ThreadEntry Component Updates
+For TICKET-022 (Blue Circle Timestamp), the ThreadEntry component requires modification:
+
+```swift
+// ThreadEntry.swift - Timestamp modifier
+struct TimestampBackground: ViewModifier {
+    @Environment(\.colorScheme) var colorScheme
+    
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, DesignSystem.TimestampStyle.horizontalPadding)
+            .padding(.vertical, DesignSystem.TimestampStyle.verticalPadding)
+            .background(
+                RoundedRectangle(cornerRadius: DesignSystem.TimestampStyle.cornerRadius)
+                    .fill(colorScheme == .dark 
+                        ? DesignSystem.TimestampStyle.darkModeBackgroundColor 
+                        : DesignSystem.TimestampStyle.backgroundColor)
+                    .shadow(
+                        color: Color.black.opacity(DesignSystem.TimestampStyle.shadowOpacity),
+                        radius: DesignSystem.TimestampStyle.shadowRadius,
+                        x: 0, y: 1
+                    )
+            )
+    }
+}
+
+// Usage in ThreadEntry view
+Text(formatTimestamp(entry.timestamp))
+    .font(.system(size: DesignSystem.timestampSize, weight: .medium))
+    .foregroundColor(DesignSystem.timestampColor)
+    .modifier(TimestampBackground())
+```
+
 ## 7. Data Flow, Privacy & Compliance
 
 ### Data Flow Diagram
@@ -418,13 +496,20 @@ sequenceDiagram
     participant Repo as Repository
     participant DB as Core Data
 
-    User->>UI: Long press entry
-    UI->>UI: Show context menu
-    User->>UI: Tap Edit
+    alt Context Menu (Deprecated)
+        User->>UI: Long press entry
+        UI->>UI: Show context menu
+        User->>UI: Tap Edit
+    else Menu Button (TICKET-021)
+        User->>UI: Tap three-dot menu button
+        UI->>UI: Show context menu
+        User->>UI: Tap Edit option
+    end
     UI->>VM: startEditingEntry(entry)
-    VM->>UI: Replace entry with edit UI
+    VM->>UI: Show edit UI with timestamp visible
+    Note over UI: Timestamp remains above edit box
     User->>UI: Modify content
-    User->>UI: Tap Save
+    User->>UI: Tap Save (bottom-right button)
     UI->>VM: saveEditedEntry()
     VM->>UC: execute(entryId, newContent)
     UC->>Repo: updateEntry(entry)
@@ -443,9 +528,15 @@ sequenceDiagram
     participant Repo as Repository
     participant DB as Core Data
 
-    User->>UI: Long press entry
-    UI->>UI: Show context menu
-    User->>UI: Tap Delete
+    alt Context Menu (Deprecated)
+        User->>UI: Long press entry
+        UI->>UI: Show context menu
+        User->>UI: Tap Delete
+    else Menu Button (TICKET-021)
+        User->>UI: Tap three-dot menu button
+        UI->>UI: Show context menu
+        User->>UI: Tap Delete option
+    end
     UI->>VM: confirmDeleteEntry(entry)
     VM->>UI: Show confirmation alert
     User->>UI: Confirm delete

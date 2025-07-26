@@ -37,6 +37,8 @@ final class EntryCreationPerformanceTests: XCTestCase {
         
         // Setup view model
         draftManager = InMemoryDraftManager()
+        let updateEntryUseCase = UpdateEntryUseCase(repository: repository)
+        let deleteEntryUseCase = DeleteEntryUseCase(repository: repository)
         let exportUseCase = ExportThreadUseCase(
             repository: repository,
             exporter: CSVExporter()
@@ -48,6 +50,8 @@ final class EntryCreationPerformanceTests: XCTestCase {
             viewModel = ThreadDetailViewModel(
                 repository: repository,
                 addEntryUseCase: addEntryUseCase,
+                updateEntryUseCase: updateEntryUseCase,
+                deleteEntryUseCase: deleteEntryUseCase,
                 draftManager: draftManager,
                 exportThreadUseCase: exportUseCase
             )

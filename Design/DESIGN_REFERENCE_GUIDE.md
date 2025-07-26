@@ -42,8 +42,11 @@ Design:v1.2/ThreadTitleInput
 Design:v1.2/MenuButton
 Design:v1.2/ExportMenu
 Design:v1.2/EntryContextMenu
+Design:v1.2/EntryMenuButton
 Design:v1.2/EditMode
 Design:v1.2/DeleteConfirmation
+Design:v1.2/SwipeEntry (deprecated - use EntryMenuButton)
+Design:v1.2/SwipeActions (deprecated - use EntryMenuButton)
 ```
 
 ### Example Ticket Usage
@@ -127,9 +130,17 @@ When designs change:
 | Thread list container | `Design:v1.2/ThreadList` | `data-component="thread-list"` |
 | Individual thread card | `Design:v1.2/ThreadListItem` | `data-component="thread-list-item"` |
 | Journal entry | `Design:v1.2/ThreadEntry` | `data-component="thread-entry"` |
+| Entry menu button | `Design:v1.2/EntryMenuButton` | `data-component="entry-menu-button"` |
 | Text input area | `Design:v1.2/ComposeArea` | `data-component="compose-area"` |
 | Send button | `Design:v1.2/SendButton` | `data-component="send-button"` |
 | + button | `Design:v1.2/FAB` | `data-component="fab"` |
+| Menu button | `Design:v1.2/MenuButton` | `data-component="menu-button"` |
+| Export menu | `Design:v1.2/ExportMenu` | `data-component="export-menu"` |
+| Entry context menu | `Design:v1.2/EntryContextMenu` | `data-component="entry-context-menu"` |
+| Edit mode | `Design:v1.2/EditMode` | `data-component="edit-mode"` |
+| Delete confirmation | `Design:v1.2/DeleteConfirmation` | `data-component="delete-confirmation"` |
+| Swipeable entry (deprecated) | `Design:v1.2/SwipeEntry` | `data-component="swipe-entry"` |
+| Swipe actions (deprecated) | `Design:v1.2/SwipeActions` | `data-component="swipe-actions"` |
 
 ### Quick Copy Templates
 
@@ -153,4 +164,21 @@ For keyboard handling:
 Design:v1.2/Page/KeyboardStates
 Design:v1.2/Page/KeyboardEntryStates
 Design:v1.2/ComposeArea
+```
+
+For entry actions:
+```
+Design:v1.2/EntryMenuButton
+Design:v1.2/EntryContextMenu
+Design:v1.2/EditMode
+Design:v1.2/DeleteConfirmation
+```
+
+For swipe actions (deprecated):
+```
+Design:v1.2/SwipeEntry
+Design:v1.2/SwipeActions
+Design:v1.2/EntryContextMenu
+Design:v1.2/EditMode
+Design:v1.2/DeleteConfirmation
 ```

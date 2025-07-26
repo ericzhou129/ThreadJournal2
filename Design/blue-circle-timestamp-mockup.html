@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Blue Circle Timestamp Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+            background-color: #F5F5F5;
+            color: #1C1C1E;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            padding: 40px;
+        }
+        
+        .mockup-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .mockup-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .mockup-header p {
+            font-size: 16px;
+            color: #8E8E93;
+        }
+        
+        .comparison-container {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+        
+        .mockup-section {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            width: 400px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #1C1C1E;
+        }
+        
+        /* Original Entry Styles */
+        .thread-entry {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #F2F2F7;
+        }
+        
+        .thread-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .entry-timestamp {
+            font-size: 11px;
+            color: #8E8E93;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-align: left;
+        }
+        
+        /* New Blue Circle Timestamp Styles */
+        .entry-timestamp-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #E8F3FF;
+            border-radius: 10px;
+            padding: 2px 10px;
+            font-size: 11px;
+            color: #8E8E93;
+            font-weight: 500;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        .entry-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1C1C1E;
+            text-align: left;
+        }
+        
+        /* Variations Section */
+        .variations-section {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        
+        .variations-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .variation-group {
+            margin-bottom: 40px;
+        }
+        
+        .variation-label {
+            font-size: 14px;
+            color: #8E8E93;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        
+        .timestamp-variations {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        /* Variation Styles */
+        .timestamp-v1 {
+            background: #E8F3FF;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        
+        .timestamp-v2 {
+            background: #F0F8FF;
+            box-shadow: none;
+        }
+        
+        .timestamp-v3 {
+            background: #E3F2FF;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .timestamp-v4 {
+            background: #F5FAFF;
+            border: 1px solid #E0ECFF;
+            box-shadow: none;
+        }
+        
+        /* Different sizes */
+        .timestamp-small {
+            padding: 1px 8px;
+            font-size: 10px;
+        }
+        
+        .timestamp-medium {
+            padding: 2px 10px;
+            font-size: 11px;
+        }
+        
+        .timestamp-large {
+            padding: 3px 12px;
+            font-size: 12px;
+        }
+        
+        /* Implementation Notes */
+        .notes-section {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #F8F8F8;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        
+        .notes-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .notes-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .notes-list li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            font-size: 14px;
+            color: #3C3C43;
+        }
+        
+        .notes-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #007AFF;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-header">
+        <h1>Blue Circle Timestamp Design</h1>
+        <p>A subtle enhancement to make entry timestamps more visible while maintaining zen minimalism</p>
+    </div>
+
+    <div class="comparison-container">
+        <!-- Original Design -->
+        <div class="mockup-section">
+            <h2 class="section-title">Current Design</h2>
+            <div class="thread-entry">
+                <div class="entry-timestamp">Today, 2:15 PM</div>
+                <div class="entry-content">
+                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                </div>
+            </div>
+            <div class="thread-entry">
+                <div class="entry-timestamp">Yesterday, 9:30 PM</div>
+                <div class="entry-content">
+                    I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.
+                </div>
+            </div>
+            <div class="thread-entry">
+                <div class="entry-timestamp">2 days ago, 3:45 PM</div>
+                <div class="entry-content">
+                    Grateful for the unexpected call from an old friend today. It reminded me how important it is to maintain connections.
+                </div>
+            </div>
+        </div>
+
+        <!-- New Design with Blue Circle -->
+        <div class="mockup-section">
+            <h2 class="section-title">Proposed Design</h2>
+            <div class="thread-entry">
+                <div class="entry-timestamp-circle">Today, 2:15 PM</div>
+                <div class="entry-content">
+                    Today, I'm grateful for the unexpected kindness of a stranger who held the door for me at the coffee shop. It's the little things that brighten my day.
+                </div>
+            </div>
+            <div class="thread-entry">
+                <div class="entry-timestamp-circle">Yesterday, 9:30 PM</div>
+                <div class="entry-content">
+                    I'm thankful for the laughter shared with my family during dinner tonight. Their smiles and stories filled my heart with joy.
+                </div>
+            </div>
+            <div class="thread-entry">
+                <div class="entry-timestamp-circle">2 days ago, 3:45 PM</div>
+                <div class="entry-content">
+                    Grateful for the unexpected call from an old friend today. It reminded me how important it is to maintain connections.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variations -->
+    <div class="variations-section">
+        <h2 class="variations-title">Design Variations</h2>
+        
+        <div class="variation-group">
+            <div class="variation-label">Background Color Intensity</div>
+            <div class="timestamp-variations">
+                <div class="entry-timestamp-circle timestamp-v1">Today, 2:15 PM</div>
+                <div class="entry-timestamp-circle timestamp-v2">Today, 2:15 PM</div>
+                <div class="entry-timestamp-circle timestamp-v3">Today, 2:15 PM</div>
+                <div class="entry-timestamp-circle timestamp-v4">Today, 2:15 PM</div>
+            </div>
+        </div>
+
+        <div class="variation-group">
+            <div class="variation-label">Size Variations</div>
+            <div class="timestamp-variations">
+                <div class="entry-timestamp-circle timestamp-small">Today, 2:15 PM</div>
+                <div class="entry-timestamp-circle timestamp-medium">Today, 2:15 PM</div>
+                <div class="entry-timestamp-circle timestamp-large">Today, 2:15 PM</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Implementation Notes -->
+    <div class="notes-section">
+        <h3 class="notes-title">Design Rationale</h3>
+        <ul class="notes-list">
+            <li>Light blue (#E8F3FF) maintains the calm, zen aesthetic</li>
+            <li>Subtle shadow adds just enough depth without being distracting</li>
+            <li>Rounded corners (10px radius) feel softer and more organic</li>
+            <li>Inline-flex display keeps the timestamp naturally positioned</li>
+            <li>Minimal padding (2px vertical, 10px horizontal) keeps it compact</li>
+            <li>Color remains gray (#8E8E93) to avoid overwhelming the content</li>
+            <li>The blue circle makes timestamps easier to scan visually</li>
+        </ul>
+    </div>
+
+    <div class="notes-section">
+        <h3 class="notes-title">Technical Implementation</h3>
+        <ul class="notes-list">
+            <li>Replace .entry-timestamp class with .entry-timestamp-circle</li>
+            <li>Ensure Dynamic Type support is maintained</li>
+            <li>Test with various timestamp lengths (e.g., "Just now", "5 years ago")</li>
+            <li>Verify accessibility - ensure sufficient contrast ratio</li>
+            <li>Consider adding subtle animation on entry creation</li>
+        </ul>
+    </div>
+</body>
+</html>
