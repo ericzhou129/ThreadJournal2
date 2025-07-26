@@ -354,11 +354,11 @@ struct ThreadDetailViewFixed: View {
                 }
             )
         }
-        .padding(.bottom, isLast ? 0 : 24)
+        .padding(.bottom, isLast ? 0 : 32)
         .overlay(alignment: .bottom) {
             if !isLast {
                 Divider()
-                    .padding(.top, 40)
+                    .padding(.top, 48)
             }
         }
     }
@@ -428,7 +428,7 @@ struct ThreadDetailViewFixed: View {
                     .padding(.top, 16)
             }
         }
-        .padding(.bottom, isLast ? 0 : 24)
+        .padding(.bottom, isLast ? 0 : 32)
     }
     
     private var menuButton: some View {
