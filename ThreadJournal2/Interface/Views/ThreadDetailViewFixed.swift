@@ -16,7 +16,6 @@ struct ThreadDetailViewFixed: View {
     @State private var showingShareSheet = false
     @FocusState private var isComposeFieldFocused: Bool
     @State private var textEditorHeight: CGFloat = 44
-    @State private var heightUpdateTimer: Timer?
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
     @ScaledMetric(relativeTo: .body) private var contentSize = 14
@@ -75,11 +74,6 @@ struct ThreadDetailViewFixed: View {
             Task {
                 await viewModel.loadThread(id: threadId)
             }
-        }
-        .onDisappear {
-            // Clean up timer to prevent memory leaks
-            heightUpdateTimer?.invalidate()
-            heightUpdateTimer = nil
         }
         .fullScreenCover(isPresented: $isExpanded) {
             expandedComposeView
@@ -211,43 +205,36 @@ struct ThreadDetailViewFixed: View {
     }
     
     private var composeTextField: some View {
-        ZStack(alignment: .topLeading) {
-            if viewModel.draftContent.isEmpty {
-                Text("Add to journal...")
-                    .font(.system(size: 17))
-                    .foregroundColor(Color(.placeholderText))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .allowsHitTesting(false)
-            }
-            
-            TextEditor(text: $viewModel.draftContent)
-                .font(.system(size: 17))
-                .foregroundColor(Color(.label))
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .focused($isComposeFieldFocused)
-                .frame(height: textEditorHeight)
-                .frame(maxHeight: 220)
-                .onChange(of: viewModel.draftContent) { _, _ in
-                    // Cancel previous timer
-                    heightUpdateTimer?.invalidate()
+        TextEditor(text: $viewModel.draftContent)
+            .font(.system(size: 17))
+            .foregroundColor(Color(.label))
+            .scrollContentBackground(.hidden)
+            .focused($isComposeFieldFocused)
+            .frame(minHeight: 44)
+            .frame(height: textEditorHeight)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(.systemGray6))
                     
-                    // Debounce height updates to prevent lag
-                    heightUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { _ in
-                        updateTextEditorHeight()
+                    if viewModel.draftContent.isEmpty {
+                        Text("Add to journal...")
+                            .font(.system(size: 17))
+                            .foregroundColor(Color(.placeholderText))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 11)
+                            .allowsHitTesting(false)
                     }
                 }
-                .onAppear {
+            )
+            .onChange(of: viewModel.draftContent) { _, _ in
+                withAnimation(.easeInOut(duration: 0.2)) {
                     updateTextEditorHeight()
                 }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.systemGray6))
-        )
+            }
     }
     
     private var expandButton: some View {
@@ -455,37 +442,15 @@ struct ThreadDetailViewFixed: View {
     }
     
     private func updateTextEditorHeight() {
-        // Simplified height calculation to prevent NaN errors and improve performance
         let baseHeight: CGFloat = 44
-        let lineHeight: CGFloat = 22
-        let maxHeight: CGFloat = 220
+        let lineHeight: CGFloat = 20
         
-        // Guard against empty content
-        guard !viewModel.draftContent.isEmpty else {
-            textEditorHeight = baseHeight
-            return
-        }
+        // Simple line count based on newlines
+        let lines = viewModel.draftContent.components(separatedBy: .newlines).count
+        let height = baseHeight + CGFloat(max(0, lines - 1)) * lineHeight
         
-        // Count newlines (much simpler approach)
-        let newlineCount = viewModel.draftContent.filter { $0.isNewline }.count
-        
-        // Estimate total lines including wrapped text
-        // Approximate: ~40 characters per line on iPhone
-        let estimatedWrappedLines = viewModel.draftContent.count / 40
-        let totalLines = max(1, newlineCount + estimatedWrappedLines)
-        
-        // Calculate new height with bounds checking
-        let calculatedHeight = baseHeight + CGFloat(min(totalLines - 1, 9)) * lineHeight
-        let newHeight = max(baseHeight, min(calculatedHeight, maxHeight))
-        
-        // Only animate if the height actually changes significantly (prevents micro-animations)
-        if abs(textEditorHeight - newHeight) > 5 {
-            withAnimation(.easeInOut(duration: 0.1)) {
-                textEditorHeight = newHeight
-            }
-        } else {
-            textEditorHeight = newHeight
-        }
+        // Cap at reasonable max
+        textEditorHeight = min(height, 200)
     }
     
     
