@@ -16,6 +16,7 @@ struct ThreadDetailViewFixed: View {
     @State private var showingShareSheet = false
     @FocusState private var isComposeFieldFocused: Bool
     @State private var textEditorHeight: CGFloat = 44
+    @State private var heightUpdateTimer: Timer?
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
     @ScaledMetric(relativeTo: .body) private var contentSize = 14
@@ -74,6 +75,11 @@ struct ThreadDetailViewFixed: View {
             Task {
                 await viewModel.loadThread(id: threadId)
             }
+        }
+        .onDisappear {
+            // Clean up timer to prevent memory leaks
+            heightUpdateTimer?.invalidate()
+            heightUpdateTimer = nil
         }
         .fullScreenCover(isPresented: $isExpanded) {
             expandedComposeView
@@ -223,10 +229,16 @@ struct ThreadDetailViewFixed: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .focused($isComposeFieldFocused)
-                .frame(minHeight: 44, idealHeight: textEditorHeight, maxHeight: 220)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(height: textEditorHeight)
+                .frame(maxHeight: 220)
                 .onChange(of: viewModel.draftContent) { _, _ in
-                    updateTextEditorHeight()
+                    // Cancel previous timer
+                    heightUpdateTimer?.invalidate()
+                    
+                    // Debounce height updates to prevent lag
+                    heightUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { _ in
+                        updateTextEditorHeight()
+                    }
                 }
                 .onAppear {
                     updateTextEditorHeight()
@@ -443,36 +455,36 @@ struct ThreadDetailViewFixed: View {
     }
     
     private func updateTextEditorHeight() {
-        // Simple height calculation without UIKit
+        // Simplified height calculation to prevent NaN errors and improve performance
         let baseHeight: CGFloat = 44
         let lineHeight: CGFloat = 22
-        let maxLines = 10
+        let maxHeight: CGFloat = 220
         
-        // Count actual newlines in the text
-        let _ = viewModel.draftContent.components(separatedBy: .newlines).count
-        
-        // Also estimate wrapped lines based on character count
-        let charactersPerLine = 35 // Adjusted for typical iPhone width
-        let lines = viewModel.draftContent.components(separatedBy: .newlines)
-        var totalLines = 0
-        
-        for line in lines {
-            if line.isEmpty {
-                totalLines += 1
-            } else {
-                // Account for word wrapping
-                totalLines += max(1, (line.count + charactersPerLine - 1) / charactersPerLine)
-            }
+        // Guard against empty content
+        guard !viewModel.draftContent.isEmpty else {
+            textEditorHeight = baseHeight
+            return
         }
         
-        let calculatedLines = min(totalLines, maxLines)
+        // Count newlines (much simpler approach)
+        let newlineCount = viewModel.draftContent.filter { $0.isNewline }.count
         
-        // Calculate height
-        let newHeight = baseHeight + (CGFloat(max(0, calculatedLines - 1)) * lineHeight)
+        // Estimate total lines including wrapped text
+        // Approximate: ~40 characters per line on iPhone
+        let estimatedWrappedLines = viewModel.draftContent.count / 40
+        let totalLines = max(1, newlineCount + estimatedWrappedLines)
         
-        // Update height with animation
-        withAnimation(.easeInOut(duration: 0.15)) {
-            textEditorHeight = max(baseHeight, min(newHeight, 220))
+        // Calculate new height with bounds checking
+        let calculatedHeight = baseHeight + CGFloat(min(totalLines - 1, 9)) * lineHeight
+        let newHeight = max(baseHeight, min(calculatedHeight, maxHeight))
+        
+        // Only animate if the height actually changes significantly (prevents micro-animations)
+        if abs(textEditorHeight - newHeight) > 5 {
+            withAnimation(.easeInOut(duration: 0.1)) {
+                textEditorHeight = newHeight
+            }
+        } else {
+            textEditorHeight = newHeight
         }
     }
     

@@ -4,7 +4,8 @@
 ThreadJournal2 is a journaling iOS app built with SwiftUI and Clean Architecture. The app allows users to create multiple journal threads and add entries to them over time.
 
 ## Notes
-- For any ticket, always (1) write unit tests (2) 
+- Use Test Driven Development
+- For any ticket, always (1) write unit tests (2) build and (3) commit your code to git
 
 ## Important Instructions for Future Development
 
@@ -57,36 +58,6 @@ When executing tickets:
 - Core Data for persistence
 - Manual dependency injection (no DI frameworks)
 - Auto-save drafts every 30 seconds with 2-second debounce
-- CSV export format: "Date & Time","Entry Content"
-
-### 8. Current Sprint Status
-Sprint 1 (Foundation) - COMPLETED:
-- ✅ TICKET-001: Project Setup and Architecture
-- ✅ TICKET-002: Core Data Schema Setup
-- ✅ TICKET-003: Domain Entities and Repository
-- ✅ TICKET-004: Core Data Repository Implementation
-- ✅ TICKET-005: CreateThreadUseCase and AddEntryUseCase
-- ✅ TICKET-006: Draft Manager Implementation
-- ✅ TICKET-007: Thread List View Model
-- ✅ TICKET-016: Architecture Tests
-
-Sprint 2 (Core User Features) - COMPLETED:
-- ✅ TICKET-008: Thread List UI Implementation
-- ✅ TICKET-009: Create Thread UI
-- ✅ TICKET-010: Thread Detail View Model
-- ✅ TICKET-011: Thread Detail UI
-- ✅ TICKET-012: Add Entry UI
-- ✅ TICKET-013: Keyboard Enhancements
-
-Sprint 3 (Export & Polish) - COMPLETED:
-- ✅ TICKET-014: Export Thread Use Case
-- ✅ TICKET-015: Export UI
-- ✅ TICKET-017: Performance Tests
-
-Sprint 4 (Edit & Delete) - IN PROGRESS:
-- ✅ TICKET-018: Long Press Context Menu
-- 🚧 TICKET-019: Edit Entry Mode
-- 🚧 TICKET-020: Delete Entry (Soft Delete)
 
 ### 9. Common Commands
 ```bash
