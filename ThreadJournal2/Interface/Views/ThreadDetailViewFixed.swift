@@ -341,13 +341,7 @@ struct ThreadDetailViewFixed: View {
                 }
             )
         }
-        .padding(.bottom, isLast ? 0 : 32)
-        .overlay(alignment: .bottom) {
-            if !isLast {
-                Divider()
-                    .padding(.top, 48)
-            }
-        }
+        .padding(.bottom, isLast ? 0 : 24)
     }
     
     private func editModeView(entry: Entry, isLast: Bool) -> some View {
@@ -409,13 +403,8 @@ struct ThreadDetailViewFixed: View {
                          viewModel.editedContent == entry.content)
             }
             
-            // Divider (except for last entry)
-            if !isLast {
-                Divider()
-                    .padding(.top, 16)
-            }
         }
-        .padding(.bottom, isLast ? 0 : 32)
+        .padding(.bottom, isLast ? 0 : 24)
     }
     
     private var menuButton: some View {
