@@ -20,10 +20,12 @@ struct ThreadJournal2App: App {
     private func makeThreadListViewModel() -> ThreadListViewModel {
         let repository = persistenceController.makeThreadRepository()
         let createThreadUseCase = CreateThreadUseCase(repository: repository)
+        let deleteThreadUseCase = DeleteThreadUseCaseImpl(repository: repository)
         
         return ThreadListViewModel(
             repository: repository,
-            createThreadUseCase: createThreadUseCase
+            createThreadUseCase: createThreadUseCase,
+            deleteThreadUseCase: deleteThreadUseCase
         )
     }
 }

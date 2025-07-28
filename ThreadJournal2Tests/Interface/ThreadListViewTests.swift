@@ -19,9 +19,11 @@ final class ThreadListViewTests: XCTestCase {
     override func setUp() async throws {
         mockRepository = MockThreadRepository()
         createThreadUseCase = CreateThreadUseCase(repository: mockRepository)
+        let deleteThreadUseCase = DeleteThreadUseCaseImpl(repository: mockRepository)
         viewModel = ThreadListViewModel(
             repository: mockRepository,
-            createThreadUseCase: createThreadUseCase
+            createThreadUseCase: createThreadUseCase,
+            deleteThreadUseCase: deleteThreadUseCase
         )
     }
     

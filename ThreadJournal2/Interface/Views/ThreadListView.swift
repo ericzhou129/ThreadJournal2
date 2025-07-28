@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ThreadListView: View {
     @StateObject private var viewModel: ThreadListViewModel
@@ -66,6 +67,25 @@ struct ThreadListView: View {
                 viewModel.loadThreads()
             }
         }
+        .alert("Delete Thread", isPresented: $viewModel.showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelDelete()
+            }
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteThread()
+                    // Haptic feedback
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                    impactFeedback.impactOccurred()
+                }
+            }
+        } message: {
+            if let thread = viewModel.threadToDelete {
+                let entryCount = viewModel.threadsWithMetadata
+                    .first(where: { $0.thread.id == thread.id })?.entryCount ?? 0
+                Text("Delete '\(thread.title)'? This thread contains \(entryCount) \(entryCount == 1 ? "entry" : "entries").")
+            }
+        }
     }
     
     // MARK: - Subviews
@@ -80,6 +100,7 @@ struct ThreadListView: View {
                     .buttonStyle(ThreadCardButtonStyle())
                 }
             }
+            .animation(.default, value: viewModel.threadsWithMetadata)
             .padding(.horizontal, 24)
             .padding(.top, 16)
             .padding(.bottom, 100) // Space for FAB
@@ -108,27 +129,45 @@ struct ThreadListView: View {
     }
     
     private func threadCard(for threadWithMeta: ThreadWithMetadata) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Thread title
-            Text(threadWithMeta.thread.title)
-                .font(.system(size: titleSize, weight: .semibold, design: .default))
-                .foregroundColor(Color(.label))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // Metadata
-            HStack(spacing: 8) {
-                let count = threadWithMeta.entryCount
-                Text("\(count) \(count == 1 ? "entry" : "entries")")
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Thread title
+                Text(threadWithMeta.thread.title)
+                    .font(.system(size: titleSize, weight: .semibold, design: .default))
+                    .foregroundColor(Color(.label))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                Text("•")
-                    .foregroundColor(Color(.tertiaryLabel))
-                
-                Text(formatLastUpdated(threadWithMeta.thread.updatedAt))
+                // Metadata
+                HStack(spacing: 8) {
+                    let count = threadWithMeta.entryCount
+                    Text("\(count) \(count == 1 ? "entry" : "entries")")
+                    
+                    Text("•")
+                        .foregroundColor(Color(.tertiaryLabel))
+                    
+                    Text(formatLastUpdated(threadWithMeta.thread.updatedAt))
+                }
+                .font(.system(size: metaSize, weight: .regular, design: .default))
+                .foregroundColor(Color(.secondaryLabel))
             }
-            .font(.system(size: metaSize, weight: .regular, design: .default))
-            .foregroundColor(Color(.secondaryLabel))
+            
+            // Ellipsis menu button
+            Menu {
+                Button(role: .destructive) {
+                    viewModel.confirmDeleteThread(threadWithMeta.thread)
+                } label: {
+                    Label("Delete Thread", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(.secondaryLabel))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.automatic)
         }
         .padding(20)
         .background(Color(.systemBackground))
@@ -201,10 +240,12 @@ struct ThreadCardButtonStyle: ButtonStyle {
     let persistenceController = PersistenceController.preview
     let repository = persistenceController.makeThreadRepository()
     let createThreadUseCase = CreateThreadUseCase(repository: repository)
+    let deleteThreadUseCase = DeleteThreadUseCaseImpl(repository: repository)
     let viewModel = ThreadListViewModel(
         repository: repository,
-        createThreadUseCase: createThreadUseCase
+        createThreadUseCase: createThreadUseCase,
+        deleteThreadUseCase: deleteThreadUseCase
     )
     
-    return ThreadListView(viewModel: viewModel)
+    ThreadListView(viewModel: viewModel)
 }

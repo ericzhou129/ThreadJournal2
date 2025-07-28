@@ -29,7 +29,7 @@ enum ThreadListLoadingState: Equatable {
 }
 
 /// Thread with metadata for UI display
-struct ThreadWithMetadata: Identifiable {
+struct ThreadWithMetadata: Identifiable, Equatable {
     let thread: Thread
     let entryCount: Int
     
@@ -46,6 +46,12 @@ final class ThreadListViewModel: ObservableObject {
     
     /// Current loading state
     @Published private(set) var loadingState: ThreadListLoadingState = .idle
+    
+    /// Thread to delete (shows confirmation dialog when set)
+    @Published var threadToDelete: Thread?
+    
+    /// Whether to show the delete confirmation dialog
+    @Published var showDeleteConfirmation: Bool = false
     
     /// Convenience property for checking if loading
     var isLoading: Bool {
@@ -67,6 +73,7 @@ final class ThreadListViewModel: ObservableObject {
     
     let repository: ThreadRepository
     private let createThreadUseCase: CreateThreadUseCase
+    private let deleteThreadUseCase: DeleteThreadUseCase
     
     // MARK: - Initialization
     
@@ -74,9 +81,15 @@ final class ThreadListViewModel: ObservableObject {
     /// - Parameters:
     ///   - repository: Thread repository for fetching threads
     ///   - createThreadUseCase: Use case for creating new threads
-    init(repository: ThreadRepository, createThreadUseCase: CreateThreadUseCase) {
+    ///   - deleteThreadUseCase: Use case for deleting threads
+    init(
+        repository: ThreadRepository, 
+        createThreadUseCase: CreateThreadUseCase,
+        deleteThreadUseCase: DeleteThreadUseCase
+    ) {
         self.repository = repository
         self.createThreadUseCase = createThreadUseCase
+        self.deleteThreadUseCase = deleteThreadUseCase
     }
     
     // MARK: - Public Methods
@@ -134,6 +147,41 @@ final class ThreadListViewModel: ObservableObject {
             // Update state to show error
             loadingState = .error(error)
             throw error
+        }
+    }
+    
+    /// Shows confirmation dialog for deleting a thread
+    /// - Parameter thread: The thread to potentially delete
+    func confirmDeleteThread(_ thread: Thread) {
+        threadToDelete = thread
+        showDeleteConfirmation = true
+    }
+    
+    /// Cancels the deletion process
+    func cancelDelete() {
+        threadToDelete = nil
+        showDeleteConfirmation = false
+    }
+    
+    /// Deletes the currently selected thread
+    func deleteThread() async {
+        guard let thread = threadToDelete else { return }
+        
+        // Hide the confirmation dialog
+        showDeleteConfirmation = false
+        
+        do {
+            // Perform the deletion
+            try await deleteThreadUseCase.execute(threadId: thread.id)
+            
+            // Clear the selection
+            threadToDelete = nil
+            
+            // Reload threads to reflect the deletion
+            loadThreads()
+        } catch {
+            // Update state to show error
+            loadingState = .error(error)
         }
     }
 }

@@ -33,13 +33,15 @@ final class ThreadListPerformanceTests: XCTestCase {
         
         // Create use case and view model within MainActor context
         let createThreadUseCase = CreateThreadUseCase(repository: repository)
+        let deleteThreadUseCase = DeleteThreadUseCaseImpl(repository: repository)
         
         // Use synchronous expectation to create view model on MainActor
         let expectation = expectation(description: "Setup complete")
         Task { @MainActor in
             viewModel = ThreadListViewModel(
                 repository: repository,
-                createThreadUseCase: createThreadUseCase
+                createThreadUseCase: createThreadUseCase,
+                deleteThreadUseCase: deleteThreadUseCase
             )
             expectation.fulfill()
         }

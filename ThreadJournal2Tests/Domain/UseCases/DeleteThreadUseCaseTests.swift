@@ -11,11 +11,11 @@ import XCTest
 final class DeleteThreadUseCaseTests: XCTestCase {
     
     private var sut: DeleteThreadUseCase!
-    private var mockRepository: MockThreadRepository!
+    private var mockRepository: MockDeleteThreadRepository!
     
     override func setUp() {
         super.setUp()
-        mockRepository = MockThreadRepository()
+        mockRepository = MockDeleteThreadRepository()
         sut = DeleteThreadUseCaseImpl(repository: mockRepository)
     }
     
@@ -30,7 +30,7 @@ final class DeleteThreadUseCaseTests: XCTestCase {
     func testExecute_WhenThreadExists_DeletesSuccessfully() async throws {
         // Given
         let threadId = UUID()
-        let thread = try Thread(title: "Test Thread")
+        let thread = try ThreadJournal2.Thread(title: "Test Thread")
         mockRepository.mockThreads[threadId] = thread
         
         // When
@@ -81,7 +81,7 @@ final class DeleteThreadUseCaseTests: XCTestCase {
     func testExecute_VerifiesThreadExistsBeforeDeleting() async throws {
         // Given
         let threadId = UUID()
-        let thread = try Thread(title: "Test Thread")
+        let thread = try ThreadJournal2.Thread(title: "Test Thread")
         mockRepository.mockThreads[threadId] = thread
         
         // When
@@ -96,8 +96,8 @@ final class DeleteThreadUseCaseTests: XCTestCase {
 
 // MARK: - Mock Repository
 
-private class MockThreadRepository: ThreadRepository {
-    var mockThreads: [UUID: Thread] = [:]
+private class MockDeleteThreadRepository: ThreadRepository {
+    var mockThreads: [UUID: ThreadJournal2.Thread] = [:]
     var shouldThrowError = false
     
     var fetchThreadCalled = false
@@ -109,13 +109,13 @@ private class MockThreadRepository: ThreadRepository {
     var softDeletedThreadId: UUID?
     var fetchThreadCalledBeforeSoftDelete = false
     
-    func create(thread: Thread) async throws {
+    func create(thread: ThreadJournal2.Thread) async throws {
         if shouldThrowError {
             throw PersistenceError.saveFailed(underlying: NSError(domain: "test", code: 1))
         }
     }
     
-    func update(thread: Thread) async throws {
+    func update(thread: ThreadJournal2.Thread) async throws {
         if shouldThrowError {
             throw PersistenceError.updateFailed(underlying: NSError(domain: "test", code: 1))
         }
@@ -142,7 +142,7 @@ private class MockThreadRepository: ThreadRepository {
         
         // Mark thread as deleted but keep in storage
         if var thread = mockThreads[threadId] {
-            thread = try! Thread(
+            thread = try! ThreadJournal2.Thread(
                 id: thread.id,
                 title: thread.title,
                 createdAt: thread.createdAt,
@@ -153,7 +153,7 @@ private class MockThreadRepository: ThreadRepository {
         }
     }
     
-    func fetch(threadId: UUID) async throws -> Thread? {
+    func fetch(threadId: UUID) async throws -> ThreadJournal2.Thread? {
         fetchThreadCalled = true
         fetchedThreadId = threadId
         
@@ -172,14 +172,14 @@ private class MockThreadRepository: ThreadRepository {
         return mockThreads[threadId]
     }
     
-    func fetchAll() async throws -> [Thread] {
+    func fetchAll() async throws -> [ThreadJournal2.Thread] {
         if shouldThrowError {
             throw PersistenceError.fetchFailed(underlying: NSError(domain: "test", code: 1))
         }
         return Array(mockThreads.values).filter { $0.deletedAt == nil }
     }
     
-    func fetchAll(includeDeleted: Bool) async throws -> [Thread] {
+    func fetchAll(includeDeleted: Bool) async throws -> [ThreadJournal2.Thread] {
         if shouldThrowError {
             throw PersistenceError.fetchFailed(underlying: NSError(domain: "test", code: 1))
         }

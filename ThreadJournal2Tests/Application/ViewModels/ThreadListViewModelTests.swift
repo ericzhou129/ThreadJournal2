@@ -24,9 +24,11 @@ final class ThreadListViewModelTests: XCTestCase {
         
         mockRepository = MockThreadRepository()
         createThreadUseCase = CreateThreadUseCase(repository: mockRepository)
+        let deleteThreadUseCase = DeleteThreadUseCaseImpl(repository: mockRepository)
         sut = ThreadListViewModel(
             repository: mockRepository,
-            createThreadUseCase: createThreadUseCase
+            createThreadUseCase: createThreadUseCase,
+            deleteThreadUseCase: deleteThreadUseCase
         )
     }
     

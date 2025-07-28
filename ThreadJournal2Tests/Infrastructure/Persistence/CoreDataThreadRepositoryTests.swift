@@ -286,4 +286,140 @@ class CoreDataThreadRepositoryTests: XCTestCase {
         let entries = try await repository.fetchEntries(for: thread.id)
         XCTAssertEqual(entries.count, 0)
     }
+    
+    // MARK: - Soft Delete Tests
+    
+    func testSoftDeleteThread() async throws {
+        // Arrange
+        let thread = try Thread(title: "Thread to Soft Delete")
+        try await repository.create(thread: thread)
+        
+        // Act
+        try await repository.softDelete(threadId: thread.id)
+        
+        // Assert - Thread should not be visible in regular fetch
+        let threads = try await repository.fetchAll()
+        XCTAssertFalse(threads.contains { $0.id == thread.id })
+        
+        // But should still exist in database with deletedAt set
+        let deletedThread = try await repository.fetch(threadId: thread.id)
+        XCTAssertNotNil(deletedThread)
+        XCTAssertNotNil(deletedThread?.deletedAt)
+        XCTAssertTrue(deletedThread?.isDeleted ?? false)
+    }
+    
+    func testSoftDeleteNonExistentThreadThrows() async throws {
+        // Arrange
+        let nonExistentId = UUID()
+        
+        // Act & Assert
+        do {
+            try await repository.softDelete(threadId: nonExistentId)
+            XCTFail("Expected error when soft deleting non-existent thread")
+        } catch let error as PersistenceError {
+            if case .notFound(let id) = error {
+                XCTAssertEqual(id, nonExistentId)
+            } else {
+                XCTFail("Expected notFound error, got \(error)")
+            }
+        }
+    }
+    
+    func testSoftDeleteThreadCascadesToEntries() async throws {
+        // Arrange
+        let thread = try Thread(title: "Thread with Entries")
+        try await repository.create(thread: thread)
+        
+        let entry1 = try Entry(threadId: thread.id, content: "Entry 1")
+        let entry2 = try Entry(threadId: thread.id, content: "Entry 2")
+        try await repository.addEntry(entry1, to: thread.id)
+        try await repository.addEntry(entry2, to: thread.id)
+        
+        // Act
+        try await repository.softDelete(threadId: thread.id)
+        
+        // Assert - Entries should not be visible in regular fetch
+        let entries = try await repository.fetchEntries(for: thread.id)
+        XCTAssertEqual(entries.count, 0)
+        
+        // But entries should still exist with deletedAt set
+        // Note: We can't directly test this without exposing internal Core Data details
+        // The implementation should handle cascade soft delete
+    }
+    
+    func testFetchAllExcludesDeletedThreadsByDefault() async throws {
+        // Arrange
+        let thread1 = try Thread(title: "Active Thread 1")
+        let thread2 = try Thread(title: "Thread to Delete")
+        let thread3 = try Thread(title: "Active Thread 2")
+        
+        try await repository.create(thread: thread1)
+        try await repository.create(thread: thread2)
+        try await repository.create(thread: thread3)
+        
+        // Soft delete thread2
+        try await repository.softDelete(threadId: thread2.id)
+        
+        // Act
+        let threads = try await repository.fetchAll()
+        
+        // Assert
+        XCTAssertEqual(threads.count, 2)
+        XCTAssertTrue(threads.contains { $0.id == thread1.id })
+        XCTAssertTrue(threads.contains { $0.id == thread3.id })
+        XCTAssertFalse(threads.contains { $0.id == thread2.id })
+    }
+    
+    func testFetchAllWithIncludeDeletedReturnsAllThreads() async throws {
+        // Arrange
+        let thread1 = try Thread(title: "Active Thread")
+        let thread2 = try Thread(title: "Deleted Thread")
+        
+        try await repository.create(thread: thread1)
+        try await repository.create(thread: thread2)
+        try await repository.softDelete(threadId: thread2.id)
+        
+        // Act
+        let allThreads = try await repository.fetchAll(includeDeleted: true)
+        let activeThreads = try await repository.fetchAll(includeDeleted: false)
+        
+        // Assert
+        XCTAssertEqual(allThreads.count, 2)
+        XCTAssertEqual(activeThreads.count, 1)
+        
+        // All threads should include the deleted one
+        XCTAssertTrue(allThreads.contains { $0.id == thread1.id })
+        XCTAssertTrue(allThreads.contains { $0.id == thread2.id })
+        
+        // Active threads should not include the deleted one
+        XCTAssertTrue(activeThreads.contains { $0.id == thread1.id })
+        XCTAssertFalse(activeThreads.contains { $0.id == thread2.id })
+        
+        // Verify the deleted thread has deletedAt set
+        let deletedThread = allThreads.first { $0.id == thread2.id }
+        XCTAssertNotNil(deletedThread?.deletedAt)
+        XCTAssertTrue(deletedThread?.isDeleted ?? false)
+    }
+    
+    func testSoftDeletePreservesThreadData() async throws {
+        // Arrange
+        let originalTitle = "Important Thread"
+        let thread = try Thread(title: originalTitle)
+        try await repository.create(thread: thread)
+        
+        let originalCreatedAt = thread.createdAt
+        let originalUpdatedAt = thread.updatedAt
+        
+        // Act
+        try await repository.softDelete(threadId: thread.id)
+        
+        // Assert - All original data should be preserved
+        let deletedThread = try await repository.fetch(threadId: thread.id)
+        XCTAssertNotNil(deletedThread)
+        XCTAssertEqual(deletedThread?.id, thread.id)
+        XCTAssertEqual(deletedThread?.title, originalTitle)
+        XCTAssertEqual(deletedThread?.createdAt, originalCreatedAt)
+        XCTAssertEqual(deletedThread?.updatedAt, originalUpdatedAt)
+        XCTAssertNotNil(deletedThread?.deletedAt)
+    }
 }

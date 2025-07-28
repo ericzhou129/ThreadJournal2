@@ -15,7 +15,6 @@ struct ThreadDetailViewFixed: View {
     @State private var showingExportMenu = false
     @State private var showingShareSheet = false
     @FocusState private var isComposeFieldFocused: Bool
-    @State private var textEditorHeight: CGFloat = 44
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
     @ScaledMetric(relativeTo: .body) private var contentSize = 14
@@ -205,36 +204,18 @@ struct ThreadDetailViewFixed: View {
     }
     
     private var composeTextField: some View {
-        TextEditor(text: $viewModel.draftContent)
+        TextField("Add to journal...", text: $viewModel.draftContent, axis: .vertical)
             .font(.system(size: 17))
             .foregroundColor(Color(.label))
-            .scrollContentBackground(.hidden)
             .focused($isComposeFieldFocused)
-            .frame(minHeight: 44)
-            .frame(height: textEditorHeight)
+            .lineLimit(1...10) // Min 1 line, max 10 lines (200px / 20px per line)
+            .textFieldStyle(.plain)
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 11)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(.systemGray6))
-                    
-                    if viewModel.draftContent.isEmpty {
-                        Text("Add to journal...")
-                            .font(.system(size: 17))
-                            .foregroundColor(Color(.placeholderText))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 11)
-                            .allowsHitTesting(false)
-                    }
-                }
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.systemGray6))
             )
-            .onChange(of: viewModel.draftContent) { _, _ in
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    updateTextEditorHeight()
-                }
-            }
     }
     
     private var expandButton: some View {
@@ -254,7 +235,6 @@ struct ThreadDetailViewFixed: View {
             Task {
                 await viewModel.addEntry()
                 isComposeFieldFocused = true
-                textEditorHeight = 44 // Reset height after sending
             }
         }) {
             Image(systemName: "arrow.up")
@@ -359,16 +339,13 @@ struct ThreadDetailViewFixed: View {
                 )
             
             // Edit text field - no internal scrolling, expands to fit content
-            TextEditor(text: $viewModel.editedContent)
+            TextField("", text: $viewModel.editedContent, axis: .vertical)
                 .font(.system(size: contentSize))
                 .foregroundColor(Color(.label))
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
+                .textFieldStyle(.plain)
+                .lineLimit(3...20) // Min 3 lines for editing, max 20 lines
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .scrollDisabled(true)
-                .frame(minHeight: 60) // Minimum height to match the screenshot
-                .fixedSize(horizontal: false, vertical: true) // Allow vertical expansion
             .background(
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color(.systemGray6))
@@ -430,17 +407,6 @@ struct ThreadDetailViewFixed: View {
         return formatter.string(from: date)
     }
     
-    private func updateTextEditorHeight() {
-        let baseHeight: CGFloat = 44
-        let lineHeight: CGFloat = 20
-        
-        // Simple line count based on newlines
-        let lines = viewModel.draftContent.components(separatedBy: .newlines).count
-        let height = baseHeight + CGFloat(max(0, lines - 1)) * lineHeight
-        
-        // Cap at reasonable max
-        textEditorHeight = min(height, 200)
-    }
     
     
     private var expandedComposeView: some View {

@@ -48,6 +48,7 @@ final class MockThreadRepository: ThreadRepository {
     var fetchEntryCallCount = 0
     var updateEntryCallCount = 0
     var softDeleteEntryCallCount = 0
+    var softDeleteCallCount = 0
     
     // MARK: - Test Helpers for New Methods
     
@@ -120,8 +121,26 @@ final class MockThreadRepository: ThreadRepository {
             throw injectedError
         }
         
-        // Return threads sorted by updatedAt (most recent first)
-        return threads.sorted { $0.updatedAt > $1.updatedAt }
+        // Return threads sorted by updatedAt (most recent first), excluding deleted
+        return threads
+            .filter { $0.deletedAt == nil }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+    
+    func fetchAll(includeDeleted: Bool) async throws -> [DomainThread] {
+        fetchAllCallCount += 1
+        
+        if shouldFailFetch {
+            throw injectedError
+        }
+        
+        if includeDeleted {
+            return threads.sorted { $0.updatedAt > $1.updatedAt }
+        } else {
+            return threads
+                .filter { $0.deletedAt == nil }
+                .sorted { $0.updatedAt > $1.updatedAt }
+        }
     }
     
     func addEntry(_ entry: DomainEntry, to threadId: UUID) async throws {
@@ -210,6 +229,7 @@ final class MockThreadRepository: ThreadRepository {
         fetchEntryCallCount = 0
         updateEntryCallCount = 0
         softDeleteEntryCallCount = 0
+        softDeleteCallCount = 0
         
         fetchEntryResult = nil
         updateEntryResult = nil
@@ -268,5 +288,30 @@ final class MockThreadRepository: ThreadRepository {
                 break
             }
         }
+    }
+    
+    func softDelete(threadId: UUID) async throws {
+        softDeleteCallCount += 1
+        
+        if shouldFailDelete {
+            throw injectedError
+        }
+        
+        guard let index = threads.firstIndex(where: { $0.id == threadId }) else {
+            throw PersistenceError.notFound(id: threadId)
+        }
+        
+        let thread = threads[index]
+        let softDeletedThread = try DomainThread(
+            id: thread.id,
+            title: thread.title,
+            createdAt: thread.createdAt,
+            updatedAt: Date(),
+            deletedAt: Date()
+        )
+        threads[index] = softDeletedThread
+        
+        // Also clear entries for the soft deleted thread (simulating cascade delete)
+        entries[threadId] = []
     }
 }
