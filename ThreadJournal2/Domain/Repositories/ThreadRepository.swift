@@ -24,6 +24,11 @@ protocol ThreadRepository {
     /// - Throws: PersistenceError if the operation fails
     func delete(threadId: UUID) async throws
     
+    /// Soft deletes a thread by setting deletedAt timestamp
+    /// - Parameter threadId: The ID of the thread to soft delete
+    /// - Throws: PersistenceError if the operation fails
+    func softDelete(threadId: UUID) async throws
+    
     /// Fetches a specific thread by ID
     /// - Parameter threadId: The ID of the thread to fetch
     /// - Returns: The thread if found, nil otherwise
@@ -34,6 +39,12 @@ protocol ThreadRepository {
     /// - Returns: Array of all threads, sorted by most recently updated
     /// - Throws: PersistenceError if the operation fails
     func fetchAll() async throws -> [Thread]
+    
+    /// Fetches threads from the repository with option to include deleted
+    /// - Parameter includeDeleted: Whether to include soft-deleted threads
+    /// - Returns: Array of threads, sorted by most recently updated
+    /// - Throws: PersistenceError if the operation fails
+    func fetchAll(includeDeleted: Bool) async throws -> [Thread]
     
     /// Adds a new entry to an existing thread
     /// - Parameters:

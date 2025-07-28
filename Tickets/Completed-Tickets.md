@@ -1,10 +1,3 @@
-# ThreadJournal Completed Tickets - Phase 1
-
-## Overview
-This document contains all completed tickets from the ThreadJournal implementation. These tickets have been successfully implemented and verified.
-
----
-
 ## Epic 1: Core Infrastructure Setup
 
 ### TICKET-001: Project Setup and Architecture
@@ -36,7 +29,8 @@ This document contains all completed tickets from the ThreadJournal implementati
 
 **Priority Score**: 10 (WSJF) - Foundational, blocks all other work  
 **Dependencies**: None  
-**Status**: ✅ COMPLETED
+
+
 
 ### TICKET-002: Core Data Schema Setup
 **Story ID**: TICKET-002  
@@ -68,7 +62,9 @@ This document contains all completed tickets from the ThreadJournal implementati
 
 **Priority Score**: 9 (WSJF) - Critical path, enables persistence  
 **Dependencies**: TICKET-001
-**Status**: ✅ COMPLETED
+
+
+
 
 ### TICKET-003: Domain Entities and Repository
 **Story ID**: TICKET-003  
@@ -99,7 +95,6 @@ This document contains all completed tickets from the ThreadJournal implementati
 
 **Priority Score**: 9 (WSJF) - Foundation for all features  
 **Dependencies**: TICKET-001  
-**Status**: ✅ COMPLETED
 
 ### TICKET-004: Core Data Repository Implementation
 **Story ID**: TICKET-004  
@@ -137,7 +132,6 @@ enum PersistenceError: Error {
 
 **Priority Score**: 8 (WSJF) - Critical for persistence  
 **Dependencies**: TICKET-002, TICKET-003  
-**Status**: ✅ COMPLETED
 
 ### TICKET-005: CreateThreadUseCase and AddEntryUseCase Implementation
 **Story ID**: TICKET-005  
@@ -179,7 +173,6 @@ final class CreateThreadUseCase {
 
 **Priority Score**: 8 (WSJF) - Core business logic  
 **Dependencies**: TICKET-003  
-**Status**: ✅ COMPLETED
 
 ### TICKET-006: Draft Manager Implementation
 **Story ID**: TICKET-006  
@@ -217,50 +210,6 @@ protocol DraftManager {
 
 **Priority Score**: 7 (WSJF) - Important for UX  
 **Dependencies**: TICKET-001  
-**Status**: ✅ COMPLETED
-
-### TICKET-016: Architecture Tests
-**Story ID**: TICKET-016  
-**Context/Layer**: All / infrastructure  
-**As a** developer  
-**I want** automated architecture tests  
-**So that** Clean Architecture boundaries are enforced  
-
-**Acceptance Criteria**:
-- Given test suite in `ThreadJournal2Tests/Architecture/`
-- When running architecture tests
-- Then verify domain layer has no imports from UIKit, SwiftUI, or CoreData
-- And verify use cases have single public execute() method
-- And verify dependency rules from TIP Section 3:
-  - Domain imports nothing
-  - Application imports Domain only
-  - Interface imports Application + Domain
-  - Infrastructure imports Domain only
-- [Arch-Lint] Tests fail CI build on violation
-- [Coverage] All layers tested
-- [Doc] Architecture rules documented
-
-**Test Implementation**:
-```swift
-func testDomainHasNoUIImports() {
-    let domainFiles = FileScanner.scan("Domain/")
-    for file in domainFiles {
-        XCTAssertFalse(file.contains("import UIKit"))
-        XCTAssertFalse(file.contains("import SwiftUI"))
-        XCTAssertFalse(file.contains("import CoreData"))
-    }
-}
-```
-
-**QA Test Criteria**:
-1. Add violating import to domain layer, verify test fails
-2. Add second public method to use case, verify test fails
-3. Import Infrastructure from Domain, verify test fails
-4. Run in CI pipeline, verify blocks merge on failure
-
-**Priority Score**: 7 (WSJF) - Prevents technical debt  
-**Dependencies**: TICKET-001  
-**Status**: ✅ COMPLETED
 
 ---
 
@@ -285,7 +234,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 8 (WSJF) - Enables thread list UI  
 **Dependencies**: TICKET-005  
-**Status**: ✅ COMPLETED
 
 ### TICKET-008: Ability to see all threads
 **Story ID**: TICKET-008  
@@ -328,7 +276,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 9 (WSJF) - Primary user interface  
 **Dependencies**: TICKET-007  
-**Status**: ✅ COMPLETED
 
 ### TICKET-009: Ability to add a new thread
 **Story ID**: TICKET-009  
@@ -368,7 +315,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 9 (WSJF) - Core user flow  
 **Dependencies**: TICKET-008  
-**Status**: ✅ COMPLETED
 
 ---
 
@@ -405,7 +351,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 8 (WSJF) - Enables entry features  
 **Dependencies**: TICKET-005, TICKET-006  
-**Status**: ✅ COMPLETED
 
 ### TICKET-011: Ability to see all entries in a thread
 **Story ID**: TICKET-011  
@@ -441,7 +386,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 9 (WSJF) - Core viewing experience  
 **Dependencies**: TICKET-010  
-**Status**: ✅ COMPLETED
 
 ### TICKET-012: Ability to add a new entry to a thread
 **Story ID**: TICKET-012  
@@ -480,7 +424,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 9 (WSJF) - Core creation functionality  
 **Dependencies**: TICKET-011  
-**Status**: ✅ COMPLETED
 
 ### TICKET-013: Keyboard entry view enhancements
 **Story ID**: TICKET-013  
@@ -536,7 +479,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 7 (WSJF) - Enhancement for power users  
 **Dependencies**: TICKET-012  
-**Status**: ✅ COMPLETED
 
 ---
 
@@ -581,7 +523,6 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 6 (WSJF) - Important but not blocking  
 **Dependencies**: TICKET-003  
-**Status**: ✅ COMPLETED
 
 ### TICKET-015: Export any thread to CSV
 **Story ID**: TICKET-015  
@@ -621,7 +562,52 @@ func testDomainHasNoUIImports() {
 
 **Priority Score**: 7 (WSJF) - User-requested feature  
 **Dependencies**: TICKET-011, TICKET-014  
-**Status**: ✅ COMPLETED
+
+---
+
+## Epic 5: Architecture & Quality
+
+### TICKET-016: Architecture Tests
+**Story ID**: TICKET-016  
+**Context/Layer**: All / infrastructure  
+**As a** developer  
+**I want** automated architecture tests  
+**So that** Clean Architecture boundaries are enforced  
+
+**Acceptance Criteria**:
+- Given test suite in `ThreadJournal2Tests/Architecture/`
+- When running architecture tests
+- Then verify domain layer has no imports from UIKit, SwiftUI, or CoreData
+- And verify use cases have single public execute() method
+- And verify dependency rules from TIP Section 3:
+  - Domain imports nothing
+  - Application imports Domain only
+  - Interface imports Application + Domain
+  - Infrastructure imports Domain only
+- [Arch-Lint] Tests fail CI build on violation
+- [Coverage] All layers tested
+- [Doc] Architecture rules documented
+
+**Test Implementation**:
+```swift
+func testDomainHasNoUIImports() {
+    let domainFiles = FileScanner.scan("Domain/")
+    for file in domainFiles {
+        XCTAssertFalse(file.contains("import UIKit"))
+        XCTAssertFalse(file.contains("import SwiftUI"))
+        XCTAssertFalse(file.contains("import CoreData"))
+    }
+}
+```
+
+**QA Test Criteria**:
+1. Add violating import to domain layer, verify test fails
+2. Add second public method to use case, verify test fails
+3. Import Infrastructure from Domain, verify test fails
+4. Run in CI pipeline, verify blocks merge on failure
+
+**Priority Score**: 7 (WSJF) - Prevents technical debt  
+**Dependencies**: TICKET-001  
 
 ### TICKET-017: Performance Tests
 **Story ID**: TICKET-017  
@@ -664,16 +650,545 @@ func testThreadListPerformanceWith100Threads() {
 
 **Priority Score**: 5 (WSJF) - Important for validation  
 **Dependencies**: TICKET-004  
-**Status**: ✅ COMPLETED
 
 ---
 
-## Summary
+## Epic 5: Entry Management
 
-All tickets from Sprint 1-3 have been successfully completed, providing:
-- ✅ Core infrastructure with Clean Architecture
-- ✅ Complete thread and entry management functionality
-- ✅ Export to CSV capability
-- ✅ Comprehensive test coverage and performance validation
+### TICKET-018: Long Press Context Menu for Entries
+**Story ID**: TICKET-018  
+**Context/Layer**: Journaling / interface  
 
-The app is now a fully functional journaling application with a solid foundation for future enhancements.
+THIS TICKET IS DEPRECIATED AND REMOVED FROM IMPLEMENTATION. 
+
+**As a** user  
+**I want to** long press on any entry to see edit and delete options  
+**So that** I can manage my journal entries after they've been posted  
+
+**Acceptance Criteria**:
+1. Long press gesture (0.5 seconds) on any entry shows context menu
+2. Context menu appears with two options: "Edit" and "Delete"
+3. Menu has iOS-native appearance with SF Symbol icons
+4. Edit option has pencil icon (SF Symbol: pencil)
+5. Delete option has trash icon (SF Symbol: trash) in red
+6. Tapping outside menu dismisses it
+7. Visual feedback (haptic + slight scale) when long press detected
+8. Menu positioned above/below entry based on screen position
+- [Arch-Lint] Long press state managed by View, actions delegated to ViewModel
+- [Coverage] UI test for long press gesture and menu appearance
+- [Doc] Component matches Design:v1.2/EntryContextMenu
+
+**Component Reference**:
+- Design:v1.2/EntryContextMenu
+- Design:v1.2/ThreadEntry (base component)
+
+**Technical Reference**:
+- ViewModel methods from TIP Section 6 (API Contracts)
+- View implementation pattern from TIP Section 3 (Clean Architecture)
+
+**Technical Implementation**:
+- Use `.contextMenu` modifier on entry view
+- Add to entryView in ThreadDetailViewFixed:
+  ```swift
+  .contextMenu {
+      Button(action: { viewModel.startEditingEntry(entry) }) {
+          Label("Edit", systemImage: "pencil")
+      }
+      Button(role: .destructive, action: { viewModel.confirmDeleteEntry(entry) }) {
+          Label("Delete", systemImage: "trash")
+      }
+  }
+  ```
+- Add haptic feedback: `UIImpactFeedbackGenerator(style: .medium)`
+- ViewModel methods: `startEditingEntry(_:)`, `confirmDeleteEntry(_:)`
+- Note: TICKET-021 adds swipe actions as an alternative interaction method
+
+**QA Test Criteria**:
+1. Test long press shows menu within 0.5 seconds
+2. Verify both Edit and Delete options appear
+3. Test haptic feedback triggers on long press
+4. Verify menu dismisses when tapping outside
+5. Test menu positioning near screen edges
+6. Verify delete option appears in red
+7. Test on both iPhone and iPad
+
+**Priority Score**: 6 (WSJF) - Important UX enhancement  
+**Dependencies**: TICKET-011 (Thread Detail UI)
+
+### TICKET-019: Edit Entry Mode Implementation
+**Story ID**: TICKET-019  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want to** edit an existing entry's content and save changes  
+**So that** I can correct mistakes or update my thoughts  
+
+**Acceptance Criteria**:
+1. Tapping "Edit" from menu button enters edit mode for that entry
+2. Entry content becomes editable TextEditor with existing text
+3. TextEditor automatically sizes to fit content height (no internal scrolling)
+4. Entry timestamp remains visible above the edit box
+5. Save and Cancel buttons appear below the edit area, right-aligned
+6. Original entry view replaced with edit UI inline
+7. Other entries remain visible but dimmed (50% opacity)
+8. Keyboard appears automatically when entering edit mode
+9. Save button disabled if content unchanged or empty
+10. After saving, entry shows with "(edited)" next to timestamp
+11. Escape/swipe down cancels edit without saving
+- [Arch-Lint] Edit state managed by ViewModel with original content backup
+- [Coverage] Test edit/save/cancel flows with state verification
+- [Doc] Component matches Design:v1.2/EditMode (revised)
+
+**Component Reference**:
+- Design:v1.2/EditMode (revised)
+- Design:v1.2/ComposeArea (reuse styling)
+- Reference: `/Design/edit-mode-final-design.html`
+
+**Technical Reference**:
+- UpdateEntryUseCase from TIP Section 6 (API Contracts)
+- Edit entry data flow from TIP Section 7 (Data Flow)
+- ViewModel edit methods from TIP Section 6
+
+**Technical Implementation**:
+- Add to ThreadDetailViewModel:
+  ```swift
+  @Published var editingEntry: Entry?
+  @Published var editingContent: String = ""
+  @Published var isEditFieldFocused = false
+  
+  func startEditingEntry(_ entry: Entry) {
+      editingEntry = entry
+      editingContent = entry.content
+      isEditFieldFocused = true
+  }
+  
+  func saveEditedEntry() async {
+      // Update entry via repository
+  }
+  
+  func cancelEditing() {
+      editingEntry = nil
+      editingContent = ""
+      isEditFieldFocused = false
+  }
+  ```
+- Edit mode UI structure:
+  ```swift
+  VStack(alignment: .leading, spacing: 8) {
+      // 1. Timestamp remains visible
+      Text(formatTimestamp(entry.timestamp))
+          .font(.system(size: 11, weight: .medium))
+          .foregroundColor(Color(.secondaryLabel))
+      
+      // 2. Edit box with blue border
+      TextEditor(text: $viewModel.editedContent)
+          .scrollDisabled(true)  // No internal scrolling
+          .background(Color(.systemGray6))
+          .overlay(RoundedRectangle(cornerRadius: 8)
+              .stroke(Color.accentColor, lineWidth: 2))
+      
+      // 3. Buttons below, right-aligned
+      HStack {
+          Spacer()
+          Button("Cancel") { viewModel.cancelEditing() }
+              .font(.system(size: 16, weight: .medium))
+          Button("Save") { await viewModel.saveEditedEntry() }
+              .font(.system(size: 16, weight: .semibold))
+      }
+  }
+  ```
+- Use TextEditor with `.scrollDisabled(true)` for no internal scrolling
+- Expand to fit content using ZStack sizing technique
+- Add UpdateEntryUseCase to domain layer
+- Track edit history in Entry entity (optional for v1)
+
+**Component Reference**:
+- Reuse styling from Design:v1.2/ComposeArea
+- Button styling from existing Send button
+
+**QA Test Criteria**:
+1. Test edit mode replaces entry inline
+2. Verify TextEditor shows full content without internal scrolling
+3. Test TextEditor height adjusts when adding/removing lines
+4. Verify keyboard appears automatically
+5. Test Save button enables only when content changes
+6. Verify Cancel restores original content
+7. Test "(edited)" indicator appears after save
+8. Verify other entries dim during edit
+9. Test concurrent edits not allowed
+10. Test edit mode survives rotation (iPad)
+11. Verify edit changes persist after app restart
+
+**Priority Score**: 5 (WSJF) - Valuable but not critical path  
+**Dependencies**: TICKET-018 (Context Menu)
+
+### TICKET-020: Delete Entry Implementation (Soft Delete)
+**Story ID**: TICKET-020  
+**Context/Layer**: Journaling / domain + infrastructure + interface  
+**As a** user  
+**I want to** delete journal entries I no longer want to see  
+**So that** I can hide mistaken or unwanted entries from my journal (with ability to recover later)  
+
+**Acceptance Criteria**:
+1. Tapping "Delete" from context menu shows confirmation dialog
+2. Confirmation dialog title: "Delete Entry?"
+3. Dialog message: "This entry will be removed from your journal."
+4. Dialog has two buttons: "Cancel" (default) and "Delete" (destructive/red)
+5. Tapping Cancel dismisses dialog without action
+6. Tapping Delete marks entry as deleted (soft delete) with fade-out animation
+7. Deleted entries no longer appear in thread view
+8. Thread's updatedAt timestamp updates after deletion
+9. If deleted entry was the last visible one, show empty state
+10. Entry data remains in database with deletedAt timestamp
+- [Arch-Lint] Soft delete preserves data integrity per TIP Section 2
+- [Coverage] Test soft delete flow and filtering of deleted entries
+- [Doc] Component matches Design:v1.2/DeleteConfirmation
+
+**Component Reference**:
+- Design:v1.2/DeleteConfirmation
+- Design:v1.2/EntryContextMenu (trigger point)
+
+**Technical Reference**:
+- Updated Entry entity from TIP Section 2 with deletedAt field
+- DeleteEntryUseCase protocol from TIP Section 6
+- Repository soft delete method from TIP Section 6
+- Data flow diagram from TIP Section 7
+
+**Technical Implementation**:
+
+1. **Domain Layer Updates** (per TIP Section 3):
+   Create `Domain/UseCases/DeleteEntryUseCase.swift`:
+   ```swift
+   final class DeleteEntryUseCase {
+       private let repository: ThreadRepository
+       
+       init(repository: ThreadRepository) {
+           self.repository = repository
+       }
+       
+       func execute(entryId: UUID) async throws {
+           try await repository.softDeleteEntry(entryId: entryId)
+       }
+   }
+   ```
+
+2. **Infrastructure Updates** (per TIP Section 6):
+   Update `Infrastructure/Persistence/CoreDataThreadRepository.swift`:
+   ```swift
+   func softDeleteEntry(entryId: UUID) async throws {
+       let context = container.viewContext
+       
+       let request = CDEntry.fetchRequest()
+       request.predicate = NSPredicate(format: "id == %@", entryId as CVarArg)
+       
+       guard let cdEntry = try context.fetch(request).first else {
+           throw PersistenceError.notFound(id: entryId)
+       }
+       
+       cdEntry.deletedAt = Date()
+       
+       // Update thread's updatedAt
+       if let cdThread = cdEntry.thread {
+           cdThread.updatedAt = Date()
+       }
+       
+       try context.save()
+   }
+   
+   func fetchEntries(for threadId: UUID, includeDeleted: Bool = false) async throws -> [Entry] {
+       var predicates = [NSPredicate(format: "thread.id == %@", threadId as CVarArg)]
+       
+       if !includeDeleted {
+           predicates.append(NSPredicate(format: "deletedAt == nil"))
+       }
+       
+       request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+       // ... rest of implementation
+   }
+   ```
+
+3. **Interface Layer Updates**:
+   Update ThreadDetailViewModel (following TIP Section 7 data flow):
+   ```swift
+   @Published var entryToDelete: Entry?
+   @Published var showDeleteConfirmation = false
+   @Published var isDeletingEntry = false
+   
+   func confirmDeleteEntry(_ entry: Entry) {
+       entryToDelete = entry
+       showDeleteConfirmation = true
+   }
+   
+   func deleteEntry() async {
+       guard let entry = entryToDelete else { return }
+       isDeletingEntry = true
+       
+       do {
+           try await deleteEntryUseCase.execute(entryId: entry.id)
+           
+           withAnimation(.easeOut(duration: 0.3)) {
+               entries.removeAll { $0.id == entry.id }
+           }
+           
+           if let thread = thread {
+               self.thread = try? Thread(
+                   id: thread.id,
+                   title: thread.title,
+                   createdAt: thread.createdAt,
+                   updatedAt: Date()
+               )
+           }
+       } catch {
+           // Handle error
+       }
+       
+       isDeletingEntry = false
+       entryToDelete = nil
+       showDeleteConfirmation = false
+   }
+   ```
+
+**Core Data Migration** (per TIP Core Data versioning):
+1. Create ThreadDataModel v1.1
+2. Add deletedAt attribute to CDEntry
+3. Lightweight migration will handle existing data
+
+**QA Test Criteria**:
+1. Test delete shows confirmation dialog
+2. Verify Cancel dismisses without deletion
+3. Test Delete removes entry from view with animation
+4. Verify entry still exists in database with deletedAt set
+5. Test deleted entries don't appear after app restart
+6. Verify thread updatedAt updates correctly
+7. Test deleting last visible entry shows empty state
+8. Test repository's includeDeleted parameter works
+9. Verify migration from v1.0 to v1.1 succeeds
+10. Test performance with many deleted entries
+
+**Priority Score**: 6 (WSJF) - Essential for entry management  
+**Dependencies**: TICKET-018 (Context Menu), TICKET-004 (Repository), TICKET-002 (Core Data Schema)
+
+### TICKET-021: Entry Menu Button for Entry Management
+**Story ID**: TICKET-021  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want to** tap a menu button on entries to access Edit and Delete actions  
+**So that** I have a clear and discoverable way to manage entries  
+
+**Acceptance Criteria**:
+1. Each entry displays a subtle three-dot menu button (⋮) in the top-right corner
+2. Menu button uses SF Symbol "ellipsis" with `.secondaryLabel` color
+3. Button has 44x44pt tap target with 20x20pt icon
+4. Tapping button shows native iOS context menu with two options
+5. Edit option has pencil icon (SF Symbol: pencil) in default blue
+6. Delete option has trash icon (SF Symbol: trash) in destructive red
+7. Light haptic feedback when menu button is tapped
+8. Edit action triggers same flow as TICKET-019 (edit mode)
+9. Delete action triggers same confirmation as TICKET-020 (delete dialog)
+10. Menu button positioned 8pt from right edge, vertically centered with timestamp
+11. Button always visible but subtle (no hover states needed)
+12. Menu dismisses when tapping outside or selecting an option
+- [Arch-Lint] Menu state handled by native iOS, actions delegate to ViewModel
+- [Coverage] UI test for menu button tap and option selection
+- [Doc] Component matches Design:v1.2/EntryMenuButton and Design:v1.2/EntryContextMenu
+
+**Component Reference**:
+- Design:v1.2/EntryMenuButton (menu button on each entry)
+- Design:v1.2/EntryContextMenu (menu that appears on tap)
+- Design:v1.2/ThreadEntry (parent component)
+
+**Technical Implementation**:
+
+1. **Menu Button Design** (per Design:v1.2/EntryMenuButton):
+   - Icon: SF Symbol "ellipsis" (vertical three dots)
+   - Size: 20x20pt icon with 44x44pt tap target
+   - Color: `.secondaryLabel` for subtle appearance
+   - Position: Top-right of entry, 8pt from edge
+   - Alignment: Vertically centered with timestamp line
+
+2. **Entry Layout Update**:
+   ```swift
+   private func entryView(entry: Entry, isLast: Bool) -> some View {
+       HStack(alignment: .top, spacing: 0) {
+           // Entry content
+           VStack(alignment: .leading, spacing: 8) {
+               Text(formatTimestamp(entry.timestamp))
+                   .font(.system(size: timestampSize, weight: .medium))
+                   .foregroundColor(Color(.secondaryLabel))
+               
+               Text(entry.content)
+                   .font(.system(size: contentSize))
+                   .foregroundColor(Color(.label))
+                   .lineSpacing(4)
+                   .frame(maxWidth: .infinity, alignment: .leading)
+           }
+           .frame(maxWidth: .infinity)
+           
+           // Menu button
+           Menu {
+               Button {
+                   viewModel.startEditingEntry(entry)
+               } label: {
+                   Label("Edit", systemImage: "pencil")
+               }
+               
+               Button(role: .destructive) {
+                   viewModel.confirmDeleteEntry(entry)
+               } label: {
+                   Label("Delete", systemImage: "trash")
+               }
+           } label: {
+               Image(systemName: "ellipsis")
+                   .font(.system(size: 16))
+                   .foregroundColor(Color(.secondaryLabel))
+                   .frame(width: 44, height: 44)
+                   .contentShape(Rectangle())
+           }
+           .buttonStyle(PlainButtonStyle())
+           .simultaneousGesture(
+               TapGesture().onEnded { _ in
+                   UIImpactFeedbackGenerator(style: .light).impactOccurred()
+               }
+           )
+       }
+       
+       // Divider logic remains the same
+   }
+   ```
+
+3. **ViewModel Integration**:
+   ```swift
+   // In ThreadDetailViewModel
+   func startEditingEntry(_ entry: Entry) {
+       editingEntry = entry
+       editedContent = entry.content
+       isEditFieldFocused = true
+   }
+   
+   func confirmDeleteEntry(_ entry: Entry) {
+       entryToDelete = entry
+       showDeleteConfirmation = true
+   }
+   ```
+
+4. **Key Implementation Notes**:
+   - Use native `Menu` component for iOS 14+ compatibility
+   - Button uses `.buttonStyle(PlainButtonStyle())` to prevent row highlighting
+   - `.contentShape(Rectangle())` ensures full 44x44pt tap area
+   - Haptic feedback via `.simultaneousGesture()` to not interfere with menu
+   - Menu dismisses automatically when tapping outside (native behavior)
+   - Works identically in both ScrollView and List containers
+
+5. **Accessibility Implementation**:
+   ```swift
+   .accessibilityLabel("More options for entry")
+   .accessibilityHint("Double tap to show edit and delete options")
+   .accessibilityAddTraits(.isButton)
+   ```
+
+**QA Test Criteria**:
+1. Verify menu button appears on all entries
+2. Test menu button tap shows context menu
+3. Verify haptic feedback on button tap
+4. Test Edit option launches edit mode
+5. Test Delete option shows confirmation dialog
+6. Verify menu dismisses when tapping outside
+7. Test menu positioning near screen edges
+8. Test on various device sizes
+9. Verify accessibility with VoiceOver
+10. Test button remains visible during scroll
+11. Verify button tap target is 44x44pt minimum
+12. Test behavior when keyboard opens
+13. Verify works with Dynamic Type sizes
+14. Test menu button doesn't interfere with text selection
+15. Verify works in both ScrollView and List
+
+**Priority Score**: 5 (WSJF) - More discoverable than swipe gestures, essential for entry management  
+**Dependencies**: TICKET-019 (Edit mode), TICKET-020 (Delete functionality)
+
+---
+
+
+
+### TICKET-022: Blue Circle Timestamp Enhancement
+**Story ID**: TICKET-022  
+**Context/Layer**: Journaling / interface  
+**As a** user  
+**I want** a subtle blue circle behind entry timestamps  
+**So that** I can more easily distinguish between separate entries when reading or scanning  
+
+**Acceptance Criteria**:
+1. Each entry timestamp displays with a light blue circular background
+2. Background color: #E8F3FF (or system equivalent)
+3. Border radius: 10px (rounded rectangle, not full circle)
+4. Padding: 2px vertical, 10px horizontal
+5. Subtle shadow: 0 1px 3px rgba(0,0,0,0.08)
+6. Timestamp text remains 11pt, color #8E8E93 (unchanged)
+7. Background adapts to Dynamic Type sizing
+8. Works with all timestamp formats ("Just now", "Today, 2:15 PM", "5 years ago")
+9. Maintains left alignment with entry content
+10. No animation or transitions - static visual enhancement
+11. Supports both light and dark mode appropriately
+- [Arch-Lint] Purely presentational change in Interface layer
+- [Coverage] Visual regression test for timestamp appearance
+- [Doc] Design mockup at Design/blue-circle-timestamp-mockup.html
+
+**Design Reference**:
+- Mockup: `/Design/blue-circle-timestamp-mockup.html`
+- Component: `Design:v1.2/ThreadEntry` (timestamp portion)
+- See mockup for exact visual specifications and variations
+
+**User Need**:
+- Problem: Hard to distinguish separate entries when scanning through journal
+- Use case: Quickly reading through entries or looking for specific ones to edit
+- Solution: Subtle visual indicator that maintains minimalist aesthetic
+
+**QA Test Criteria**:
+1. Verify timestamp background appears correctly in light mode
+2. Test with various timestamp lengths
+3. Verify Dynamic Type support (increase/decrease text size)
+4. Check dark mode appearance (adjust colors appropriately)
+5. Verify no performance impact with many entries
+6. Test with edited entries that show "(edited)" suffix
+
+**Priority Score**: 3 (WSJF) - Quality of life enhancement  
+**Dependencies**: None - can be implemented independently
+
+**Technical Implementation**:
+1. **Update DesignSystem.swift**:
+   - Add TimestampStyle struct with color, padding, and shadow constants
+   - Reference: Technical-Implementation-Plan.md Section 6.1
+   
+2. **Create TimestampBackground ViewModifier**:
+   ```swift
+   struct TimestampBackground: ViewModifier {
+       @Environment(\.colorScheme) var colorScheme
+       
+       func body(content: Content) -> some View {
+           content
+               .padding(.horizontal, 10)
+               .padding(.vertical, 2)
+               .background(
+                   RoundedRectangle(cornerRadius: 10)
+                       .fill(colorScheme == .dark ? Color(hex: "#1C3A52") : Color(hex: "#E8F3FF"))
+                       .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+               )
+       }
+   }
+   ```
+
+3. **Update ThreadDetailViewFixed.swift**:
+   - Apply modifier to timestamp Text view in entryView function
+   - Ensure Dynamic Type support is maintained
+   - Test with various colorScheme environments
+
+4. **Testing Approach**:
+   - Unit test: Verify modifier applies correct styling
+   - UI test: Screenshot comparison for visual regression
+   - Manual test: Dynamic Type scaling, dark mode
+
+**Files to Modify**:
+- `Interface/Theme/DesignSystem.swift` - Add TimestampStyle configuration
+- `Interface/Views/ThreadDetailViewFixed.swift` - Apply modifier to timestamps
+- `ThreadJournal2Tests/Interface/TimestampBackgroundTests.swift` - New test file
+
+

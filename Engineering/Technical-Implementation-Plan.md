@@ -51,11 +51,13 @@ graph TB
     
     subgraph "Settings Context"
         UserPreferences[User Preferences]
-        SecuritySettings[Security Settings]
+        BiometricAuth[Biometric Authentication]
+        TextSize[Text Size Settings]
     end
     
     Thread -.->|exports to| ExportService
-    SecuritySettings -.->|protects| Thread
+    BiometricAuth -.->|protects| Thread
+    TextSize -.->|affects display of| Entry
 ```
 
 ### Entity-Relationship Diagram
@@ -67,6 +69,7 @@ erDiagram
         String title "NOT NULL"
         Date createdAt "NOT NULL"
         Date updatedAt "NOT NULL"
+        Date deletedAt "NULLABLE - for soft delete"
     }
     
     Entry {
@@ -101,7 +104,8 @@ ThreadJournal/
 │   │   ├── AddEntryUseCase.swift
 │   │   ├── ExportThreadUseCase.swift
 │   │   ├── UpdateEntryUseCase.swift
-│   │   └── DeleteEntryUseCase.swift
+│   │   ├── DeleteEntryUseCase.swift
+│   │   └── DeleteThreadUseCase.swift
 │   └── Repositories/       # Interfaces only
 │       └── ThreadRepository.swift
 │
@@ -116,11 +120,13 @@ ThreadJournal/
 ├── Interface/              # UI Layer (SwiftUI)
 │   ├── Screens/
 │   │   ├── ThreadListScreen.swift
-│   │   └── ThreadDetailScreen.swift
+│   │   ├── ThreadDetailScreen.swift
+│   │   └── SettingsScreen.swift
 │   ├── Components/
 │   │   ├── ThreadListItem.swift
 │   │   ├── ThreadEntry.swift
-│   │   └── ComposeArea.swift
+│   │   ├── ComposeArea.swift
+│   │   └── SettingsRow.swift
 │   └── Theme/
 │       └── DesignSystem.swift
 │
@@ -239,6 +245,7 @@ graph TB
             ETU[ExportThreadUseCase]
             UEU[UpdateEntryUseCase]
             DEU[DeleteEntryUseCase]
+            DTU[DeleteThreadUseCase]
             TR[ThreadRepository Protocol]
         end
         
@@ -256,11 +263,13 @@ graph TB
     TDV --> ETU
     TDV --> UEU
     TDV --> DEU
+    TDV --> DTU
     CTU --> TR
     AEU --> TR
     ETU --> TR
     UEU --> TR
     DEU --> TR
+    DTU --> TR
     CDR -.implements.-> TR
     ETU --> CSV
 ```
@@ -300,8 +309,9 @@ protocol ThreadRepository {
     func create(thread: Thread) async throws
     func update(thread: Thread) async throws
     func delete(threadId: UUID) async throws
+    func softDelete(threadId: UUID) async throws
     func fetch(threadId: UUID) async throws -> Thread?
-    func fetchAll() async throws -> [Thread]
+    func fetchAll(includeDeleted: Bool) async throws -> [Thread]
     func addEntry(_ entry: Entry, to threadId: UUID) async throws
     func updateEntry(_ entry: Entry) async throws
     func softDeleteEntry(entryId: UUID) async throws
@@ -327,6 +337,10 @@ protocol UpdateEntryUseCase {
 
 protocol DeleteEntryUseCase {
     func execute(entryId: UUID) async throws
+}
+
+protocol DeleteThreadUseCase {
+    func execute(threadId: UUID) async throws
 }
 
 // Export Protocol for future formats
@@ -363,6 +377,8 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     var editingContent: String { get set }
     var entryToDelete: Entry? { get }
     var showDeleteConfirmation: Bool { get }
+    var showThreadMenu: Bool { get }
+    var showThreadDeleteConfirmation: Bool { get }
     
     func loadThread(id: UUID) async
     func addEntry(content: String) async
@@ -373,6 +389,9 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     func cancelEditing()
     func confirmDeleteEntry(_ entry: Entry)
     func deleteEntry() async
+    func showThreadMenuOptions()
+    func confirmDeleteThread()
+    func deleteThread() async
 }
 ```
 
@@ -452,6 +471,243 @@ Text(formatTimestamp(entry.timestamp))
     .font(.system(size: DesignSystem.timestampSize, weight: .medium))
     .foregroundColor(DesignSystem.timestampColor)
     .modifier(TimestampBackground())
+```
+
+## 6.2 Settings & Configuration Implementation
+
+### Biometric Authentication Flow (No Grace Period)
+```mermaid
+sequenceDiagram
+    participant User
+    participant App as Application
+    participant Auth as BiometricAuthService
+    participant LA as LocalAuthentication
+    participant UI as Settings UI
+    participant KS as Keychain
+
+    Note over App: App Launch or Return from Background
+    App->>Auth: checkBiometricRequirement()
+    Auth->>KS: getBiometricEnabled()
+    alt Biometric Enabled
+        Auth->>LA: evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics)
+        alt Success
+            LA-->>Auth: Success
+            Auth-->>App: Authenticated
+            App->>UI: Show Thread List
+        else Failure
+            LA-->>Auth: Error
+            Auth-->>App: Authentication Failed
+            App->>UI: Show locked screen with retry
+        end
+    else Biometric Disabled
+        Auth-->>App: No auth required
+        App->>UI: Show Thread List
+    end
+```
+
+### Settings Architecture
+```swift
+// Domain/UseCases/UpdateSettingsUseCase.swift
+protocol UpdateSettingsUseCase {
+    func execute(settings: UserSettings) async throws
+}
+
+// Domain/Entities/UserSettings.swift
+struct UserSettings {
+    var biometricAuthEnabled: Bool
+    var textSizePercentage: Int // 80-150
+}
+
+// Infrastructure/Security/BiometricAuthService.swift
+final class BiometricAuthService {
+    private let context = LAContext()
+    private let keychain: KeychainService
+    
+    func authenticate() async throws -> Bool {
+        // No grace period - always require authentication
+        guard await isBiometricEnabled() else { return true }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            context.evaluatePolicy(
+                .deviceOwnerAuthenticationWithBiometrics,
+                localizedReason: "Access your journal entries"
+            ) { success, error in
+                if success {
+                    continuation.resume(returning: true)
+                } else {
+                    continuation.resume(throwing: error ?? AuthError.unknown)
+                }
+            }
+        }
+    }
+    
+    func isBiometricAvailable() -> Bool {
+        var error: NSError?
+        return context.canEvaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics,
+            error: &error
+        )
+    }
+}
+
+// Interface/ViewModels/SettingsViewModel.swift
+@MainActor
+final class SettingsViewModel: ObservableObject {
+    @Published var biometricAuthEnabled: Bool = false
+    @Published var textSizePercentage: Int = 100
+    @Published var showingPrivacyPolicy: Bool = false
+    
+    private let updateSettingsUseCase: UpdateSettingsUseCase
+    private let biometricService: BiometricAuthService
+    
+    func toggleBiometric() async {
+        guard biometricService.isBiometricAvailable() else {
+            // Show alert that biometric is not available
+            return
+        }
+        
+        biometricAuthEnabled.toggle()
+        await saveSettings()
+    }
+    
+    func updateTextSize(_ percentage: Int) async {
+        textSizePercentage = max(80, min(150, percentage))
+        await saveSettings()
+    }
+    
+    private func saveSettings() async {
+        let settings = UserSettings(
+            biometricAuthEnabled: biometricAuthEnabled,
+            textSizePercentage: textSizePercentage
+        )
+        try? await updateSettingsUseCase.execute(settings: settings)
+    }
+}
+```
+
+### App Lifecycle Integration
+```swift
+// Interface/App/ThreadJournalApp.swift
+@main
+struct ThreadJournalApp: App {
+    @State private var isAuthenticated = false
+    @State private var showAuthenticationView = false
+    private let biometricService = BiometricAuthService()
+    
+    var body: some Scene {
+        WindowGroup {
+            if isAuthenticated {
+                ThreadListScreen()
+            } else {
+                AuthenticationRequiredView(
+                    onAuthenticate: authenticate
+                )
+            }
+        }
+        .onChange(of: scenePhase) { newPhase in
+            switch newPhase {
+            case .active:
+                // Always require authentication when becoming active
+                Task {
+                    await authenticate()
+                }
+            case .background, .inactive:
+                // Lock immediately when going to background
+                isAuthenticated = false
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    private func authenticate() async {
+        do {
+            isAuthenticated = try await biometricService.authenticate()
+        } catch {
+            // Show error and retry option
+            showAuthenticationView = true
+        }
+    }
+}
+```
+
+### Settings Screen Components
+```swift
+// Interface/Components/SettingsRow.swift
+struct SettingsToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    let action: () async -> Void
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 17))
+                .foregroundColor(Color(.label))
+            
+            Spacer()
+            
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .onChange(of: isOn) { _ in
+                    Task {
+                        await action()
+                    }
+                }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+}
+
+struct SettingsStepperRow: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    let step: Int
+    let format: String
+    let onChange: (Int) async -> Void
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 17))
+                .foregroundColor(Color(.label))
+            
+            Spacer()
+            
+            HStack(spacing: 12) {
+                Button(action: { 
+                    let newValue = max(range.lowerBound, value - step)
+                    value = newValue
+                    Task { await onChange(newValue) }
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(value > range.lowerBound ? .accentColor : Color(.systemGray3))
+                }
+                .disabled(value <= range.lowerBound)
+                
+                Text(String(format: format, value))
+                    .font(.system(size: 17))
+                    .frame(minWidth: 50)
+                
+                Button(action: { 
+                    let newValue = min(range.upperBound, value + step)
+                    value = newValue
+                    Task { await onChange(newValue) }
+                }) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(value < range.upperBound ? .accentColor : Color(.systemGray3))
+                }
+                .disabled(value >= range.upperBound)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+}
 ```
 
 ## 7. Data Flow, Privacy & Compliance
@@ -548,10 +804,43 @@ sequenceDiagram
     VM->>UI: Remove entry with animation
 ```
 
+### Delete Thread Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as SwiftUI View
+    participant VM as ThreadDetailViewModel
+    participant UC as DeleteThreadUseCase
+    participant Repo as Repository
+    participant DB as Core Data
+    participant Nav as Navigation
+
+    User->>UI: Tap thread menu (ellipsis)
+    UI->>UI: Show menu with "Delete Thread"
+    User->>UI: Tap Delete Thread
+    UI->>VM: confirmDeleteThread()
+    VM->>UI: Show confirmation dialog
+    Note over UI: "Delete 'Thread Title'? This will also delete all X entries."
+    User->>UI: Tap Delete button
+    UI->>VM: deleteThread()
+    VM->>UC: execute(threadId)
+    UC->>Repo: softDelete(threadId)
+    Repo->>DB: Set deletedAt = now
+    DB-->>VM: Success
+    VM->>Nav: Navigate back to thread list
+    Note over UI: Show undo toast for 5 seconds
+    alt User taps Undo
+        User->>UI: Tap Undo
+        UI->>VM: undoDeleteThread()
+        VM->>Repo: update(thread) with deletedAt = nil
+        DB-->>VM: Thread restored
+    end
+```
+
 ### Privacy & Security Controls (NIST 800-53)
 | Control | Implementation |
 |---------|---------------|
-| **AC-7** | Deferred to Phase 2 |
+| **AC-7** | Face ID/Touch ID required on every app launch (no grace period) |
 | **SC-28** | iOS file protection (default) |
 | **SC-12** | Deferred to Phase 3 |
 | **AU-11** | No analytics or logging of user content |
@@ -584,9 +873,15 @@ sequenceDiagram
 
 **Migration Type**: Lightweight (automatic)
 
+### Version 1.1 → 1.2 Migration  
+**Changes**:
+- Add `deletedAt` (Date, Optional) to CDThread entity
+
+**Migration Type**: Lightweight (automatic)
+
 **Migration Steps**:
-1. Create new model version: ThreadDataModel v1.1
-2. Set v1.1 as current model version
+1. Create new model version: ThreadDataModel v1.2
+2. Set v1.2 as current model version
 3. Add new attributes with Optional setting
 4. Core Data handles migration automatically
 
@@ -607,6 +902,17 @@ extension Entry {
             return "\(formattedDate) (edited)"
         }
         return formattedDate
+    }
+}
+
+// Thread entity updates
+extension Thread {
+    var isDeleted: Bool {
+        deletedAt != nil
+    }
+    
+    var entryCount: Int {
+        entries.filter { !$0.isDeleted }.count
     }
 }
 ```

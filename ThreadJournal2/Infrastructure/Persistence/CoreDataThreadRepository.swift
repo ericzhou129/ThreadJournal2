@@ -98,6 +98,36 @@ final class CoreDataThreadRepository: ThreadRepository {
         }
     }
     
+    func softDelete(threadId: UUID) async throws {
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch thread to soft delete
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Thread")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", threadId as CVarArg)
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedThread = results.first else {
+                throw PersistenceError.notFound(id: threadId)
+            }
+            
+            // Set deletedAt timestamp
+            managedThread.setValue(Date(), forKey: "deletedAt")
+            
+            // Also soft delete all entries
+            if let entries = managedThread.value(forKey: "entries") as? Set<NSManagedObject> {
+                for entry in entries {
+                    entry.setValue(Date(), forKey: "deletedAt")
+                }
+            }
+            
+            // Save context
+            try self.saveContext(context)
+        }
+    }
+    
     func fetch(threadId: UUID) async throws -> Thread? {
         let context = persistentContainer.viewContext
         
@@ -118,12 +148,23 @@ final class CoreDataThreadRepository: ThreadRepository {
     }
     
     func fetchAll() async throws -> [Thread] {
+        // Default to not including deleted threads
+        return try await fetchAll(includeDeleted: false)
+    }
+    
+    func fetchAll(includeDeleted: Bool) async throws -> [Thread] {
         let context = persistentContainer.viewContext
         
         return try await context.perform { [weak self] in
             guard let self = self else { return [] }
             
             let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Thread")
+            
+            // Filter out deleted threads unless specifically requested
+            if !includeDeleted {
+                fetchRequest.predicate = NSPredicate(format: "deletedAt == nil")
+            }
+            
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "updatedAt", ascending: false)]
             
             do {
@@ -239,6 +280,7 @@ final class CoreDataThreadRepository: ThreadRepository {
         managedThread.setValue(thread.title, forKey: "title")
         managedThread.setValue(thread.createdAt, forKey: "createdAt")
         managedThread.setValue(thread.updatedAt, forKey: "updatedAt")
+        managedThread.setValue(thread.deletedAt, forKey: "deletedAt")
     }
     
     /// Maps a managed object to a Thread domain entity
@@ -254,7 +296,9 @@ final class CoreDataThreadRepository: ThreadRepository {
             ))
         }
         
-        return try Thread(id: id, title: title, createdAt: createdAt, updatedAt: updatedAt)
+        let deletedAt = managedObject.value(forKey: "deletedAt") as? Date
+        
+        return try Thread(id: id, title: title, createdAt: createdAt, updatedAt: updatedAt, deletedAt: deletedAt)
     }
     
     /// Maps an Entry domain entity to a managed object

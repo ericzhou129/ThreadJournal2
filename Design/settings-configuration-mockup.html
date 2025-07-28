@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings & Configuration - ThreadJournal2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f7;
+        }
+        .screen {
+            width: 390px;
+            min-height: 844px;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .nav-bar {
+            background-color: #f8f8f8;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid #c6c6c8;
+        }
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            flex: 1;
+            text-align: center;
+        }
+        .nav-button {
+            color: #007AFF;
+            font-size: 17px;
+            text-decoration: none;
+            padding: 8px;
+        }
+        .section {
+            margin-top: 35px;
+        }
+        .section-header {
+            padding: 0 16px 6px 16px;
+            font-size: 13px;
+            color: #6C6C70;
+            text-transform: uppercase;
+            letter-spacing: -0.08px;
+        }
+        .list-item {
+            background-color: #fff;
+            padding: 11px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 0.5px solid #c6c6c8;
+            margin-left: 16px;
+        }
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        .list-item-text {
+            font-size: 17px;
+            color: #000;
+        }
+        .list-item-detail {
+            color: #8E8E93;
+            font-size: 17px;
+        }
+        .toggle {
+            width: 51px;
+            height: 31px;
+            background-color: #E9E9EA;
+            border-radius: 15.5px;
+            position: relative;
+            cursor: pointer;
+        }
+        .toggle.on {
+            background-color: #34C759;
+        }
+        .toggle-knob {
+            width: 27px;
+            height: 27px;
+            background-color: #fff;
+            border-radius: 13.5px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+        }
+        .toggle.on .toggle-knob {
+            transform: translateX(20px);
+        }
+        .chevron {
+            color: #C7C7CC;
+            font-size: 15px;
+        }
+        .section-footer {
+            padding: 6px 16px;
+            font-size: 13px;
+            color: #6C6C70;
+            line-height: 18px;
+        }
+        .app-info {
+            text-align: center;
+            margin-top: 40px;
+            padding: 0 16px;
+        }
+        .app-version {
+            font-size: 13px;
+            color: #8E8E93;
+            margin-bottom: 4px;
+        }
+        .app-copyright {
+            font-size: 13px;
+            color: #8E8E93;
+        }
+        /* Modal styles for sub-screens */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 390px;
+            height: 100%;
+            background-color: #f2f2f7;
+            z-index: 1000;
+        }
+        .modal.show {
+            display: block;
+        }
+        .modal-content {
+            background-color: #fff;
+            height: 100%;
+        }
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .stepper-button {
+            width: 28px;
+            height: 28px;
+            background-color: #E5E5EA;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #007AFF;
+            cursor: pointer;
+        }
+        .stepper-value {
+            font-size: 17px;
+            min-width: 50px;
+            text-align: center;
+        }
+        .privacy-content {
+            padding: 16px;
+            font-size: 15px;
+            line-height: 20px;
+            color: #000;
+        }
+        .privacy-content h2 {
+            font-size: 17px;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+        }
+        .privacy-content p {
+            margin: 10px 0;
+        }
+        .security-note {
+            background-color: #FFF3CD;
+            padding: 12px 16px;
+            margin: 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 18px;
+            color: #856404;
+            display: flex;
+            gap: 8px;
+        }
+        .security-note::before {
+            content: "🔒";
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Settings Screen -->
+    <div class="screen">
+        <div class="nav-bar">
+            <span style="width: 50px;"></span>
+            <div class="nav-title">Settings</div>
+            <a href="#" class="nav-button" style="width: 50px;">Done</a>
+        </div>
+
+        <!-- Security Section -->
+        <div class="section">
+            <div class="section-header">Security</div>
+            <div style="background-color: #fff;">
+                <div class="list-item">
+                    <span class="list-item-text">Require Face ID</span>
+                    <div class="toggle on">
+                        <div class="toggle-knob"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-footer">
+                When enabled, Face ID or Touch ID will be required every time you open ThreadJournal. Authentication is required immediately with no grace period to ensure your private journal entries remain secure.
+            </div>
+            <div class="security-note">
+                <div>
+                    <strong>Enhanced Privacy Protection</strong><br>
+                    ThreadJournal requires authentication every time the app opens or returns from the background. This ensures your personal journal entries remain private, even if someone picks up your device moments after you've used it.
+                </div>
+            </div>
+        </div>
+
+        <!-- Font Size Section -->
+        <div class="section">
+            <div class="section-header">Display</div>
+            <div style="background-color: #fff;">
+                <div class="list-item">
+                    <span class="list-item-text">Text Size</span>
+                    <div class="stepper">
+                        <div class="stepper-button">−</div>
+                        <span class="stepper-value">100%</span>
+                        <div class="stepper-button">+</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-footer">
+                Adjust the text size for journal entries. This setting is independent of system Dynamic Type.
+            </div>
+        </div>
+
+
+        <!-- About Section -->
+        <div class="section">
+            <div class="section-header">About</div>
+            <div style="background-color: #fff;">
+                <div class="list-item" onclick="showPrivacy()">
+                    <span class="list-item-text">Privacy Policy</span>
+                    <span class="chevron">›</span>
+                </div>
+                <div class="list-item">
+                    <span class="list-item-text">Support</span>
+                    <span class="list-item-detail">support@threadjournal.app</span>
+                </div>
+                <div class="list-item">
+                    <span class="list-item-text">Version</span>
+                    <span class="list-item-detail">1.0.0 (42)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-info">
+            <div class="app-version">ThreadJournal 2.0</div>
+            <div class="app-copyright">© 2024 ThreadJournal</div>
+        </div>
+    </div>
+
+    <!-- Privacy Policy Modal -->
+    <div id="privacyModal" class="modal">
+        <div class="modal-content">
+            <div class="nav-bar">
+                <a href="#" class="nav-button" onclick="hidePrivacy()">‹ Back</a>
+                <div class="nav-title">Privacy Policy</div>
+                <span style="width: 50px;"></span>
+            </div>
+            <div class="privacy-content">
+                <h2>Privacy Policy</h2>
+                <p>Last updated: January 1, 2024</p>
+                
+                <h2>1. Information We Collect</h2>
+                <p>ThreadJournal is designed with privacy in mind. We collect minimal information necessary to provide our service:</p>
+                <ul>
+                    <li>Journal entries and threads you create</li>
+                    <li>App settings and preferences</li>
+                    <li>Anonymous usage analytics (if enabled)</li>
+                </ul>
+                
+                <h2>2. Data Storage</h2>
+                <p>Your journal data is stored locally on your device. We do not have access to your journal content. All data remains private on your device.</p>
+                
+                <h2>3. Data Security</h2>
+                <p>We implement security measures including:</p>
+                <ul>
+                    <li>Mandatory biometric authentication (Face ID/Touch ID) on every app launch</li>
+                    <li>No grace period - authentication required immediately when app returns from background</li>
+                    <li>Encrypted data storage</li>
+                    <li>No third-party data sharing</li>
+                </ul>
+                
+                <h2>4. Contact Us</h2>
+                <p>If you have questions about this privacy policy, please contact us at support@threadjournal.app</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle switches
+        document.querySelectorAll('.toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                this.classList.toggle('on');
+            });
+        });
+
+        // Stepper controls
+        document.querySelectorAll('.stepper-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const valueElement = this.parentElement.querySelector('.stepper-value');
+                let value = parseInt(valueElement.textContent);
+                
+                if (this.textContent === '+' && value < 150) {
+                    value += 10;
+                } else if (this.textContent === '−' && value > 80) {
+                    value -= 10;
+                }
+                
+                valueElement.textContent = value + '%';
+            });
+        });
+
+        // Modal functions
+        function showPrivacy() {
+            document.getElementById('privacyModal').classList.add('show');
+        }
+
+        function hidePrivacy() {
+            document.getElementById('privacyModal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
