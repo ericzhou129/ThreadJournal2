@@ -289,4 +289,152 @@ final class ThreadListViewModelTests: XCTestCase {
         // When/Then - Check initial state and after operations
         XCTAssertFalse(sut.isLoading, "isLoading should be false initially")
     }
+    
+    // MARK: - Delete Thread Tests
+    
+    func testConfirmDeleteThread_SetsThreadAndShowsConfirmation() {
+        // Given
+        let thread = try! Thread(title: "Thread to Delete")
+        
+        // When
+        sut.confirmDeleteThread(thread)
+        
+        // Then
+        XCTAssertEqual(sut.threadToDelete?.id, thread.id)
+        XCTAssertTrue(sut.showDeleteConfirmation)
+    }
+    
+    func testCancelDelete_ClearsThreadAndHidesConfirmation() {
+        // Given
+        let thread = try! Thread(title: "Thread to Delete")
+        sut.confirmDeleteThread(thread)
+        
+        // Verify setup
+        XCTAssertNotNil(sut.threadToDelete)
+        XCTAssertTrue(sut.showDeleteConfirmation)
+        
+        // When
+        sut.cancelDelete()
+        
+        // Then
+        XCTAssertNil(sut.threadToDelete)
+        XCTAssertFalse(sut.showDeleteConfirmation)
+    }
+    
+    func testDeleteThread_Success_DeletesThreadAndReloads() async throws {
+        // Given
+        let thread1 = try Thread(title: "Thread 1")
+        let thread2 = try Thread(title: "Thread 2")
+        mockRepository.threads = [thread1, thread2]
+        
+        // Set up for deletion
+        sut.confirmDeleteThread(thread1)
+        
+        // When
+        await sut.deleteThread()
+        
+        // Wait for reload to complete
+        try await Task.sleep(nanoseconds: 100_000_000)
+        
+        // Then
+        XCTAssertNil(sut.threadToDelete) // Selection cleared
+        XCTAssertFalse(sut.showDeleteConfirmation) // Dialog hidden
+        XCTAssertEqual(mockRepository.softDeleteCallCount, 1)
+        XCTAssertEqual(mockRepository.fetchAllCallCount, 1) // From reload
+    }
+    
+    func testDeleteThread_WithoutSelection_DoesNothing() async {
+        // Given - No thread selected
+        XCTAssertNil(sut.threadToDelete)
+        
+        // When
+        await sut.deleteThread()
+        
+        // Then
+        XCTAssertEqual(mockRepository.softDeleteCallCount, 0)
+        XCTAssertFalse(sut.showDeleteConfirmation)
+    }
+    
+    func testDeleteThread_Failure_UpdatesErrorState() async throws {
+        // Given
+        let thread = try Thread(title: "Thread to Delete")
+        mockRepository.threads = [thread]
+        mockRepository.shouldFailDelete = true
+        let expectedError = PersistenceError.deleteFailed(underlying: NSError(domain: "Test", code: 1))
+        mockRepository.injectedError = expectedError
+        
+        // Set up for deletion
+        sut.confirmDeleteThread(thread)
+        
+        // When
+        await sut.deleteThread()
+        
+        // Then
+        XCTAssertFalse(sut.showDeleteConfirmation) // Dialog hidden even on error
+        
+        // Check error state
+        if case .error(let stateError) = sut.loadingState,
+           let persistenceError = stateError as? PersistenceError,
+           case .deleteFailed = persistenceError {
+            // Success - correct error in state
+        } else {
+            XCTFail("Expected error state with PersistenceError.deleteFailed")
+        }
+    }
+    
+    func testDeleteThread_HidesConfirmationImmediately() async throws {
+        // Given
+        let thread = try Thread(title: "Thread to Delete")
+        mockRepository.threads = [thread]
+        sut.confirmDeleteThread(thread)
+        
+        // Verify setup
+        XCTAssertTrue(sut.showDeleteConfirmation)
+        
+        // When
+        await sut.deleteThread()
+        
+        // Then - Confirmation should be hidden immediately
+        XCTAssertFalse(sut.showDeleteConfirmation)
+    }
+    
+    func testDeleteThread_ClearsSelectionAfterDeletion() async throws {
+        // Given
+        let thread = try Thread(title: "Thread to Delete")
+        mockRepository.threads = [thread]
+        sut.confirmDeleteThread(thread)
+        
+        // Verify setup
+        XCTAssertNotNil(sut.threadToDelete)
+        
+        // When
+        await sut.deleteThread()
+        
+        // Then
+        XCTAssertNil(sut.threadToDelete)
+    }
+    
+    func testMultipleDeleteOperations_HandledCorrectly() async throws {
+        // Given
+        let thread1 = try Thread(title: "Thread 1")
+        let thread2 = try Thread(title: "Thread 2") 
+        let thread3 = try Thread(title: "Thread 3")
+        mockRepository.threads = [thread1, thread2, thread3]
+        
+        // Delete first thread
+        sut.confirmDeleteThread(thread1)
+        await sut.deleteThread()
+        
+        // Delete second thread
+        sut.confirmDeleteThread(thread2)
+        await sut.deleteThread()
+        
+        // Wait for operations to complete
+        try await Task.sleep(nanoseconds: 100_000_000)
+        
+        // Then
+        XCTAssertEqual(mockRepository.softDeleteCallCount, 2)
+        XCTAssertNil(sut.threadToDelete)
+        XCTAssertFalse(sut.showDeleteConfirmation)
+    }
 }
