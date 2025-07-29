@@ -13,6 +13,7 @@ struct Entry: Identifiable, Equatable {
     let threadId: UUID
     let content: String
     let timestamp: Date
+    let customFieldValues: [EntryFieldValue]
     
     /// Creates a new Entry with validation
     /// - Parameters:
@@ -20,12 +21,14 @@ struct Entry: Identifiable, Equatable {
     ///   - threadId: The ID of the thread this entry belongs to
     ///   - content: The content of the entry (cannot be empty)
     ///   - timestamp: When the entry was created
+    ///   - customFieldValues: Optional custom field values for structured data
     /// - Throws: ValidationError if content is empty
     init(
         id: UUID = UUID(),
         threadId: UUID,
         content: String,
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
+        customFieldValues: [EntryFieldValue] = []
     ) throws {
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ValidationError.emptyContent
@@ -35,5 +38,6 @@ struct Entry: Identifiable, Equatable {
         self.threadId = threadId
         self.content = content
         self.timestamp = timestamp
+        self.customFieldValues = customFieldValues
     }
 }

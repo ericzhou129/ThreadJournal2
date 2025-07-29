@@ -51,6 +51,11 @@ struct Thread: Identifiable, Hashable, Codable {
 enum ValidationError: Error, LocalizedError {
     case emptyTitle
     case emptyContent
+    case emptyFieldName
+    case fieldNameTooLong
+    case parentNotGroup
+    case nestedGroupsNotAllowed
+    case fieldsFromDifferentThreads
     
     var errorDescription: String? {
         switch self {
@@ -58,6 +63,16 @@ enum ValidationError: Error, LocalizedError {
             return "Thread title cannot be empty"
         case .emptyContent:
             return "Entry content cannot be empty"
+        case .emptyFieldName:
+            return "Field name cannot be empty"
+        case .fieldNameTooLong:
+            return "Field name cannot exceed 50 characters"
+        case .parentNotGroup:
+            return "Parent field must be a group"
+        case .nestedGroupsNotAllowed:
+            return "Groups cannot contain other groups"
+        case .fieldsFromDifferentThreads:
+            return "All fields must belong to the same thread"
         }
     }
 }

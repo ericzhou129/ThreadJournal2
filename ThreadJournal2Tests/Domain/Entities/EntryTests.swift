@@ -67,5 +67,56 @@ final class EntryTests: XCTestCase {
         XCTAssertEqual(entry.threadId, threadId)
         XCTAssertEqual(entry.content, content)
         XCTAssertEqual(entry.timestamp, timestamp)
+        XCTAssertEqual(entry.customFieldValues, [])
+    }
+    
+    func testEntryCreationWithCustomFieldValues() throws {
+        // Given
+        let threadId = UUID()
+        let fieldValues = [
+            EntryFieldValue(fieldId: UUID(), value: "Happy"),
+            EntryFieldValue(fieldId: UUID(), value: "8/10")
+        ]
+        
+        // When
+        let entry = try Entry(
+            threadId: threadId,
+            content: "Entry with custom fields",
+            customFieldValues: fieldValues
+        )
+        
+        // Then
+        XCTAssertEqual(entry.customFieldValues, fieldValues)
+        XCTAssertEqual(entry.customFieldValues.count, 2)
+    }
+    
+    func testEntryEqualityIncludesCustomFieldValues() throws {
+        // Given
+        let id = UUID()
+        let threadId = UUID()
+        let timestamp = Date()
+        let fieldValues = [
+            EntryFieldValue(fieldId: UUID(), value: "Happy")
+        ]
+        
+        // When
+        let entry1 = try Entry(
+            id: id,
+            threadId: threadId,
+            content: "Test",
+            timestamp: timestamp,
+            customFieldValues: fieldValues
+        )
+        
+        let entry2 = try Entry(
+            id: id,
+            threadId: threadId,
+            content: "Test",
+            timestamp: timestamp,
+            customFieldValues: fieldValues
+        )
+        
+        // Then
+        XCTAssertEqual(entry1, entry2)
     }
 }

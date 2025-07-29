@@ -75,6 +75,43 @@ protocol ThreadRepository {
     /// - Parameter entryId: The ID of the entry to soft delete
     /// - Throws: PersistenceError if the operation fails or entry not found
     func softDeleteEntry(entryId: UUID) async throws
+    
+    // MARK: - Custom Fields
+    
+    /// Creates a new custom field for a thread
+    /// - Parameter field: The custom field to create
+    /// - Throws: PersistenceError if the operation fails
+    func createCustomField(_ field: CustomField) async throws
+    
+    /// Updates an existing custom field
+    /// - Parameter field: The custom field to update
+    /// - Throws: PersistenceError if the operation fails
+    func updateCustomField(_ field: CustomField) async throws
+    
+    /// Soft deletes a custom field (preserves historical data)
+    /// - Parameter fieldId: The ID of the field to soft delete
+    /// - Throws: PersistenceError if the operation fails
+    func softDeleteCustomField(fieldId: UUID) async throws
+    
+    /// Fetches all custom fields for a thread
+    /// - Parameters:
+    ///   - threadId: The ID of the thread
+    ///   - includeDeleted: Whether to include soft-deleted fields
+    /// - Returns: Array of custom fields sorted by order
+    /// - Throws: PersistenceError if the operation fails
+    func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField]
+    
+    /// Creates a field group relationship
+    /// - Parameters:
+    ///   - parentFieldId: The ID of the parent field (must be isGroup = true)
+    ///   - childFieldIds: Array of child field IDs
+    /// - Throws: PersistenceError if the operation fails
+    func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws
+    
+    /// Removes a field from its group
+    /// - Parameter fieldId: The ID of the field to remove from its group
+    /// - Throws: PersistenceError if the operation fails
+    func removeFromGroup(fieldId: UUID) async throws
 }
 
 /// Errors that can occur during persistence operations

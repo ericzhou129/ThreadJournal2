@@ -418,6 +418,38 @@ final class CoreDataThreadRepository: ThreadRepository {
             try self.saveContext(context)
         }
     }
+    
+    // MARK: - Custom Field Operations (Stub implementations for protocol conformance)
+    
+    func createCustomField(_ field: CustomField) async throws {
+        // TODO: Implement when Core Data model is updated
+        fatalError("Custom field support not yet implemented")
+    }
+    
+    func updateCustomField(_ field: CustomField) async throws {
+        // TODO: Implement when Core Data model is updated
+        fatalError("Custom field support not yet implemented")
+    }
+    
+    func softDeleteCustomField(fieldId: UUID) async throws {
+        // TODO: Implement when Core Data model is updated
+        fatalError("Custom field support not yet implemented")
+    }
+    
+    func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
+        // TODO: Implement when Core Data model is updated
+        return []
+    }
+    
+    func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws {
+        // TODO: Implement when Core Data model is updated
+        fatalError("Custom field support not yet implemented")
+    }
+    
+    func removeFromGroup(fieldId: UUID) async throws {
+        // TODO: Implement when Core Data model is updated
+        fatalError("Custom field support not yet implemented")
+    }
 }
 
 // MARK: - PersistenceError Extension
