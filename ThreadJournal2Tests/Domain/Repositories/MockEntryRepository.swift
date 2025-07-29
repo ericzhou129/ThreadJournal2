@@ -30,7 +30,11 @@ class MockEntryRepository: EntryRepository {
         }
     }
     
-    func fetchEntriesWithField(fieldId: UUID, value: String?, in threadId: UUID?) async throws -> [Entry] {
+    func fetchEntriesWithField(
+        fieldId: UUID,
+        value: String?,
+        in threadId: UUID?
+    ) async throws -> [Entry] {
         // Mock implementation
         return []
     }

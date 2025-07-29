@@ -36,5 +36,9 @@ protocol EntryRepository {
     ///   - threadId: Limit to specific thread (optional)
     /// - Returns: Array of entries that have the specified field value
     /// - Throws: PersistenceError if the operation fails
-    func fetchEntriesWithField(fieldId: UUID, value: String?, in threadId: UUID?) async throws -> [Entry]
+    func fetchEntriesWithField(
+        fieldId: UUID,
+        value: String?,
+        in threadId: UUID?
+    ) async throws -> [Entry]
 }

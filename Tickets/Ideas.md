@@ -50,10 +50,58 @@ AC:
 
 ### IDEA-7: Ability to Add templated fields to an entry so that a user can create a thread for tracking something more structured 
 
+As a user, I want the ability to create my own structured fields that I can choose to add to an entry so that I can record structured data. For instance, I want the ability to create a set of fields called 'ADHD Tracking' which includes 'mood', 'task initiation', 'focus' so that I can track those specific items for my medication. When I export as CSV, I then want each of these fields to be exportable as a separate column so that I can plot them for analysis. 
+
 AC:
-- The structured stuff should be included as a field in the CSV
+- I can create individual fields as well as groups of fields. I can name individual fields as well as groups
+- Fields are just text strings for now
+- Fields are created and managed part of a thread (not one shared repository of fields for all threads, but specific to thread)
+- For each field, there is a column in the csv with each input for relevant entry being outputted by entry/row
+- Any field can be added to an entry. This can be done at creation of the entry or editing
+- When editing, a field can also be edited
+- Each field can only be added once to an entry
 
+Considerations: 
+- Consider that in the future we may have specific data types for fields
 
+Custom Fields Setup
+
+ Users can create custom fields via a new "Custom Fields" section in settings
+ Each custom field has a unique name (1-50 characters)
+ Users can reorder fields by dragging via handle icons
+ Users can group related fields by dragging one field onto another
+ Groups display with "(group)" indicator and contain nested fields
+ Groups can be expanded/collapsed in the management view
+
+Adding Fields to Entries
+
+ A "+" button appears in the compose bar when custom fields exist
+ Tapping "+" opens a field selector showing all available fields/groups
+ Users can select multiple fields via checkboxes
+ Selected fields appear as input fields in an expanded compose view
+ Group fields display under a section header with related fields together
+
+Field Data Entry
+
+ Each selected field shows an input with the field name as placeholder
+ Users can enter values for any/all selected fields
+ Empty fields are not included when the entry is saved
+ Field inputs support text entry (future: other input types)
+
+Field Display in Entries
+
+ Field data appears as tags below the entry text
+ Tags show as "Field Name: Value" format
+ Group fields display with a distinct color/style to show relationship
+ Tags wrap to new lines when multiple fields are present
+
+Field Management
+
+ Users can add new fields inline with immediate name entry
+ Fields can be removed from groups by dragging out
+ Groups automatically dissolve when reduced to one field
+ Field configuration persists across sessions
+ Deleting a field removes it from all historical entries (with confirmation)
 
 
 # ThreadJournal Tickets - Phase 2 (Future Features)
