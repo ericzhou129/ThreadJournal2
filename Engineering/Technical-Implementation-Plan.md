@@ -81,13 +81,42 @@ erDiagram
         Date lastEditedAt "NULLABLE - for edit tracking"
     }
     
+    CustomField {
+        UUID id PK
+        UUID threadId FK
+        String name "NOT NULL, 1-50 chars"
+        Int order "NOT NULL"
+        Bool isGroup "NOT NULL"
+        Bool isDeleted "NOT NULL - soft delete"
+    }
+    
+    CustomFieldGroup {
+        UUID parentFieldId FK
+        UUID childFieldId FK
+    }
+    
+    EntryFieldValue {
+        UUID id PK
+        UUID entryId FK
+        UUID fieldId FK
+        String value "NULLABLE"
+    }
+    
     Thread ||--o{ Entry : contains
+    Thread ||--o{ CustomField : defines
+    CustomField ||--o{ CustomFieldGroup : "parent of"
+    CustomField ||--o{ CustomFieldGroup : "child of"
+    Entry ||--o{ EntryFieldValue : "has values"
+    CustomField ||--o{ EntryFieldValue : "defines"
 ```
 
 ### Ubiquitous Language
 - **Thread**: A continuous conversation/journal on a specific topic
 - **Entry**: A single timestamped thought within a thread
 - **Compose**: The act of adding a new entry to a thread
+- **Custom Field**: A structured data field that can be attached to entries
+- **Field Group**: A collection of related fields displayed together
+- **Field Value**: The data entered for a specific field on an entry
 
 ## 3. Code Organization & Maintainability Guardrails
 
@@ -98,16 +127,23 @@ ThreadJournal/
 ├── Domain/                 # Business logic (no dependencies)
 │   ├── Entities/
 │   │   ├── Thread.swift
-│   │   └── Entry.swift
+│   │   ├── Entry.swift
+│   │   ├── CustomField.swift
+│   │   ├── CustomFieldGroup.swift
+│   │   └── EntryFieldValue.swift
 │   ├── UseCases/
 │   │   ├── CreateThreadUseCase.swift
 │   │   ├── AddEntryUseCase.swift
 │   │   ├── ExportThreadUseCase.swift
 │   │   ├── UpdateEntryUseCase.swift
 │   │   ├── DeleteEntryUseCase.swift
-│   │   └── DeleteThreadUseCase.swift
+│   │   ├── DeleteThreadUseCase.swift
+│   │   ├── CreateCustomFieldUseCase.swift
+│   │   ├── CreateFieldGroupUseCase.swift
+│   │   └── DeleteCustomFieldUseCase.swift
 │   └── Repositories/       # Interfaces only
-│       └── ThreadRepository.swift
+│       ├── ThreadRepository.swift
+│       └── EntryRepository.swift
 │
 ├── Application/            # Use case orchestration
 │   ├── Presenters/
@@ -115,18 +151,24 @@ ThreadJournal/
 │   │   └── ThreadDetailPresenter.swift
 │   └── ViewModels/
 │       ├── ThreadListViewModel.swift
-│       └── ThreadDetailViewModel.swift
+│       ├── ThreadDetailViewModel.swift
+│       ├── CustomFieldsViewModel.swift
+│       └── FieldSelectorViewModel.swift
 │
 ├── Interface/              # UI Layer (SwiftUI)
 │   ├── Screens/
 │   │   ├── ThreadListScreen.swift
 │   │   ├── ThreadDetailScreen.swift
-│   │   └── SettingsScreen.swift
+│   │   ├── SettingsScreen.swift
+│   │   └── CustomFieldsScreen.swift
 │   ├── Components/
 │   │   ├── ThreadListItem.swift
 │   │   ├── ThreadEntry.swift
 │   │   ├── ComposeArea.swift
-│   │   └── SettingsRow.swift
+│   │   ├── SettingsRow.swift
+│   │   ├── FieldSelector.swift
+│   │   ├── FieldInput.swift
+│   │   └── FieldTag.swift
 │   └── Theme/
 │       └── DesignSystem.swift
 │
@@ -316,6 +358,18 @@ protocol ThreadRepository {
     func updateEntry(_ entry: Entry) async throws
     func softDeleteEntry(entryId: UUID) async throws
     func fetchEntries(for threadId: UUID, includeDeleted: Bool) async throws -> [Entry]
+    
+    // Custom Fields
+    func getCustomFields(threadId: UUID) async throws -> [CustomField]
+    func saveCustomFields(threadId: UUID, fields: [CustomField]) async throws
+    func deleteCustomField(threadId: UUID, fieldId: UUID) async throws
+}
+
+// EntryRepository.swift
+protocol EntryRepository {
+    func create(entry: Entry, fieldValues: [EntryFieldValue]?) async throws
+    func update(entry: Entry, fieldValues: [EntryFieldValue]?) async throws
+    func getFieldValues(entryId: UUID) async throws -> [EntryFieldValue]
 }
 
 // Use Case Protocols
@@ -341,6 +395,19 @@ protocol DeleteEntryUseCase {
 
 protocol DeleteThreadUseCase {
     func execute(threadId: UUID) async throws
+}
+
+// Custom Field Use Cases
+protocol CreateCustomFieldUseCase {
+    func execute(threadId: UUID, name: String, order: Int) async throws -> CustomField
+}
+
+protocol CreateFieldGroupUseCase {
+    func execute(threadId: UUID, parentFieldId: UUID, childFieldId: UUID) async throws
+}
+
+protocol DeleteCustomFieldUseCase {
+    func execute(threadId: UUID, fieldId: UUID) async throws
 }
 
 // Export Protocol for future formats
@@ -380,8 +447,15 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     var showThreadMenu: Bool { get }
     var showThreadDeleteConfirmation: Bool { get }
     
+    // Custom Fields
+    var customFields: [CustomField] { get }
+    var selectedFields: [CustomField] { get }
+    var fieldValues: [UUID: String] { get set }
+    var showFieldSelector: Bool { get set }
+    
     func loadThread(id: UUID) async
     func addEntry(content: String) async
+    func addEntryWithFields(content: String, fieldValues: [UUID: String]) async
     func saveDraft() async
     func exportToCSV() async throws -> URL
     func startEditingEntry(_ entry: Entry)
@@ -392,6 +466,7 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     func showThreadMenuOptions()
     func confirmDeleteThread()
     func deleteThread() async
+    func selectFields(_ fields: [CustomField])
 }
 ```
 
@@ -434,6 +509,20 @@ struct DesignSystem {
         static let buttonFontSize: CGFloat = 16
         static let cancelButtonWeight = Font.Weight.medium
         static let saveButtonWeight = Font.Weight.semibold
+    }
+    
+    // Custom Fields Style
+    struct FieldStyle {
+        static let tagBackgroundColor = Color(.systemGray6)
+        static let groupTagBackgroundColor = Color(hex: "#E8F0FE")
+        static let groupTagTextColor = Color(hex: "#1A73E8")
+        static let tagCornerRadius: CGFloat = 16
+        static let tagHorizontalPadding: CGFloat = 12
+        static let tagVerticalPadding: CGFloat = 6
+        static let tagSpacing: CGFloat = 8
+        static let inputBackgroundColor = Color(.systemGray6)
+        static let inputCornerRadius: CGFloat = 10
+        static let inputPadding: CGFloat = 12
     }
 }
 ```
@@ -804,6 +893,34 @@ sequenceDiagram
     VM->>UI: Remove entry with animation
 ```
 
+### Custom Fields Entry Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as SwiftUI View
+    participant VM as ThreadDetailViewModel
+    participant FS as FieldSelector
+    participant UC as AddEntryUseCase
+    participant Repo as Repository
+    participant DB as Core Data
+
+    User->>UI: Tap + button in compose bar
+    UI->>VM: showFieldSelector = true
+    VM->>FS: Show field selector sheet
+    User->>FS: Select fields with checkboxes
+    User->>FS: Tap "Add Selected Fields"
+    FS->>VM: selectFields(fields)
+    VM->>UI: Show expanded compose with fields
+    User->>UI: Enter text and field values
+    User->>UI: Tap Send
+    UI->>VM: addEntryWithFields(content, fieldValues)
+    VM->>UC: execute(content, threadId, fieldValues)
+    UC->>Repo: create(entry, fieldValues)
+    Repo->>DB: Save entry and field values
+    DB-->>VM: Success
+    VM->>UI: Display entry with field tags
+```
+
 ### Delete Thread Flow
 ```mermaid
 sequenceDiagram
@@ -876,6 +993,15 @@ sequenceDiagram
 ### Version 1.1 → 1.2 Migration  
 **Changes**:
 - Add `deletedAt` (Date, Optional) to CDThread entity
+
+**Migration Type**: Lightweight (automatic)
+
+### Version 1.2 → 1.3 Migration (Custom Fields)
+**Changes**:
+- Add CustomFieldMO entity: id, name, order, isGroup, isDeleted, threadId
+- Add CustomFieldGroupMO entity: parentFieldId, childFieldIds relationship
+- Add EntryFieldValueMO entity: entryId, fieldId, value
+- Add relationships to existing ThreadMO and EntryMO
 
 **Migration Type**: Lightweight (automatic)
 
@@ -1030,23 +1156,7 @@ gantt
     Architecture Tests         :p3, after p2, 1d
 ```
 
-## 13. Cost Estimation
 
-### Development Costs (Phase 1: 2-week sprint)
-- 1 Senior iOS Developer: $10,000
-- Code review & architecture: $2,000
-- Testing & QA: $2,000
-- **Total**: $14,000
-
-### Operational Costs (Monthly)
-- App Store fees: $0 (covered by developer account)
-- No server costs (local-first)
-- TestFlight distribution: $0
-- **Total**: $0/month
-
-### Future Phase Estimates
-- Phase 2 (Edit/Delete, iCloud): 2 weeks, $14,000
-- Phase 3 (Security, Tags, Speech): 3 weeks, $21,000
 
 ## 15. LLM Implementation Guardrails
 
@@ -1133,12 +1243,15 @@ func testPerformanceWith1000Entries() {
 
 ## Implementation Guardrails Summary
 
-### Phase 1 Scope Enforcement
-- NO edit/delete functionality
-- NO security/encryption beyond iOS defaults
-- NO settings or preferences
+### Phase 1 Scope Enforcement (Updated)
+- YES edit/delete functionality (added)
+- YES custom fields and field groups (added)
+- YES biometric authentication (added)
+- YES settings screen with text size control (added)
+- NO cloud sync or backup
+- NO encryption beyond iOS defaults
 - YES draft protection
-- YES performance for 100+ threads, 1000+ entries
+- YES performance for 100+ threads, 1000+ entries, 20 fields per thread
 
 ### Folder Structure Enforcement
 - Domain layer: No UI imports allowed
