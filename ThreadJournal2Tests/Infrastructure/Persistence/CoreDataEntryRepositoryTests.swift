@@ -13,7 +13,7 @@ final class CoreDataEntryRepositoryTests: XCTestCase {
     private var persistentContainer: NSPersistentContainer!
     private var threadRepository: CoreDataThreadRepository!
     private var entryRepository: CoreDataEntryRepository!
-    private var testThread: Thread!
+    private var testThread: ThreadJournal2.Thread!
     private var testEntry: Entry!
     
     override func setUp() async throws {
@@ -36,7 +36,7 @@ final class CoreDataEntryRepositoryTests: XCTestCase {
         entryRepository = CoreDataEntryRepository(persistentContainer: persistentContainer)
         
         // Create test data
-        testThread = try Thread(id: UUID(), title: "Test Thread")
+        testThread = try ThreadJournal2.Thread(id: UUID(), title: "Test Thread")
         try await threadRepository.create(thread: testThread)
         
         testEntry = try Entry(
@@ -194,7 +194,7 @@ final class CoreDataEntryRepositoryTests: XCTestCase {
     func testFetchEntriesWithFieldInSpecificThread() async throws {
         // Given
         let fieldId = UUID()
-        let otherThread = try Thread(id: UUID(), title: "Other Thread")
+        let otherThread = try ThreadJournal2.Thread(id: UUID(), title: "Other Thread")
         try await threadRepository.create(thread: otherThread)
         
         let otherEntry = try Entry(
@@ -224,5 +224,62 @@ final class CoreDataEntryRepositoryTests: XCTestCase {
         // Then
         XCTAssertEqual(threadSpecificEntries.count, 1)
         XCTAssertEqual(threadSpecificEntries.first?.threadId, testThread.id)
+    }
+    
+    func testRemoveFieldValueThatDoesNotExist() async throws {
+        // Given - entry with no field values
+        
+        // When - attempt to remove non-existent field value
+        try await entryRepository.removeFieldValue(from: testEntry.id, fieldId: UUID())
+        
+        // Then - should not throw error
+        let values = try await entryRepository.fetchFieldValues(for: testEntry.id)
+        XCTAssertEqual(values.count, 0)
+    }
+    
+    func testSaveEmptyFieldValues() async throws {
+        // Given
+        let fieldValues: [EntryFieldValue] = []
+        
+        // When
+        try await entryRepository.saveFieldValues(for: testEntry.id, fieldValues: fieldValues)
+        
+        // Then
+        let savedValues = try await entryRepository.fetchFieldValues(for: testEntry.id)
+        XCTAssertEqual(savedValues.count, 0)
+    }
+    
+    func testFetchEntriesWithFieldNoMatches() async throws {
+        // Given
+        let fieldId = UUID()
+        
+        // When - search for field that no entry has
+        let entries = try await entryRepository.fetchEntriesWithField(
+            fieldId: fieldId,
+            value: nil,
+            in: nil
+        )
+        
+        // Then
+        XCTAssertEqual(entries.count, 0)
+    }
+    
+    func testFetchEntriesWithFieldValueNoMatches() async throws {
+        // Given
+        let fieldId = UUID()
+        try await entryRepository.saveFieldValues(
+            for: testEntry.id,
+            fieldValues: [EntryFieldValue(fieldId: fieldId, value: "Happy")]
+        )
+        
+        // When - search for different value
+        let entries = try await entryRepository.fetchEntriesWithField(
+            fieldId: fieldId,
+            value: "Sad",
+            in: nil
+        )
+        
+        // Then
+        XCTAssertEqual(entries.count, 0)
     }
 }

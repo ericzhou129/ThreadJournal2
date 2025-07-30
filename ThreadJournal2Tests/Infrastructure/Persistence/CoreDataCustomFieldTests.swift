@@ -12,7 +12,7 @@ import CoreData
 final class CoreDataCustomFieldTests: XCTestCase {
     private var persistentContainer: NSPersistentContainer!
     private var repository: CoreDataThreadRepository!
-    private var testThread: Thread!
+    private var testThread: ThreadJournal2.Thread!
     
     override func setUp() async throws {
         try await super.setUp()
@@ -33,7 +33,7 @@ final class CoreDataCustomFieldTests: XCTestCase {
         repository = CoreDataThreadRepository(persistentContainer: persistentContainer)
         
         // Create a test thread
-        testThread = try Thread(id: UUID(), title: "Test Thread")
+        testThread = try ThreadJournal2.Thread(id: UUID(), title: "Test Thread")
         try await repository.create(thread: testThread)
     }
     
@@ -238,9 +238,81 @@ final class CoreDataCustomFieldTests: XCTestCase {
         XCTAssertEqual(fields[2].name, "Field 3")
     }
     
+    func testUpdateNonExistentFieldThrows() async throws {
+        // Given
+        let field = try CustomField(
+            id: UUID(),
+            threadId: testThread.id,
+            name: "NonExistent",
+            order: 1
+        )
+        
+        // When/Then
+        do {
+            try await repository.updateCustomField(field)
+            XCTFail("Should throw not found error")
+        } catch {
+            // Expected error
+        }
+    }
+    
+    func testSoftDeleteNonExistentFieldThrows() async throws {
+        // When/Then
+        do {
+            try await repository.softDeleteCustomField(fieldId: UUID())
+            XCTFail("Should throw not found error")
+        } catch {
+            // Expected error
+        }
+    }
+    
+    func testCreateFieldGroupWithNonExistentParentThrows() async throws {
+        // When/Then
+        do {
+            try await repository.createFieldGroup(
+                parentFieldId: UUID(),
+                childFieldIds: []
+            )
+            XCTFail("Should throw not found error")
+        } catch {
+            // Expected error
+        }
+    }
+    
+    func testCreateFieldGroupWithNonExistentChildThrows() async throws {
+        // Given
+        let parentField = try CustomField(
+            threadId: testThread.id,
+            name: "Parent",
+            order: 1
+        )
+        try await repository.createCustomField(parentField)
+        
+        // When/Then
+        do {
+            try await repository.createFieldGroup(
+                parentFieldId: parentField.id,
+                childFieldIds: [UUID()]
+            )
+            XCTFail("Should throw not found error")
+        } catch {
+            // Expected error
+        }
+    }
+    
+    func testRemoveFromGroupNonExistentFieldThrows() async throws {
+        // When/Then
+        do {
+            try await repository.removeFromGroup(fieldId: UUID())
+            XCTFail("Should throw not found error")
+        } catch {
+            // Expected error
+        }
+    }
+    
     func testFetchOnlyThreadSpecificFields() async throws {
         // Given
-        let otherThread = try Thread(id: UUID(), title: "Other Thread")
+        let otherThread = try ThreadJournal2.Thread(id: UUID(), title: "Other Thread")
         try await repository.create(thread: otherThread)
         
         let field1 = try CustomField(
