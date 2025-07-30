@@ -359,6 +359,7 @@ Enable users to create custom fields and field groups that can be attached to jo
 ---
 
 ### templated-fields-TICKET-011: Domain Models for Custom Fields
+STATUS: DONE
 **Story ID**: templated-fields-TICKET-011  
 **Context/Layer**: Journaling / domain  
 **As a** developer  
@@ -389,6 +390,7 @@ Enable users to create custom fields and field groups that can be attached to jo
 ---
 
 ### templated-fields-TICKET-012: Repository Protocol for Custom Fields
+STATUS: DONE
 **Story ID**: templated-fields-TICKET-012  
 **Context/Layer**: Journaling / domain  
 **As a** developer  
@@ -663,3 +665,62 @@ Enable users to create custom fields and field groups that can be attached to jo
 
 **Priority Score**: 7 (WSJF) - Accessibility  
 **Dependencies**: All UI tickets
+
+
+# EPIC PLAN:
+⏺ Looking at the dependencies and the logical flow to get custom fields working in the UI, here's
+  the recommended implementation order:
+
+  Implementation Order:
+
+  1. TICKET-013: Custom Field Use Cases
+
+  - Why first: Business logic needed by ViewModels
+  - Dependencies: TICKET-012 ✅ (done)
+
+  2. TICKET-014: Core Data Schema
+
+  - Why next: Database support needed for persistence
+  - Dependencies: TICKET-011 ✅ (done)
+
+  3. TICKET-015: Repository Implementation
+
+  - Why: Connects Core Data to domain layer
+  - Dependencies: TICKET-014, TICKET-012 ✅
+
+  4. TICKET-016: ViewModels for Custom Fields
+
+  - Why: Bridges business logic to UI
+  - Dependencies: TICKET-013
+
+  5. TICKET-007: Add Field Management to Thread Settings
+
+  - Why: Entry point to access custom fields
+  - Dependencies: TICKET-001 (but can be done partially first)
+
+  6. TICKET-001: Create Custom Fields Management Screen
+
+  - Why: Core UI for managing fields
+  - Dependencies: None (but needs ViewModels)
+
+  7. TICKET-003: Show Custom Fields Button in Compose Bar
+
+  - Why: Makes fields accessible when composing
+  - Dependencies: TICKET-001
+
+  8. TICKET-004: Field Selector Modal
+
+  - Why: UI for selecting fields
+  - Dependencies: TICKET-003
+
+  9. TICKET-005: Display Selected Fields in Compose
+
+  - Why: Actual field input UI
+  - Dependencies: TICKET-004
+
+  10. TICKET-006: Display Fields as Tags
+
+  - Why: Show field data on entries
+  - Dependencies: TICKET-005
+
+  The remaining tickets (008-010, 017-020) can be done after the core functionality is working.
