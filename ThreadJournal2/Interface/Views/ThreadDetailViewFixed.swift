@@ -14,6 +14,7 @@ struct ThreadDetailViewFixed: View {
     @State private var isExpanded = false
     @State private var showingExportMenu = false
     @State private var showingShareSheet = false
+    @State private var showingCustomFields = false
     @FocusState private var isComposeFieldFocused: Bool
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
@@ -112,6 +113,12 @@ struct ThreadDetailViewFixed: View {
             }
         } message: {
             Text("This entry will be removed from your journal.")
+        }
+        .navigationDestination(isPresented: $showingCustomFields) {
+            // TODO: Replace with CustomFieldsManagementView when TICKET-001 is implemented
+            Text("Custom Fields Management")
+                .navigationTitle("Custom Fields")
+                .navigationBarTitleDisplayMode(.large)
         }
     }
     
@@ -386,6 +393,12 @@ struct ThreadDetailViewFixed: View {
     
     private var menuButton: some View {
         Menu {
+            Button(action: {
+                showingCustomFields = true
+            }) {
+                Label("Custom Fields", systemImage: "list.bullet.rectangle")
+            }
+            
             Button(action: {
                 Task {
                     await viewModel.exportToCSV()
