@@ -420,6 +420,7 @@ STATUS: DONE
 ---
 
 ### templated-fields-TICKET-013: Custom Field Use Cases
+STATUS: DONE
 **Story ID**: templated-fields-TICKET-013  
 **Context/Layer**: Journaling / domain  
 **As a** developer  

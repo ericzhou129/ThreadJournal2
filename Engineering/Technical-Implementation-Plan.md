@@ -998,17 +998,20 @@ sequenceDiagram
 
 ### Version 1.2 → 1.3 Migration (Custom Fields)
 **Changes**:
-- Add CustomFieldMO entity: id, name, order, isGroup, isDeleted, threadId
-- Add CustomFieldGroupMO entity: parentFieldId, childFieldIds relationship
-- Add EntryFieldValueMO entity: entryId, fieldId, value
-- Add relationships to existing ThreadMO and EntryMO
+- Add CustomField entity with attributes: id, name, order, isGroup, deletedAt, threadId
+- Add EntryFieldValue entity with attributes: id, entryId, fieldId, value
+- Add relationships:
+  - Thread.customFields (one-to-many with CustomField)
+  - Entry.fieldValues (one-to-many with EntryFieldValue)
+  - CustomField.parentField/childFields (self-referencing for groups)
+  - CustomField.fieldValues (one-to-many with EntryFieldValue)
 
 **Migration Type**: Lightweight (automatic)
 
 **Migration Steps**:
-1. Create new model version: ThreadDataModel v1.2
-2. Set v1.2 as current model version
-3. Add new attributes with Optional setting
+1. Create new model version: ThreadDataModel v1.3
+2. Set v1.3 as current model version
+3. Add new entities with all attributes optional or with defaults
 4. Core Data handles migration automatically
 
 **Code Implementation**:

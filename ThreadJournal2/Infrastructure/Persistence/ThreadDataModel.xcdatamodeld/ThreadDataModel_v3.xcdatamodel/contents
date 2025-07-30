@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="23F79" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="1.3">
+    <entity name="CustomField" representedClassName="CDCustomField" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isGroup" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="order" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="threadId" attributeType="UUID" usesScalarValueType="NO"/>
+        <relationship name="childFields" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CustomField" inverseName="parentField" inverseEntity="CustomField"/>
+        <relationship name="fieldValues" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="EntryFieldValue" inverseName="field" inverseEntity="EntryFieldValue"/>
+        <relationship name="parentField" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CustomField" inverseName="childFields" inverseEntity="CustomField"/>
+        <relationship name="thread" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Thread" inverseName="customFields" inverseEntity="Thread"/>
+    </entity>
+    <entity name="Entry" representedClassName="CDEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="content" attributeType="String"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lastEditedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="threadId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="fieldValues" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="EntryFieldValue" inverseName="entry" inverseEntity="EntryFieldValue"/>
+        <relationship name="thread" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Thread" inverseName="entries" inverseEntity="Thread"/>
+    </entity>
+    <entity name="EntryFieldValue" representedClassName="CDEntryFieldValue" syncable="YES" codeGenerationType="class">
+        <attribute name="entryId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="fieldId" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="value" attributeType="String" defaultValueString=""/>
+        <relationship name="entry" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Entry" inverseName="fieldValues" inverseEntity="Entry"/>
+        <relationship name="field" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CustomField" inverseName="fieldValues" inverseEntity="CustomField"/>
+    </entity>
+    <entity name="Thread" representedClassName="CDThread" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deletedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="title" attributeType="String"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="customFields" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="CustomField" inverseName="thread" inverseEntity="CustomField"/>
+        <relationship name="entries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Entry" inverseName="thread" inverseEntity="Entry"/>
+    </entity>
+</model>
