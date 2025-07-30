@@ -22,6 +22,12 @@ struct ThreadDetailViewFixed: View {
     
     private let bottomID = "bottom"
     
+    // Dependencies for custom fields
+    private let repository: ThreadRepository
+    private let createFieldUseCase: CreateCustomFieldUseCase
+    private let createGroupUseCase: CreateFieldGroupUseCase
+    private let deleteFieldUseCase: DeleteCustomFieldUseCase
+    
     // Timestamp background color that adapts to light/dark mode
     @Environment(\.colorScheme) private var colorScheme
     private var timestampBackgroundColor: Color {
@@ -37,9 +43,17 @@ struct ThreadDetailViewFixed: View {
         updateEntryUseCase: UpdateEntryUseCase,
         deleteEntryUseCase: DeleteEntryUseCase,
         draftManager: DraftManager,
-        exportThreadUseCase: ExportThreadUseCase
+        exportThreadUseCase: ExportThreadUseCase,
+        createFieldUseCase: CreateCustomFieldUseCase,
+        createGroupUseCase: CreateFieldGroupUseCase,
+        deleteFieldUseCase: DeleteCustomFieldUseCase
     ) {
         self.threadId = threadId
+        self.repository = repository
+        self.createFieldUseCase = createFieldUseCase
+        self.createGroupUseCase = createGroupUseCase
+        self.deleteFieldUseCase = deleteFieldUseCase
+        
         let viewModel = ThreadDetailViewModel(
             repository: repository,
             addEntryUseCase: addEntryUseCase,
@@ -115,10 +129,17 @@ struct ThreadDetailViewFixed: View {
             Text("This entry will be removed from your journal.")
         }
         .navigationDestination(isPresented: $showingCustomFields) {
-            // TODO: Replace with CustomFieldsManagementView when TICKET-001 is implemented
-            Text("Custom Fields Management")
-                .navigationTitle("Custom Fields")
-                .navigationBarTitleDisplayMode(.large)
+            if let threadId = viewModel.thread?.id {
+                CustomFieldsManagementView(
+                    viewModel: CustomFieldsViewModel(
+                        threadId: threadId,
+                        threadRepository: repository,
+                        createFieldUseCase: createFieldUseCase,
+                        createGroupUseCase: createGroupUseCase,
+                        deleteFieldUseCase: deleteFieldUseCase
+                    )
+                )
+            }
         }
     }
     

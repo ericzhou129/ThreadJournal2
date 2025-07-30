@@ -149,7 +149,7 @@ final class CustomFieldsViewModel: ObservableObject {
         error = nil
         
         do {
-            try await createGroupUseCase.execute(
+            _ = try await createGroupUseCase.execute(
                 parentFieldId: parentFieldId,
                 childFieldIds: childFieldIds
             )

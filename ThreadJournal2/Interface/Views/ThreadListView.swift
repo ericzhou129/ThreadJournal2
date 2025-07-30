@@ -116,6 +116,11 @@ struct ThreadListView: View {
                 exporter: csvExporter
             )
             
+            // Custom fields use cases
+            let createFieldUseCase = CreateCustomFieldUseCase(threadRepository: viewModel.repository)
+            let createGroupUseCase = CreateFieldGroupUseCase(threadRepository: viewModel.repository)
+            let deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: viewModel.repository)
+            
             ThreadDetailViewFixed(
                 threadId: thread.id,
                 repository: viewModel.repository,
@@ -123,7 +128,10 @@ struct ThreadListView: View {
                 updateEntryUseCase: updateEntryUseCase,
                 deleteEntryUseCase: deleteEntryUseCase,
                 draftManager: draftManager,
-                exportThreadUseCase: exportThreadUseCase
+                exportThreadUseCase: exportThreadUseCase,
+                createFieldUseCase: createFieldUseCase,
+                createGroupUseCase: createGroupUseCase,
+                deleteFieldUseCase: deleteFieldUseCase
             )
         }
     }
