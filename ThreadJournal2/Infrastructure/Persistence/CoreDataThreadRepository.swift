@@ -326,6 +326,39 @@ final class CoreDataThreadRepository: ThreadRepository {
         return try Entry(id: id, threadId: threadId, content: content, timestamp: timestamp)
     }
     
+    /// Maps a CustomField domain entity to a managed object
+    private func mapCustomFieldToManagedObject(_ field: CustomField, managedField: NSManagedObject) {
+        managedField.setValue(field.id, forKey: "id")
+        managedField.setValue(field.threadId, forKey: "threadId")
+        managedField.setValue(field.name, forKey: "name")
+        managedField.setValue(Int32(field.order), forKey: "order")
+        managedField.setValue(field.isGroup, forKey: "isGroup")
+    }
+    
+    /// Maps a managed object to a CustomField domain entity
+    private func mapManagedObjectToCustomField(_ managedObject: NSManagedObject) throws -> CustomField {
+        guard let id = managedObject.value(forKey: "id") as? UUID,
+              let threadId = managedObject.value(forKey: "threadId") as? UUID,
+              let name = managedObject.value(forKey: "name") as? String else {
+            throw PersistenceError.fetchFailed(underlying: NSError(
+                domain: "CoreDataThreadRepository",
+                code: 2003,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to map managed object to CustomField"]
+            ))
+        }
+        
+        let order = managedObject.value(forKey: "order") as? Int32 ?? 0
+        let isGroup = managedObject.value(forKey: "isGroup") as? Bool ?? false
+        
+        return try CustomField(
+            id: id,
+            threadId: threadId,
+            name: name,
+            order: Int(order),
+            isGroup: isGroup
+        )
+    }
+    
     // MARK: - Entry Update Operations
     
     func fetchEntry(id: UUID) async throws -> Entry? {
@@ -419,36 +452,168 @@ final class CoreDataThreadRepository: ThreadRepository {
         }
     }
     
-    // MARK: - Custom Field Operations (Stub implementations for protocol conformance)
+    // MARK: - Custom Field Operations
     
     func createCustomField(_ field: CustomField) async throws {
-        // TODO: Implement when Core Data model is updated
-        fatalError("Custom field support not yet implemented")
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Check if field already exists
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", field.id as CVarArg)
+            
+            let results = try context.fetch(fetchRequest)
+            guard results.isEmpty else {
+                throw PersistenceError.saveFailed(underlying: NSError(
+                    domain: "CoreDataThreadRepository",
+                    code: 1002,
+                    userInfo: [NSLocalizedDescriptionKey: "CustomField with ID \(field.id) already exists"]
+                ))
+            }
+            
+            // Create new managed object
+            let managedField = NSManagedObject(entity: NSEntityDescription.entity(forEntityName: "CustomField", in: context)!,
+                                              insertInto: context)
+            
+            // Map domain entity to managed object
+            self.mapCustomFieldToManagedObject(field, managedField: managedField)
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
     
     func updateCustomField(_ field: CustomField) async throws {
-        // TODO: Implement when Core Data model is updated
-        fatalError("Custom field support not yet implemented")
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch existing field
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", field.id as CVarArg)
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedField = results.first else {
+                throw PersistenceError.notFound(id: field.id)
+            }
+            
+            // Update managed object
+            self.mapCustomFieldToManagedObject(field, managedField: managedField)
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
     
     func softDeleteCustomField(fieldId: UUID) async throws {
-        // TODO: Implement when Core Data model is updated
-        fatalError("Custom field support not yet implemented")
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch field to soft delete
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", fieldId as CVarArg)
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedField = results.first else {
+                throw PersistenceError.notFound(id: fieldId)
+            }
+            
+            // Set deletedAt timestamp
+            managedField.setValue(Date(), forKey: "deletedAt")
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
     
     func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
-        // TODO: Implement when Core Data model is updated
-        return []
+        let context = persistentContainer.viewContext
+        
+        return try await context.perform { [weak self] in
+            guard let self = self else { return [] }
+            
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            
+            // Filter by thread and deleted status
+            var predicates = [NSPredicate(format: "threadId == %@", threadId as CVarArg)]
+            if !includeDeleted {
+                predicates.append(NSPredicate(format: "deletedAt == nil"))
+            }
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+            
+            do {
+                let results = try context.fetch(fetchRequest)
+                return try results.compactMap { try self.mapManagedObjectToCustomField($0) }
+            } catch {
+                throw PersistenceError.fetchFailed(underlying: error)
+            }
+        }
     }
     
     func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws {
-        // TODO: Implement when Core Data model is updated
-        fatalError("Custom field support not yet implemented")
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch parent field
+            let parentFetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            parentFetchRequest.predicate = NSPredicate(format: "id == %@", parentFieldId as CVarArg)
+            
+            let parentResults = try context.fetch(parentFetchRequest)
+            guard let parentField = parentResults.first else {
+                throw PersistenceError.notFound(id: parentFieldId)
+            }
+            
+            // Mark parent as group
+            parentField.setValue(true, forKey: "isGroup")
+            
+            // Fetch and update child fields
+            for childId in childFieldIds {
+                let childFetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+                childFetchRequest.predicate = NSPredicate(format: "id == %@", childId as CVarArg)
+                
+                let childResults = try context.fetch(childFetchRequest)
+                guard let childField = childResults.first else {
+                    throw PersistenceError.notFound(id: childId)
+                }
+                
+                // Set parent relationship
+                childField.setValue(parentField, forKey: "parentField")
+            }
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
     
     func removeFromGroup(fieldId: UUID) async throws {
-        // TODO: Implement when Core Data model is updated
-        fatalError("Custom field support not yet implemented")
+        let context = persistentContainer.viewContext
+        
+        try await performWithRetry { [weak self] in
+            guard let self = self else { return }
+            
+            // Fetch field to remove from group
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", fieldId as CVarArg)
+            
+            let results = try context.fetch(fetchRequest)
+            guard let managedField = results.first else {
+                throw PersistenceError.notFound(id: fieldId)
+            }
+            
+            // Remove parent relationship
+            managedField.setValue(nil, forKey: "parentField")
+            
+            // Save context
+            try self.saveContext(context)
+        }
     }
 }
 

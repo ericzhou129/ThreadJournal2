@@ -454,6 +454,7 @@ STATUS: DONE
 ---
 
 ### templated-fields-TICKET-014: Core Data Schema for Custom Fields
+STATUS: DONE
 **Story ID**: templated-fields-TICKET-014  
 **Context/Layer**: Journaling / infrastructure  
 **As a** developer  

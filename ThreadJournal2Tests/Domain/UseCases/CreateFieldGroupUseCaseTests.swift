@@ -110,18 +110,3 @@ final class CreateFieldGroupUseCaseTests: XCTestCase {
     }
 }
 
-// Extend MockThreadRepository for group operations
-extension MockThreadRepository {
-    func updateCustomField(_ field: CustomField) async throws {
-        if let index = customFields.firstIndex(where: { $0.id == field.id }) {
-            customFields[index] = field
-        }
-    }
-    
-    func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws {
-        // Mock implementation - just verify the IDs exist
-        guard customFields.contains(where: { $0.id == parentFieldId }) else {
-            throw PersistenceError.notFound(id: parentFieldId)
-        }
-    }
-}

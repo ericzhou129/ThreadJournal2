@@ -49,22 +49,3 @@ final class DeleteCustomFieldUseCaseTests: XCTestCase {
     }
 }
 
-// Extend MockThreadRepository for delete operations
-extension MockThreadRepository {
-    private struct DeleteKeys {
-        static var softDeletedFieldIds = "softDeletedFieldIds"
-    }
-    
-    var softDeletedFieldIds: [UUID] {
-        get {
-            objc_getAssociatedObject(self, &DeleteKeys.softDeletedFieldIds) as? [UUID] ?? []
-        }
-        set {
-            objc_setAssociatedObject(self, &DeleteKeys.softDeletedFieldIds, newValue, .OBJC_ASSOCIATION_RETAIN)
-        }
-    }
-    
-    func softDeleteCustomField(fieldId: UUID) async throws {
-        softDeletedFieldIds.append(fieldId)
-    }
-}

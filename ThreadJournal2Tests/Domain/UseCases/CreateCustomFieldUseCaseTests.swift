@@ -123,26 +123,3 @@ final class CreateCustomFieldUseCaseTests: XCTestCase {
     }
 }
 
-// Update MockThreadRepository to support custom fields
-extension MockThreadRepository {
-    private struct AssociatedKeys {
-        static var customFields = "customFields"
-    }
-    
-    var customFields: [CustomField] {
-        get {
-            objc_getAssociatedObject(self, &AssociatedKeys.customFields) as? [CustomField] ?? []
-        }
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.customFields, newValue, .OBJC_ASSOCIATION_RETAIN)
-        }
-    }
-    
-    func createCustomField(_ field: CustomField) async throws {
-        customFields.append(field)
-    }
-    
-    func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
-        return customFields.filter { $0.threadId == threadId }
-    }
-}

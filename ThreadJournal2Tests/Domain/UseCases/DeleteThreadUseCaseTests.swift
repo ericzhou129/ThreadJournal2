@@ -223,4 +223,43 @@ private class MockDeleteThreadRepository: ThreadRepository {
             throw PersistenceError.deleteFailed(underlying: NSError(domain: "test", code: 1))
         }
     }
+    
+    // MARK: - Custom Fields (Added for protocol conformance)
+    
+    func createCustomField(_ field: CustomField) async throws {
+        if shouldThrowError {
+            throw PersistenceError.saveFailed(underlying: NSError(domain: "test", code: 1))
+        }
+    }
+    
+    func updateCustomField(_ field: CustomField) async throws {
+        if shouldThrowError {
+            throw PersistenceError.updateFailed(underlying: NSError(domain: "test", code: 1))
+        }
+    }
+    
+    func softDeleteCustomField(fieldId: UUID) async throws {
+        if shouldThrowError {
+            throw PersistenceError.deleteFailed(underlying: NSError(domain: "test", code: 1))
+        }
+    }
+    
+    func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
+        if shouldThrowError {
+            throw PersistenceError.fetchFailed(underlying: NSError(domain: "test", code: 1))
+        }
+        return []
+    }
+    
+    func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws {
+        if shouldThrowError {
+            throw PersistenceError.saveFailed(underlying: NSError(domain: "test", code: 1))
+        }
+    }
+    
+    func removeFromGroup(fieldId: UUID) async throws {
+        if shouldThrowError {
+            throw PersistenceError.updateFailed(underlying: NSError(domain: "test", code: 1))
+        }
+    }
 }

@@ -9,28 +9,61 @@ import Foundation
 @testable import ThreadJournal2
 
 extension MockThreadRepository {
+    private struct AssociatedKeys {
+        static var customFields: UInt8 = 0
+        static var softDeletedFieldIds: UInt8 = 0
+    }
+    
+    var customFields: [CustomField] {
+        get {
+            objc_getAssociatedObject(self, &AssociatedKeys.customFields) as? [CustomField] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.customFields, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+    
+    var softDeletedFieldIds: [UUID] {
+        get {
+            objc_getAssociatedObject(self, &AssociatedKeys.softDeletedFieldIds) as? [UUID] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.softDeletedFieldIds, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+    
     func createCustomField(_ field: CustomField) async throws {
-        // Mock implementation
+        customFields.append(field)
     }
     
     func updateCustomField(_ field: CustomField) async throws {
-        // Mock implementation
+        if let index = customFields.firstIndex(where: { $0.id == field.id }) {
+            customFields[index] = field
+        }
     }
     
     func softDeleteCustomField(fieldId: UUID) async throws {
-        // Mock implementation
+        softDeletedFieldIds.append(fieldId)
     }
     
     func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
-        // Mock implementation
-        return []
+        return customFields.filter { $0.threadId == threadId }
     }
     
     func createFieldGroup(parentFieldId: UUID, childFieldIds: [UUID]) async throws {
-        // Mock implementation
+        // Verify the IDs exist
+        guard customFields.contains(where: { $0.id == parentFieldId }) else {
+            throw PersistenceError.notFound(id: parentFieldId)
+        }
+        
+        for childId in childFieldIds {
+            guard customFields.contains(where: { $0.id == childId }) else {
+                throw PersistenceError.notFound(id: childId)
+            }
+        }
     }
     
     func removeFromGroup(fieldId: UUID) async throws {
-        // Mock implementation
+        // Mock implementation - in real implementation would update relationships
     }
 }

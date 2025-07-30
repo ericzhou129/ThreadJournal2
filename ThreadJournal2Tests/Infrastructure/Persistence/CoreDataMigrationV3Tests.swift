@@ -109,7 +109,7 @@ final class CoreDataMigrationV3Tests: XCTestCase {
         }
         
         // Perform lightweight migration
-        let mappingModel = NSMappingModel.inferredMappingModel(
+        let mappingModel = try? NSMappingModel.inferredMappingModel(
             forSourceModel: sourceModel,
             destinationModel: destinationModel
         )
