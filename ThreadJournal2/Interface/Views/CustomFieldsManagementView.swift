@@ -23,7 +23,7 @@ struct CustomFieldsManagementView: View {
             Color(.systemGroupedBackground)
                 .ignoresSafeArea()
             
-            if viewModel.fields.isEmpty && !viewModel.isLoading {
+            if viewModel.fields.isEmpty && !viewModel.isLoading && !showingAddField {
                 emptyStateView
             } else {
                 fieldListView
