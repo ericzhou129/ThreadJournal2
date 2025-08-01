@@ -265,7 +265,7 @@ struct ThreadDetailViewFixed: View {
         Button(action: {
             showingFieldSelector = true
         }) {
-            Image(systemName: selectedFieldIds.isEmpty ? "tag" : "tag.fill")
+            Image(systemName: "plus")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(selectedFieldIds.isEmpty ? Color(.label) : Color.accentColor)
                 .frame(width: 36, height: 36)
