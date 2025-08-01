@@ -14,7 +14,6 @@ struct ThreadDetailViewFixed: View {
     @State private var isExpanded = false
     @State private var showingExportMenu = false
     @State private var showingShareSheet = false
-    @State private var showingCustomFields = false
     @FocusState private var isComposeFieldFocused: Bool
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
@@ -127,19 +126,6 @@ struct ThreadDetailViewFixed: View {
             }
         } message: {
             Text("This entry will be removed from your journal.")
-        }
-        .navigationDestination(isPresented: $showingCustomFields) {
-            if let threadId = viewModel.thread?.id {
-                CustomFieldsManagementView(
-                    viewModel: CustomFieldsViewModel(
-                        threadId: threadId,
-                        threadRepository: repository,
-                        createFieldUseCase: createFieldUseCase,
-                        createGroupUseCase: createGroupUseCase,
-                        deleteFieldUseCase: deleteFieldUseCase
-                    )
-                )
-            }
         }
     }
     
@@ -414,10 +400,20 @@ struct ThreadDetailViewFixed: View {
     
     private var menuButton: some View {
         Menu {
-            Button(action: {
-                showingCustomFields = true
-            }) {
-                Label("Custom Fields", systemImage: "list.bullet.rectangle")
+            if let threadId = viewModel.thread?.id {
+                NavigationLink {
+                    CustomFieldsManagementView(
+                        viewModel: CustomFieldsViewModel(
+                            threadId: threadId,
+                            threadRepository: repository,
+                            createFieldUseCase: createFieldUseCase,
+                            createGroupUseCase: createGroupUseCase,
+                            deleteFieldUseCase: deleteFieldUseCase
+                        )
+                    )
+                } label: {
+                    Label("Custom Fields", systemImage: "list.bullet.rectangle")
+                }
             }
             
             Button(action: {

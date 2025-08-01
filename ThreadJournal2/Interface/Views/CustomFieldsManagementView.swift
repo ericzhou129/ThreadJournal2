@@ -19,34 +19,33 @@ struct CustomFieldsManagementView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                if viewModel.fields.isEmpty && !viewModel.isLoading {
-                    emptyStateView
-                } else {
-                    fieldListView
+        ZStack {
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+            
+            if viewModel.fields.isEmpty && !viewModel.isLoading {
+                emptyStateView
+            } else {
+                fieldListView
+            }
+        }
+        .navigationTitle("Custom Fields")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                EditButton()
+                    .disabled(viewModel.fields.isEmpty)
+            }
+            
+            ToolbarItem(placement: .principal) {
+                if !viewModel.fields.isEmpty {
+                    Text("\(viewModel.fields.count) fields")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("Custom Fields")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .disabled(viewModel.fields.isEmpty)
-                }
-                
-                ToolbarItem(placement: .principal) {
-                    if !viewModel.fields.isEmpty {
-                        Text("\(viewModel.fields.count) fields")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .environment(\.editMode, $editMode)
+        }
+        .environment(\.editMode, $editMode)
             .task {
                 await viewModel.loadFields()
             }
@@ -74,7 +73,6 @@ struct CustomFieldsManagementView: View {
                     Text(error)
                 }
             }
-        }
     }
     
     private var emptyStateView: some View {
