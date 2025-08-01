@@ -14,6 +14,9 @@ struct ThreadDetailViewFixed: View {
     @State private var isExpanded = false
     @State private var showingExportMenu = false
     @State private var showingShareSheet = false
+    @State private var showingFieldSelector = false
+    @State private var selectedFieldIds: Set<UUID> = []
+    @State private var availableFields: [CustomField] = []
     @FocusState private var isComposeFieldFocused: Bool
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
@@ -86,6 +89,7 @@ struct ThreadDetailViewFixed: View {
         .onAppear {
             Task {
                 await viewModel.loadThread(id: threadId)
+                await loadAvailableFields()
             }
         }
         .fullScreenCover(isPresented: $isExpanded) {
@@ -126,6 +130,16 @@ struct ThreadDetailViewFixed: View {
             }
         } message: {
             Text("This entry will be removed from your journal.")
+        }
+        .sheet(isPresented: $showingFieldSelector) {
+            FieldSelectorSheet(
+                threadId: threadId,
+                repository: repository,
+                selectedFieldIds: $selectedFieldIds,
+                onDismiss: {
+                    showingFieldSelector = false
+                }
+            )
         }
     }
     
@@ -207,6 +221,9 @@ struct ThreadDetailViewFixed: View {
                 
                 HStack(alignment: .bottom, spacing: 12) {
                     composeTextField
+                    if !availableFields.isEmpty {
+                        customFieldsButton
+                    }
                     expandButton
                     sendButton
                 }
@@ -244,10 +261,34 @@ struct ThreadDetailViewFixed: View {
         }
     }
     
+    private var customFieldsButton: some View {
+        Button(action: {
+            showingFieldSelector = true
+        }) {
+            Image(systemName: selectedFieldIds.isEmpty ? "tag" : "tag.fill")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(selectedFieldIds.isEmpty ? Color(.label) : Color.accentColor)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color(.systemGray5)))
+                .overlay(
+                    selectedFieldIds.isEmpty ? nil :
+                    Text("\(selectedFieldIds.count)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 16, height: 16)
+                        .background(Circle().fill(Color.accentColor))
+                        .offset(x: 12, y: -12)
+                )
+        }
+    }
+    
     private var sendButton: some View {
         Button(action: {
             Task {
+                // For now, just add the entry without fields
+                // TODO: Pass selectedFieldIds to viewModel.addEntry()
                 await viewModel.addEntry()
+                selectedFieldIds.removeAll() // Clear selection after sending
                 isComposeFieldFocused = true
             }
         }) {
@@ -512,6 +553,21 @@ struct ThreadDetailViewFixed: View {
                     .background(Color(.systemBackground))
                 }
             }
+        }
+    }
+}
+
+// MARK: - Helper Methods
+
+extension ThreadDetailViewFixed {
+    private func loadAvailableFields() async {
+        do {
+            availableFields = try await repository.fetchCustomFields(
+                for: threadId,
+                includeDeleted: false
+            )
+        } catch {
+            print("Failed to load custom fields: \(error)")
         }
     }
 }
