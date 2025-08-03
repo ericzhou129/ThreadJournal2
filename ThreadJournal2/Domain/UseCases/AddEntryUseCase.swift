@@ -21,9 +21,10 @@ final class AddEntryUseCase {
     /// - Parameters:
     ///   - content: The content of the entry
     ///   - threadId: The ID of the thread to add the entry to
+    ///   - fieldValues: Optional custom field values
     /// - Returns: The created entry
     /// - Throws: ValidationError if content is empty, PersistenceError if operation fails
-    func execute(content: String, threadId: UUID) async throws -> Entry {
+    func execute(content: String, threadId: UUID, fieldValues: [EntryFieldValue] = []) async throws -> Entry {
         // Validate content is not empty
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ValidationError.emptyContent
@@ -39,7 +40,8 @@ final class AddEntryUseCase {
             id: UUID(),
             threadId: threadId,
             content: content,
-            timestamp: Date()
+            timestamp: Date(),
+            customFieldValues: fieldValues
         )
         
         // Add entry to repository

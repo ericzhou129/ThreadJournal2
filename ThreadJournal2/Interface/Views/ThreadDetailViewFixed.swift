@@ -286,9 +286,15 @@ struct ThreadDetailViewFixed: View {
     private var sendButton: some View {
         Button(action: {
             Task {
-                // For now, just add the entry without fields
-                // TODO: Pass field values to viewModel.addEntry()
-                await viewModel.addEntry()
+                // Convert field values to EntryFieldValue array
+                let entryFieldValues = fieldValues.compactMap { (fieldId, value) -> EntryFieldValue? in
+                    guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        return nil // Skip empty values
+                    }
+                    return EntryFieldValue(fieldId: fieldId, value: value)
+                }
+                
+                await viewModel.addEntry(fieldValues: entryFieldValues)
                 // Clear field values and selection after sending
                 fieldValues.removeAll()
                 selectedFieldIds.removeAll()
@@ -351,7 +357,7 @@ struct ThreadDetailViewFixed: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
                 
-                // Field tags (TODO: implement field value display)
+                // Field tags - displays custom field values as tags
                 fieldTagsView(for: entry)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -545,8 +551,15 @@ struct ThreadDetailViewFixed: View {
                             
                             Button(action: {
                                 Task {
-                                    // TODO: Pass field values to addEntry()
-                                    await viewModel.addEntry()
+                                    // Convert field values to EntryFieldValue array
+                                    let entryFieldValues = fieldValues.compactMap { (fieldId, value) -> EntryFieldValue? in
+                                        guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                                            return nil // Skip empty values
+                                        }
+                                        return EntryFieldValue(fieldId: fieldId, value: value)
+                                    }
+                                    
+                                    await viewModel.addEntry(fieldValues: entryFieldValues)
                                     // Clear field values and selection after sending
                                     fieldValues.removeAll()
                                     selectedFieldIds.removeAll()
@@ -645,38 +658,30 @@ extension ThreadDetailViewFixed {
     }
     
     private func fieldTagsView(for entry: Entry) -> some View {
-        // TODO: Replace with actual field values from entry
-        // For now, show placeholder tags to demonstrate the UI
-        let mockFieldValues = [
-            ("Mood", "Happy", false),
-            ("Energy", "High", false),
-            ("Sleep Quality", "", true), // Empty value - should not display
-            ("Health", "", true), // Group name
-            ("Exercise", "Running", false),
-            ("Diet", "Healthy", false)
-        ]
+        // Don't show anything if no field values
+        guard !entry.customFieldValues.isEmpty else {
+            return AnyView(EmptyView())
+        }
         
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], 
-                        alignment: .leading, spacing: 8) {
-            ForEach(Array(mockFieldValues.enumerated()), id: \.offset) { index, fieldValue in
-                let (name, value, isGroup) = fieldValue
+        // Get field names for display
+        let fieldNameMap = Dictionary(uniqueKeysWithValues: availableFields.map { ($0.id, $0) })
+        
+        // Group fields by their group (if any)
+        let groupedFields = Dictionary(grouping: entry.customFieldValues) { fieldValue in
+            let field = fieldNameMap[fieldValue.fieldId]
+            return field?.isGroup == true ? fieldValue.fieldId : nil
+        }
+        
+        return AnyView(
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], 
+                     alignment: .leading, spacing: 8) {
                 
-                // Don't show empty values
-                if !value.isEmpty {
-                    if isGroup {
-                        // Group tag - blue background
-                        Text(name)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(Color(red: 0.102, green: 0.451, blue: 0.910)) // #1a73e8
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(red: 0.910, green: 0.941, blue: 0.996)) // #e8f0fe
-                            )
-                    } else {
+                // Individual fields (not in groups)
+                ForEach(groupedFields[nil] ?? [], id: \.fieldId) { fieldValue in
+                    if let field = fieldNameMap[fieldValue.fieldId],
+                       !fieldValue.value.isEmpty {
                         // Regular field tag - gray background
-                        Text("\(name): \(value)")
+                        Text("\(field.name): \(fieldValue.value)")
                             .font(.system(size: 12))
                             .foregroundColor(.primary)
                             .padding(.horizontal, 8)
@@ -687,8 +692,41 @@ extension ThreadDetailViewFixed {
                             )
                     }
                 }
+                
+                // Group fields
+                ForEach(groupedFields.keys.compactMap { $0 }, id: \.self) { groupId in
+                    if let groupField = fieldNameMap[groupId] {
+                        // Group tag - blue background
+                        Text(groupField.name)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(red: 0.102, green: 0.451, blue: 0.910)) // #1a73e8
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.910, green: 0.941, blue: 0.996)) // #e8f0fe
+                            )
+                        
+                        // Group field values
+                        ForEach(groupedFields[groupId] ?? [], id: \.fieldId) { fieldValue in
+                            if let field = fieldNameMap[fieldValue.fieldId],
+                               !fieldValue.value.isEmpty,
+                               field.id != groupId { // Don't show the group field itself
+                                Text("\(field.name): \(fieldValue.value)")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color(red: 0.949, green: 0.949, blue: 0.969)) // #f2f2f7
+                                    )
+                            }
+                        }
+                    }
+                }
             }
-        }
-        .padding(.top, 8)
+            .padding(.top, 8)
+        )
     }
 }

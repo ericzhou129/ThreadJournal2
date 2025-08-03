@@ -200,8 +200,9 @@ final class ThreadDetailViewModel: ObservableObject {
     }
     
     /// Adds a new entry to the current thread
-    /// - Parameter content: The content of the entry
-    func addEntry() async {
+    /// - Parameters:
+    ///   - fieldValues: Optional custom field values to attach to the entry
+    func addEntry(fieldValues: [EntryFieldValue] = []) async {
         guard let threadId = currentThreadId,
               !draftContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
@@ -213,7 +214,8 @@ final class ThreadDetailViewModel: ObservableObject {
             // Add entry via use case
             let newEntry = try await addEntryUseCase.execute(
                 content: content,
-                threadId: threadId
+                threadId: threadId,
+                fieldValues: fieldValues
             )
             
             // Update local entries
