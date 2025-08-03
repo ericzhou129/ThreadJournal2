@@ -17,6 +17,7 @@ struct ThreadDetailViewFixed: View {
     @State private var showingFieldSelector = false
     @State private var selectedFieldIds: Set<UUID> = []
     @State private var availableFields: [CustomField] = []
+    @State private var fieldValues: [UUID: String] = [:]
     @FocusState private var isComposeFieldFocused: Bool
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
@@ -286,9 +287,11 @@ struct ThreadDetailViewFixed: View {
         Button(action: {
             Task {
                 // For now, just add the entry without fields
-                // TODO: Pass selectedFieldIds to viewModel.addEntry()
+                // TODO: Pass field values to viewModel.addEntry()
                 await viewModel.addEntry()
-                selectedFieldIds.removeAll() // Clear selection after sending
+                // Clear field values and selection after sending
+                fieldValues.removeAll()
+                selectedFieldIds.removeAll()
                 isComposeFieldFocused = true
             }
         }) {
@@ -346,6 +349,10 @@ struct ThreadDetailViewFixed: View {
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                
+                // Field tags (TODO: implement field value display)
+                fieldTagsView(for: entry)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -490,6 +497,9 @@ struct ThreadDetailViewFixed: View {
                     // Navigation bar
                     HStack {
                         Button("Cancel") {
+                            // Clear field values and selection
+                            fieldValues.removeAll()
+                            selectedFieldIds.removeAll()
                             isExpanded = false
                         }
                         .font(.system(size: 17))
@@ -514,6 +524,11 @@ struct ThreadDetailViewFixed: View {
                     
                     Divider()
                     
+                    // Selected fields inputs (if any)
+                    if !selectedFieldIds.isEmpty {
+                        selectedFieldsInputView
+                    }
+                    
                     // Text editor
                     TextEditor(text: $viewModel.draftContent)
                         .font(.system(size: 17))
@@ -530,7 +545,11 @@ struct ThreadDetailViewFixed: View {
                             
                             Button(action: {
                                 Task {
+                                    // TODO: Pass field values to addEntry()
                                     await viewModel.addEntry()
+                                    // Clear field values and selection after sending
+                                    fieldValues.removeAll()
+                                    selectedFieldIds.removeAll()
                                     isExpanded = false
                                 }
                             }) {
@@ -569,5 +588,107 @@ extension ThreadDetailViewFixed {
         } catch {
             print("Failed to load custom fields: \(error)")
         }
+    }
+    
+    private var selectedFieldsInputView: some View {
+        let selectedFields = availableFields.filter { selectedFieldIds.contains($0.id) }
+        let groupedFields = Dictionary(grouping: selectedFields) { field in
+            field.isGroup ? field.id : nil
+        }
+        
+        return ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // Individual fields (not in groups)
+                ForEach(groupedFields[nil] ?? []) { field in
+                    fieldInputRow(for: field)
+                }
+                
+                // Group fields
+                ForEach(groupedFields.keys.compactMap { $0 }, id: \.self) { groupId in
+                    if let groupField = selectedFields.first(where: { $0.id == groupId }) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Group header
+                            Text(groupField.name)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                                .padding(.top, 8)
+                            
+                            // Group fields
+                            ForEach(groupedFields[groupId] ?? []) { field in
+                                if field.id != groupId { // Don't show the group field itself as input
+                                    fieldInputRow(for: field)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .frame(maxHeight: 200) // Limit height so text editor is still visible
+    }
+    
+    private func fieldInputRow(for field: CustomField) -> some View {
+        TextField(field.name, text: Binding(
+            get: { fieldValues[field.id] ?? "" },
+            set: { fieldValues[field.id] = $0 }
+        ))
+        .font(.system(size: 16))
+        .foregroundColor(.primary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(red: 0.976, green: 0.976, blue: 0.976)) // #f9f9f9
+        )
+    }
+    
+    private func fieldTagsView(for entry: Entry) -> some View {
+        // TODO: Replace with actual field values from entry
+        // For now, show placeholder tags to demonstrate the UI
+        let mockFieldValues = [
+            ("Mood", "Happy", false),
+            ("Energy", "High", false),
+            ("Sleep Quality", "", true), // Empty value - should not display
+            ("Health", "", true), // Group name
+            ("Exercise", "Running", false),
+            ("Diet", "Healthy", false)
+        ]
+        
+        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], 
+                        alignment: .leading, spacing: 8) {
+            ForEach(Array(mockFieldValues.enumerated()), id: \.offset) { index, fieldValue in
+                let (name, value, isGroup) = fieldValue
+                
+                // Don't show empty values
+                if !value.isEmpty {
+                    if isGroup {
+                        // Group tag - blue background
+                        Text(name)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(red: 0.102, green: 0.451, blue: 0.910)) // #1a73e8
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.910, green: 0.941, blue: 0.996)) // #e8f0fe
+                            )
+                    } else {
+                        // Regular field tag - gray background
+                        Text("\(name): \(value)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.949, green: 0.949, blue: 0.969)) // #f2f2f7
+                            )
+                    }
+                }
+            }
+        }
+        .padding(.top, 8)
     }
 }
