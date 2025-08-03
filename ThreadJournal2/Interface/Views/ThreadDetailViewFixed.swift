@@ -220,13 +220,43 @@ struct ThreadDetailViewFixed: View {
             VStack(spacing: 0) {
                 Divider()
                 
-                HStack(alignment: .bottom, spacing: 12) {
-                    composeTextField
-                    if !availableFields.isEmpty {
-                        customFieldsButton
+                VStack(alignment: .leading, spacing: 8) {
+                    // Show selected field inputs inline
+                    if !selectedFieldIds.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(Array(selectedFieldIds), id: \.self) { fieldId in
+                                if let field = availableFields.first(where: { $0.id == fieldId }) {
+                                    HStack {
+                                        Text("\(field.name):")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        
+                                        TextField(field.name, text: Binding(
+                                            get: { fieldValues[fieldId] ?? "" },
+                                            set: { fieldValues[fieldId] = $0 }
+                                        ))
+                                        .font(.system(size: 14))
+                                        .textFieldStyle(.roundedBorder)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemGray6))
+                        )
                     }
-                    expandButton
-                    sendButton
+                    
+                    HStack(alignment: .bottom, spacing: 12) {
+                        composeTextField
+                        if !availableFields.isEmpty {
+                            customFieldsButton
+                        }
+                        expandButton
+                        sendButton
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)

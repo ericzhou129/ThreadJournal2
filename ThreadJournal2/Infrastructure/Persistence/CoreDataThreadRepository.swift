@@ -308,6 +308,28 @@ final class CoreDataThreadRepository: ThreadRepository {
         managedEntry.setValue(entry.content, forKey: "content")
         managedEntry.setValue(entry.timestamp, forKey: "timestamp")
         managedEntry.setValue(managedThread, forKey: "thread")
+        
+        // Handle custom field values
+        let context = managedEntry.managedObjectContext!
+        
+        // Remove existing field values for this entry
+        if let existingFieldValues = managedEntry.value(forKey: "fieldValues") as? Set<NSManagedObject> {
+            existingFieldValues.forEach { context.delete($0) }
+        }
+        
+        // Add new field values
+        for fieldValue in entry.customFieldValues {
+            let managedFieldValue = NSManagedObject(
+                entity: NSEntityDescription.entity(forEntityName: "EntryFieldValue", in: context)!,
+                insertInto: context
+            )
+            
+            managedFieldValue.setValue(UUID(), forKey: "id")
+            managedFieldValue.setValue(entry.id, forKey: "entryId")
+            managedFieldValue.setValue(fieldValue.fieldId, forKey: "fieldId")
+            managedFieldValue.setValue(fieldValue.value, forKey: "value")
+            managedFieldValue.setValue(managedEntry, forKey: "entry")
+        }
     }
     
     /// Maps a managed object to an Entry domain entity
@@ -323,7 +345,25 @@ final class CoreDataThreadRepository: ThreadRepository {
             ))
         }
         
-        return try Entry(id: id, threadId: threadId, content: content, timestamp: timestamp)
+        // Load custom field values
+        var fieldValues: [EntryFieldValue] = []
+        if let managedFieldValues = managedObject.value(forKey: "fieldValues") as? Set<NSManagedObject> {
+            fieldValues = managedFieldValues.compactMap { managedFieldValue in
+                guard let fieldId = managedFieldValue.value(forKey: "fieldId") as? UUID,
+                      let value = managedFieldValue.value(forKey: "value") as? String else {
+                    return nil
+                }
+                return EntryFieldValue(fieldId: fieldId, value: value)
+            }
+        }
+        
+        return try Entry(
+            id: id, 
+            threadId: threadId, 
+            content: content, 
+            timestamp: timestamp,
+            customFieldValues: fieldValues
+        )
     }
     
     /// Maps a CustomField domain entity to a managed object
