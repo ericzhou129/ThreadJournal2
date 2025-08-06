@@ -37,10 +37,15 @@ struct SettingsScreen: View {
                         VStack(spacing: 0) {
                             SettingsToggleRow(
                                 title: "Require Face ID",
-                                isOn: .constant(viewModel.biometricAuthEnabled)
-                            ) {
-                                await viewModel.toggleBiometric()
-                            }
+                                isOn: Binding(
+                                    get: { viewModel.biometricAuthEnabled },
+                                    set: { _ in
+                                        Task {
+                                            await viewModel.toggleBiometric()
+                                        }
+                                    }
+                                )
+                            )
                         }
                         .background(Color(.systemBackground))
                         .cornerRadius(10)
