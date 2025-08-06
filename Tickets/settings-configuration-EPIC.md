@@ -190,6 +190,8 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 4. Load current settings on initialization
 5. Save settings immediately on any change
 6. Check biometric availability before enabling
+7. When toggling Face ID ON, immediately authenticate to verify it works
+8. Only enable Face ID if authentication succeeds
 - [Arch-Lint] ViewModel only orchestrates use cases
 - [Coverage] Unit tests with mocked dependencies
 - [Doc] Published properties documented
@@ -226,6 +228,9 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
 4. Lock immediately when app goes to background
 5. Show retry option if authentication fails
 6. Skip authentication if biometric is disabled in settings
+7. Default authentication should be OFF on first launch (not prompt for auth)
+8. Authentication state must match settings toggle state (no mismatches)
+9. Authentication should trigger automatically without user button press
 - [Arch-Lint] App lifecycle properly managed
 - [Coverage] Integration tests for app states
 - [Doc] Authentication flow documented
