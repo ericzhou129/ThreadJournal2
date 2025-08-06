@@ -18,10 +18,11 @@ struct ThreadDetailViewFixed: View {
     @State private var selectedFieldIds: Set<UUID> = []
     @State private var availableFields: [CustomField] = []
     @State private var fieldValues: [UUID: String] = [:]
+    @State private var textSizePercentage: Int = 100
     @FocusState private var isComposeFieldFocused: Bool
     
     @ScaledMetric(relativeTo: .subheadline) private var timestampSize = 11
-    @ScaledMetric(relativeTo: .body) private var contentSize = 14
+    @ScaledMetric(relativeTo: .body) private var baseContentSize = 14
     
     private let bottomID = "bottom"
     
@@ -30,6 +31,7 @@ struct ThreadDetailViewFixed: View {
     private let createFieldUseCase: CreateCustomFieldUseCase
     private let createGroupUseCase: CreateFieldGroupUseCase
     private let deleteFieldUseCase: DeleteCustomFieldUseCase
+    private let getSettingsUseCase: GetSettingsUseCase
     
     // Timestamp background color that adapts to light/dark mode
     @Environment(\.colorScheme) private var colorScheme
@@ -49,13 +51,15 @@ struct ThreadDetailViewFixed: View {
         exportThreadUseCase: ExportThreadUseCase,
         createFieldUseCase: CreateCustomFieldUseCase,
         createGroupUseCase: CreateFieldGroupUseCase,
-        deleteFieldUseCase: DeleteCustomFieldUseCase
+        deleteFieldUseCase: DeleteCustomFieldUseCase,
+        getSettingsUseCase: GetSettingsUseCase
     ) {
         self.threadId = threadId
         self.repository = repository
         self.createFieldUseCase = createFieldUseCase
         self.createGroupUseCase = createGroupUseCase
         self.deleteFieldUseCase = deleteFieldUseCase
+        self.getSettingsUseCase = getSettingsUseCase
         
         let viewModel = ThreadDetailViewModel(
             repository: repository,
@@ -91,6 +95,7 @@ struct ThreadDetailViewFixed: View {
             Task {
                 await viewModel.loadThread(id: threadId)
                 await loadAvailableFields()
+                await loadSettings()
             }
         }
         .fullScreenCover(isPresented: $isExpanded) {
@@ -380,7 +385,7 @@ struct ThreadDetailViewFixed: View {
                 
                 // Content
                 Text(entry.content)
-                    .font(.system(size: contentSize))
+                    .font(.system(size: baseContentSize * CGFloat(textSizePercentage) / 100))
                     .foregroundColor(Color(.label))
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -630,6 +635,17 @@ extension ThreadDetailViewFixed {
             )
         } catch {
             print("Failed to load custom fields: \(error)")
+        }
+    }
+    
+    private func loadSettings() async {
+        do {
+            let settings = try await getSettingsUseCase.execute()
+            await MainActor.run {
+                textSizePercentage = settings.textSizePercentage
+            }
+        } catch {
+            print("Failed to load settings: \(error)")
         }
     }
     

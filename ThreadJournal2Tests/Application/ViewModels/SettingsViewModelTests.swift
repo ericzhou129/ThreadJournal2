@@ -254,10 +254,24 @@ private final class MockUpdateSettingsUseCase: UpdateSettingsUseCase {
 
 // MARK: - Mock BiometricAuthService
 
-private final class MockBiometricAuthService {
+private final class MockBiometricAuthService: BiometricAuthServiceProtocol {
     var isBiometricAvailableResult = true
+    var isBiometricEnabledResult = false
+    var authenticateResult = true
+    var authenticateError: Error?
     
     func isBiometricAvailable() -> Bool {
         return isBiometricAvailableResult
+    }
+    
+    func isBiometricEnabled() async throws -> Bool {
+        return isBiometricEnabledResult
+    }
+    
+    func authenticate() async throws -> Bool {
+        if let error = authenticateError {
+            throw error
+        }
+        return authenticateResult
     }
 }

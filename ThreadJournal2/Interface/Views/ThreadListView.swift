@@ -135,6 +135,10 @@ struct ThreadListView: View {
             let createGroupUseCase = CreateFieldGroupUseCase(threadRepository: viewModel.repository)
             let deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: viewModel.repository)
             
+            // Settings use case
+            let settingsRepository = UserDefaultsSettingsRepository()
+            let getSettingsUseCase = GetSettingsUseCaseImpl(repository: settingsRepository)
+            
             ThreadDetailViewFixed(
                 threadId: thread.id,
                 repository: viewModel.repository,
@@ -145,7 +149,8 @@ struct ThreadListView: View {
                 exportThreadUseCase: exportThreadUseCase,
                 createFieldUseCase: createFieldUseCase,
                 createGroupUseCase: createGroupUseCase,
-                deleteFieldUseCase: deleteFieldUseCase
+                deleteFieldUseCase: deleteFieldUseCase,
+                getSettingsUseCase: getSettingsUseCase
             )
         }
     }

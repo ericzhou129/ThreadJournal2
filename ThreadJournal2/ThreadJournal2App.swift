@@ -11,6 +11,8 @@ import SwiftUI
 struct ThreadJournal2App: App {
     let persistenceController = PersistenceController.shared
     
+    @Environment(\.scenePhase) private var scenePhase
+    
     // Authentication state
     @State private var isAuthenticated = false
     @State private var needsAuthentication = true
@@ -36,8 +38,6 @@ struct ThreadJournal2App: App {
             }
         }
     }
-    
-    @Environment(\.scenePhase) private var scenePhase
     
     // MARK: - Authentication Methods
     
@@ -96,11 +96,8 @@ struct ThreadJournal2App: App {
             }
             
         case .active:
-            // Check authentication requirement when returning to active
-            if needsAuthentication && !isAuthenticated {
-                // Authentication view will be shown automatically
-                return
-            }
+            // Re-check authentication requirement when returning to active
+            checkAuthenticationRequirement()
             
         case .inactive:
             // App is transitioning, maintain current state

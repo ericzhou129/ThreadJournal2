@@ -23,9 +23,9 @@ final class CustomFieldsViewModel: ObservableObject {
     
     private let threadId: UUID
     private let threadRepository: ThreadRepository
-    private let createFieldUseCase: CreateCustomFieldUseCase
-    private let createGroupUseCase: CreateFieldGroupUseCase
-    private let deleteFieldUseCase: DeleteCustomFieldUseCase
+    private let createFieldUseCase: CreateCustomFieldUseCaseProtocol
+    private let createGroupUseCase: CreateFieldGroupUseCaseProtocol
+    private let deleteFieldUseCase: DeleteCustomFieldUseCaseProtocol
     
     private var cancellables = Set<AnyCancellable>()
     private var autoSaveTask: Task<Void, Never>?
@@ -35,9 +35,9 @@ final class CustomFieldsViewModel: ObservableObject {
     init(
         threadId: UUID,
         threadRepository: ThreadRepository,
-        createFieldUseCase: CreateCustomFieldUseCase,
-        createGroupUseCase: CreateFieldGroupUseCase,
-        deleteFieldUseCase: DeleteCustomFieldUseCase
+        createFieldUseCase: CreateCustomFieldUseCaseProtocol,
+        createGroupUseCase: CreateFieldGroupUseCaseProtocol,
+        deleteFieldUseCase: DeleteCustomFieldUseCaseProtocol
     ) {
         self.threadId = threadId
         self.threadRepository = threadRepository

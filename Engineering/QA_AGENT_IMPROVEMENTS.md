@@ -194,3 +194,8 @@ class ImprovedQAAgent {
 ## Conclusion
 
 The key improvement is shifting from **structural verification** (does the code exist?) to **functional verification** (does it actually work?). The QA agent must act like a real user and verify the complete experience, not just check that files were created.
+
+
+
+
+IF you find something that needs to be fixed, call the developer agent to fix this. Onboard the developer agent on the context of the thing that needs to be fixed. 

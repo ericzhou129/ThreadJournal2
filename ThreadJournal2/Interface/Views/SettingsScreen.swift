@@ -161,32 +161,10 @@ struct SettingsScreen: View {
     }
     
     private var securityFooter: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("When enabled, Face ID or Touch ID will be required every time you open ThreadJournal. Authentication is required immediately with no grace period to ensure your private journal entries remain secure.")
-                .font(.footnote)
-                .foregroundColor(Color(.secondaryLabel))
-                .padding(.horizontal, 16)
-            
-            HStack(alignment: .top, spacing: 8) {
-                Text("🔒")
-                    .font(.system(size: 16))
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Enhanced Privacy Protection")
-                        .font(.footnote)
-                        .fontWeight(.semibold)
-                        .foregroundColor(Color(.systemYellow))
-                    
-                    Text("ThreadJournal requires authentication every time the app opens or returns from the background. This ensures your personal journal entries remain private, even if someone picks up your device moments after you've used it.")
-                        .font(.footnote)
-                        .foregroundColor(Color(.systemYellow))
-                }
-            }
-            .padding(12)
-            .background(Color(.systemYellow).opacity(0.1))
-            .cornerRadius(8)
+        Text("When enabled, Face ID or Touch ID will be required every time you open ThreadJournal.")
+            .font(.footnote)
+            .foregroundColor(Color(.secondaryLabel))
             .padding(.horizontal, 16)
-        }
     }
     
     // MARK: - Computed Properties

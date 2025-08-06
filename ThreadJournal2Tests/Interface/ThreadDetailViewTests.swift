@@ -17,6 +17,9 @@ final class ThreadDetailViewTests: XCTestCase {
     private var updateEntryUseCase: UpdateEntryUseCase!
     private var deleteEntryUseCase: DeleteEntryUseCase!
     private var draftManager: InMemoryDraftManager!
+    private var createFieldUseCase: CreateCustomFieldUseCase!
+    private var createGroupUseCase: CreateFieldGroupUseCase!
+    private var deleteFieldUseCase: DeleteCustomFieldUseCase!
     
     override func setUp() {
         super.setUp()
@@ -25,6 +28,9 @@ final class ThreadDetailViewTests: XCTestCase {
         updateEntryUseCase = UpdateEntryUseCase(repository: repository)
         deleteEntryUseCase = DeleteEntryUseCase(repository: repository)
         draftManager = InMemoryDraftManager()
+        createFieldUseCase = CreateCustomFieldUseCase(threadRepository: repository)
+        createGroupUseCase = CreateFieldGroupUseCase(threadRepository: repository)
+        deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: repository)
     }
     
     override func tearDown() {
@@ -33,6 +39,9 @@ final class ThreadDetailViewTests: XCTestCase {
         updateEntryUseCase = nil
         deleteEntryUseCase = nil
         draftManager = nil
+        createFieldUseCase = nil
+        createGroupUseCase = nil
+        deleteFieldUseCase = nil
         super.tearDown()
     }
     
@@ -59,7 +68,10 @@ final class ThreadDetailViewTests: XCTestCase {
             updateEntryUseCase: updateEntryUseCase,
             deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
-            exportThreadUseCase: exportThreadUseCase
+            exportThreadUseCase: exportThreadUseCase,
+            createFieldUseCase: createFieldUseCase,
+            createGroupUseCase: createGroupUseCase,
+            deleteFieldUseCase: deleteFieldUseCase
         )
         
         // Then

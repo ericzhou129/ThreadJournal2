@@ -34,7 +34,7 @@ final class SettingsViewModel: ObservableObject {
     
     private let getSettingsUseCase: GetSettingsUseCase
     private let updateSettingsUseCase: UpdateSettingsUseCase
-    private let biometricAuthService: BiometricAuthService
+    private let biometricAuthService: BiometricAuthServiceProtocol
     
     // MARK: - Initialization
     
@@ -47,7 +47,7 @@ final class SettingsViewModel: ObservableObject {
     init(
         getSettingsUseCase: GetSettingsUseCase,
         updateSettingsUseCase: UpdateSettingsUseCase,
-        biometricAuthService: BiometricAuthService
+        biometricAuthService: BiometricAuthServiceProtocol
     ) {
         self.getSettingsUseCase = getSettingsUseCase
         self.updateSettingsUseCase = updateSettingsUseCase

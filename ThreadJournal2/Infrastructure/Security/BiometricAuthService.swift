@@ -8,10 +8,17 @@
 import Foundation
 import LocalAuthentication
 
+/// Protocol for biometric authentication operations
+protocol BiometricAuthServiceProtocol {
+    func isBiometricAvailable() -> Bool
+    func isBiometricEnabled() async throws -> Bool
+    func authenticate() async throws -> Bool
+}
+
 /// Service for handling biometric authentication (Face ID/Touch ID) with strict security requirements.
 /// This implementation enforces NO GRACE PERIOD - authentication is required every time the app
 /// opens or returns from background for maximum privacy protection.
-final class BiometricAuthService {
+final class BiometricAuthService: BiometricAuthServiceProtocol {
     
     // MARK: - Dependencies
     

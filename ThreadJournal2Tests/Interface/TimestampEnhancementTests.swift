@@ -17,6 +17,9 @@ final class TimestampEnhancementTests: XCTestCase {
     private var deleteEntryUseCase: DeleteEntryUseCase!
     private var draftManager: InMemoryDraftManager!
     private var exportThreadUseCase: ExportThreadUseCase!
+    private var createFieldUseCase: CreateCustomFieldUseCase!
+    private var createGroupUseCase: CreateFieldGroupUseCase!
+    private var deleteFieldUseCase: DeleteCustomFieldUseCase!
     
     override func setUp() {
         super.setUp()
@@ -27,6 +30,9 @@ final class TimestampEnhancementTests: XCTestCase {
         draftManager = InMemoryDraftManager()
         let mockExporter = MockExporter()
         exportThreadUseCase = ExportThreadUseCase(repository: repository, exporter: mockExporter)
+        createFieldUseCase = CreateCustomFieldUseCase(threadRepository: repository)
+        createGroupUseCase = CreateFieldGroupUseCase(threadRepository: repository)
+        deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: repository)
     }
     
     override func tearDown() {
@@ -36,6 +42,9 @@ final class TimestampEnhancementTests: XCTestCase {
         deleteEntryUseCase = nil
         draftManager = nil
         exportThreadUseCase = nil
+        createFieldUseCase = nil
+        createGroupUseCase = nil
+        deleteFieldUseCase = nil
         super.tearDown()
     }
     
@@ -49,11 +58,14 @@ final class TimestampEnhancementTests: XCTestCase {
             updateEntryUseCase: updateEntryUseCase,
             deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
-            exportThreadUseCase: exportThreadUseCase
+            exportThreadUseCase: exportThreadUseCase,
+            createFieldUseCase: createFieldUseCase,
+            createGroupUseCase: createGroupUseCase,
+            deleteFieldUseCase: deleteFieldUseCase
         )
         
         // When - Check computed property with light color scheme
-        let lightModeView = view.environment(\.colorScheme, .light)
+        let lightModeView = view.environment(\EnvironmentValues.colorScheme, ColorScheme.light)
         
         // Then - Verify the color matches expected light mode color
         // Note: In a real UI test, we'd verify the actual rendered color
@@ -71,11 +83,14 @@ final class TimestampEnhancementTests: XCTestCase {
             updateEntryUseCase: updateEntryUseCase,
             deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
-            exportThreadUseCase: exportThreadUseCase
+            exportThreadUseCase: exportThreadUseCase,
+            createFieldUseCase: createFieldUseCase,
+            createGroupUseCase: createGroupUseCase,
+            deleteFieldUseCase: deleteFieldUseCase
         )
         
         // When - Check computed property with dark color scheme
-        let darkModeView = view.environment(\.colorScheme, .dark)
+        let darkModeView = view.environment(\EnvironmentValues.colorScheme, ColorScheme.dark)
         
         // Then - Verify the color adapts for dark mode
         XCTAssertNotNil(darkModeView)
