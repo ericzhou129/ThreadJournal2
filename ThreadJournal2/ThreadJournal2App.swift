@@ -15,16 +15,23 @@ struct ThreadJournal2App: App {
     
     // Authentication state
     @State private var isAuthenticated = false
-    @State private var needsAuthentication = true
+    @State private var needsAuthentication = false  // Default to no authentication
     @State private var biometricAuthService: BiometricAuthService?
+    @State private var hasCheckedSettings = false
     
     var body: some Scene {
         WindowGroup {
             Group {
-                if needsAuthentication && !isAuthenticated {
+                // Only show authentication view after we've checked settings
+                if hasCheckedSettings && needsAuthentication && !isAuthenticated {
                     AuthenticationRequiredView {
                         try await performAuthentication()
                     }
+                } else if !hasCheckedSettings {
+                    // Show a loading state while checking settings
+                    Color(.systemBackground)
+                        .ignoresSafeArea()
+                        .overlay(ProgressView())
                 } else {
                     ThreadListView(viewModel: makeThreadListViewModel())
                 }
@@ -48,14 +55,23 @@ struct ThreadJournal2App: App {
     
     private func checkAuthenticationRequirement() {
         Task {
-            guard let biometricService = biometricAuthService else { return }
+            guard let biometricService = biometricAuthService else { 
+                await MainActor.run {
+                    hasCheckedSettings = true
+                    isAuthenticated = true
+                }
+                return 
+            }
             
             do {
-                needsAuthentication = try await biometricService.isBiometricEnabled()
+                let authEnabled = try await biometricService.isBiometricEnabled()
                 
-                // If biometric is not enabled, allow immediate access
-                if !needsAuthentication {
-                    await MainActor.run {
+                await MainActor.run {
+                    needsAuthentication = authEnabled
+                    hasCheckedSettings = true
+                    
+                    // If biometric is not enabled, allow immediate access
+                    if !authEnabled {
                         isAuthenticated = true
                     }
                 }
@@ -64,6 +80,7 @@ struct ThreadJournal2App: App {
                 await MainActor.run {
                     needsAuthentication = false
                     isAuthenticated = true
+                    hasCheckedSettings = true
                 }
             }
         }
@@ -97,7 +114,10 @@ struct ThreadJournal2App: App {
             
         case .active:
             // Re-check authentication requirement when returning to active
-            checkAuthenticationRequirement()
+            // Only re-check if we've already checked once (app was backgrounded)
+            if hasCheckedSettings {
+                checkAuthenticationRequirement()
+            }
             
         case .inactive:
             // App is transitioning, maintain current state

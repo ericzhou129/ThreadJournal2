@@ -62,7 +62,8 @@ final class SettingsViewModel: ObservableObject {
     // MARK: - Public Methods
     
     /// Toggles biometric authentication on/off.
-    /// Checks biometric availability before enabling and saves changes immediately.
+    /// When enabling, immediately authenticates to verify Face ID works.
+    /// When disabling, just turns it off without authentication.
     func toggleBiometric() async {
         // Check if biometric authentication is available on device
         guard biometricAuthService.isBiometricAvailable() else {
@@ -70,11 +71,29 @@ final class SettingsViewModel: ObservableObject {
             return
         }
         
-        // Toggle the setting
-        biometricAuthEnabled.toggle()
-        
-        // Save the changes
-        await saveCurrentSettings()
+        // If we're about to enable biometric auth, authenticate first
+        if !biometricAuthEnabled {
+            do {
+                // Try to authenticate to verify Face ID works
+                let authenticated = try await biometricAuthService.testBiometricAuthentication()
+                
+                if authenticated {
+                    // Authentication successful, enable the setting
+                    biometricAuthEnabled = true
+                    await saveCurrentSettings()
+                } else {
+                    // Authentication cancelled or failed, don't enable
+                    errorMessage = "Authentication cancelled. Face ID was not enabled."
+                }
+            } catch {
+                // Authentication failed, don't enable
+                errorMessage = "Face ID authentication failed. Please try again."
+            }
+        } else {
+            // If disabling, just toggle it off without authentication
+            biometricAuthEnabled = false
+            await saveCurrentSettings()
+        }
     }
     
     /// Updates the text size percentage with validation.

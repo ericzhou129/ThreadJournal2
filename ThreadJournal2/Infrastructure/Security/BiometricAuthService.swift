@@ -13,6 +13,7 @@ protocol BiometricAuthServiceProtocol {
     func isBiometricAvailable() -> Bool
     func isBiometricEnabled() async throws -> Bool
     func authenticate() async throws -> Bool
+    func testBiometricAuthentication() async throws -> Bool
 }
 
 /// Service for handling biometric authentication (Face ID/Touch ID) with strict security requirements.
@@ -70,6 +71,20 @@ final class BiometricAuthService: BiometricAuthServiceProtocol {
         }
         
         // Perform biometric authentication with no grace period
+        return try await performBiometricAuthentication()
+    }
+    
+    /// Tests biometric authentication without checking settings.
+    /// Used for verifying Face ID/Touch ID works when enabling the feature.
+    /// - Returns: true if authentication succeeded
+    /// - Throws: BiometricAuthError for various authentication failure scenarios
+    func testBiometricAuthentication() async throws -> Bool {
+        // Verify biometric is available on device
+        guard isBiometricAvailable() else {
+            throw BiometricAuthError.biometricNotAvailable
+        }
+        
+        // Perform biometric authentication test
         return try await performBiometricAuthentication()
     }
     
