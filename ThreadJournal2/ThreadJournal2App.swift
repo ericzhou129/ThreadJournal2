@@ -21,8 +21,8 @@ struct ThreadJournal2App: App {
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                // Only show authentication view after we've checked settings
+            ZStack {
+                // Main content
                 if hasCheckedSettings && needsAuthentication && !isAuthenticated {
                     AuthenticationRequiredView {
                         try await performAuthentication()
@@ -42,8 +42,8 @@ struct ThreadJournal2App: App {
                     checkAuthenticationRequirement()
                 }
             }
-            .onChange(of: scenePhase) {
-                handleScenePhaseChange(scenePhase)
+            .onChange(of: scenePhase) { newPhase in
+                handleScenePhaseChange(newPhase)
             }
         }
     }
@@ -116,21 +116,45 @@ struct ThreadJournal2App: App {
     }
     
     private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        #if DEBUG
+        print("App: Scene phase changed to: \(newPhase), needsAuth: \(needsAuthentication), isAuth: \(isAuthenticated)")
+        #endif
+        
         switch newPhase {
         case .background:
             // Lock immediately when app goes to background
+            #if DEBUG
+            print("App: Going to background - locking if needed")
+            #endif
             if needsAuthentication {
-                isAuthenticated = false
+                // Use Task to ensure state change happens on MainActor
+                Task { @MainActor in
+                    isAuthenticated = false
+                    #if DEBUG
+                    print("App: Locked - will require auth on return")
+                    #endif
+                }
             }
             
         case .active:
-            // When returning to active, if we need auth and aren't authenticated, 
-            // the UI will automatically show the auth screen
-            // Don't re-check settings here as it causes state issues
-            break
+            // When returning to active, log the state
+            #if DEBUG
+            print("App: Returning to active - needsAuth: \(needsAuthentication), isAuth: \(isAuthenticated)")
+            #endif
+            // The UI should automatically show auth screen if needed
+            // Force a small delay to ensure UI updates
+            if needsAuthentication && !isAuthenticated {
+                Task { @MainActor in
+                    // This forces the UI to re-evaluate
+                    isAuthenticated = false
+                }
+            }
             
         case .inactive:
             // App is transitioning, maintain current state
+            #if DEBUG
+            print("App: Inactive phase")
+            #endif
             break
             
         @unknown default:
