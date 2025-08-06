@@ -37,7 +37,7 @@ struct SettingsScreen: View {
                         VStack(spacing: 0) {
                             SettingsToggleRow(
                                 title: "Require Face ID",
-                                isOn: $viewModel.biometricAuthEnabled
+                                isOn: .constant(viewModel.biometricAuthEnabled)
                             ) {
                                 await viewModel.toggleBiometric()
                             }

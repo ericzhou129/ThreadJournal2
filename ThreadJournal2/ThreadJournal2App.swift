@@ -37,8 +37,10 @@ struct ThreadJournal2App: App {
                 }
             }
             .onAppear {
-                setupAuthentication()
-                checkAuthenticationRequirement()
+                if !hasCheckedSettings {
+                    setupAuthentication()
+                    checkAuthenticationRequirement()
+                }
             }
             .onChange(of: scenePhase) {
                 handleScenePhaseChange(scenePhase)
