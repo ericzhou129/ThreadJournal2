@@ -11,6 +11,7 @@ import UIKit
 struct ThreadListView: View {
     @StateObject private var viewModel: ThreadListViewModel
     @State private var showingNewThreadSheet = false
+    @State private var showingSettingsSheet = false
     @State private var navigationPath = NavigationPath()
     
     // Dynamic Type support
@@ -48,6 +49,16 @@ struct ThreadListView: View {
             }
             .navigationTitle("Threads")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showingSettingsSheet = true
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
         }
         .onAppear {
             viewModel.loadThreads()
@@ -85,6 +96,9 @@ struct ThreadListView: View {
                     .first(where: { $0.thread.id == thread.id })?.entryCount ?? 0
                 Text("Delete '\(thread.title)'? This thread contains \(entryCount) \(entryCount == 1 ? "entry" : "entries").")
             }
+        }
+        .sheet(isPresented: $showingSettingsSheet) {
+            createSettingsScreen()
         }
     }
     
@@ -229,6 +243,24 @@ struct ThreadListView: View {
         } else {
             return "Updated just now"
         }
+    }
+    
+    // MARK: - Settings Screen Factory
+    
+    private func createSettingsScreen() -> some View {
+        // Create settings dependencies
+        let settingsRepository = UserDefaultsSettingsRepository()
+        let getSettingsUseCase = GetSettingsUseCaseImpl(repository: settingsRepository)
+        let updateSettingsUseCase = UpdateSettingsUseCaseImpl(repository: settingsRepository)
+        let biometricAuthService = BiometricAuthService(settingsRepository: settingsRepository)
+        
+        let settingsViewModel = SettingsViewModel(
+            getSettingsUseCase: getSettingsUseCase,
+            updateSettingsUseCase: updateSettingsUseCase,
+            biometricAuthService: biometricAuthService
+        )
+        
+        return SettingsScreen(viewModel: settingsViewModel)
     }
 }
 

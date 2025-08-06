@@ -799,7 +799,490 @@ struct SettingsStepperRow: View {
 }
 ```
 
-## 7. Data Flow, Privacy & Compliance
+## 7. Location Services Implementation
+
+### Location Domain Model Extension
+```swift
+// Domain/Entities/LocationData.swift
+struct LocationData {
+    let city: String
+    let state: String
+    let coordinates: CLLocationCoordinate2D? // Optional for privacy
+    let timestamp: Date
+}
+
+// Domain/Entities/LocationSettings.swift
+struct LocationSettings {
+    var isLocationTrackingEnabled: Bool
+    var lastKnownLocation: LocationData?
+}
+
+// Domain/Entities/Entry.swift (Extended)
+struct Entry {
+    let id: UUID
+    let threadId: UUID
+    let content: String
+    let timestamp: Date
+    let deletedAt: Date?
+    let lastEditedAt: Date?
+    let location: LocationData? // New location field
+}
+```
+
+### Location Use Cases
+```swift
+// Domain/UseCases/GetCurrentLocationUseCase.swift
+protocol GetCurrentLocationUseCase {
+    func execute() async throws -> LocationData
+}
+
+final class GetCurrentLocationUseCaseImpl: GetCurrentLocationUseCase {
+    private let locationRepository: LocationRepository
+    private let timeout: TimeInterval = 5.0
+    
+    init(locationRepository: LocationRepository) {
+        self.locationRepository = locationRepository
+    }
+    
+    func execute() async throws -> LocationData {
+        return try await withTimeout(timeout) {
+            try await locationRepository.getCurrentLocation()
+        }
+    }
+}
+
+// Domain/UseCases/UpdateLocationSettingsUseCase.swift
+protocol UpdateLocationSettingsUseCase {
+    func execute(settings: LocationSettings) async throws
+}
+
+// Domain/Repositories/LocationRepository.swift
+protocol LocationRepository {
+    func getCurrentLocation() async throws -> LocationData
+    func getLocationSettings() async throws -> LocationSettings
+    func saveLocationSettings(_ settings: LocationSettings) async throws
+    func requestLocationPermission() async throws -> Bool
+    func isLocationPermissionGranted() async -> Bool
+}
+```
+
+### Core Location Service Implementation
+```swift
+// Infrastructure/Services/CoreLocationService.swift
+import CoreLocation
+import Foundation
+
+final class CoreLocationService: NSObject, LocationRepository {
+    private let locationManager = CLLocationManager()
+    private let geocoder = CLGeocoder()
+    private var locationContinuation: CheckedContinuation<LocationData, Error>?
+    private let settingsRepository: SettingsRepository
+    
+    init(settingsRepository: SettingsRepository) {
+        self.settingsRepository = settingsRepository
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager.distanceFilter = 100 // Update every 100m
+    }
+    
+    func getCurrentLocation() async throws -> LocationData {
+        guard await isLocationPermissionGranted() else {
+            throw LocationError.permissionDenied
+        }
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            self.locationContinuation = continuation
+            locationManager.requestLocation()
+        }
+    }
+    
+    func requestLocationPermission() async throws -> Bool {
+        return try await withCheckedThrowingContinuation { continuation in
+            switch locationManager.authorizationStatus {
+            case .notDetermined:
+                locationManager.requestWhenInUseAuthorization()
+                // Handle in delegate
+            case .authorizedWhenInUse, .authorizedAlways:
+                continuation.resume(returning: true)
+            case .denied, .restricted:
+                continuation.resume(returning: false)
+            @unknown default:
+                continuation.resume(returning: false)
+            }
+        }
+    }
+    
+    func isLocationPermissionGranted() async -> Bool {
+        switch locationManager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    private func reverseGeocode(_ location: CLLocation) async throws -> LocationData {
+        let placemarks = try await geocoder.reverseGeocodeLocation(location)
+        guard let placemark = placemarks.first else {
+            throw LocationError.geocodingFailed
+        }
+        
+        let city = placemark.locality ?? "Unknown City"
+        let state = placemark.administrativeArea ?? "Unknown State"
+        
+        return LocationData(
+            city: city,
+            state: state,
+            coordinates: location.coordinate,
+            timestamp: Date()
+        )
+    }
+}
+
+// MARK: - CLLocationManagerDelegate
+extension CoreLocationService: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        
+        Task {
+            do {
+                let locationData = try await reverseGeocode(location)
+                locationContinuation?.resume(returning: locationData)
+                locationContinuation = nil
+            } catch {
+                locationContinuation?.resume(throwing: error)
+                locationContinuation = nil
+            }
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        locationContinuation?.resume(throwing: LocationError.locationUnavailable)
+        locationContinuation = nil
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Handle authorization changes
+    }
+}
+
+// LocationError.swift
+enum LocationError: Error, LocalizedError {
+    case permissionDenied
+    case locationUnavailable
+    case geocodingFailed
+    case timeout
+    
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            return "Location permission denied"
+        case .locationUnavailable:
+            return "Location services unavailable"
+        case .geocodingFailed:
+            return "Unable to determine location"
+        case .timeout:
+            return "Location request timed out"
+        }
+    }
+}
+```
+
+### Settings Integration for Location
+```swift
+// Application/ViewModels/SettingsViewModel.swift (Extended)
+@MainActor
+final class SettingsViewModel: ObservableObject {
+    // Existing properties...
+    @Published var isLocationTrackingEnabled: Bool = false
+    @Published var currentLocation: String = ""
+    @Published var showLocationPermissionAlert: Bool = false
+    
+    private let locationService: LocationRepository
+    
+    // Modified constructor
+    init(
+        updateSettingsUseCase: UpdateSettingsUseCase,
+        biometricService: BiometricAuthService,
+        locationService: LocationRepository
+    ) {
+        self.updateSettingsUseCase = updateSettingsUseCase
+        self.biometricService = biometricService
+        self.locationService = locationService
+        
+        Task {
+            await loadLocationSettings()
+        }
+    }
+    
+    func toggleLocationTracking() async {
+        if !isLocationTrackingEnabled {
+            // Enabling - request permission first
+            do {
+                let granted = try await locationService.requestLocationPermission()
+                if granted {
+                    isLocationTrackingEnabled = true
+                    await updateCurrentLocation()
+                } else {
+                    showLocationPermissionAlert = true
+                }
+            } catch {
+                showLocationPermissionAlert = true
+            }
+        } else {
+            // Disabling
+            isLocationTrackingEnabled = false
+            currentLocation = ""
+        }
+        
+        await saveLocationSettings()
+    }
+    
+    private func updateCurrentLocation() async {
+        guard isLocationTrackingEnabled else { return }
+        
+        do {
+            let location = try await locationService.getCurrentLocation()
+            currentLocation = "\(location.city), \(location.state)"
+        } catch {
+            currentLocation = "Location unavailable"
+        }
+    }
+    
+    private func loadLocationSettings() async {
+        do {
+            let settings = try await locationService.getLocationSettings()
+            isLocationTrackingEnabled = settings.isLocationTrackingEnabled
+            
+            if let lastLocation = settings.lastKnownLocation {
+                currentLocation = "\(lastLocation.city), \(lastLocation.state)"
+            }
+        } catch {
+            // Use defaults
+        }
+    }
+    
+    private func saveLocationSettings() async {
+        let settings = LocationSettings(
+            isLocationTrackingEnabled: isLocationTrackingEnabled,
+            lastKnownLocation: nil // Will be updated when location is fetched
+        )
+        
+        try? await locationService.saveLocationSettings(settings)
+    }
+}
+```
+
+### Entry Creation with Location
+```swift
+// Domain/UseCases/AddEntryUseCase.swift (Modified)
+final class AddEntryUseCaseImpl: AddEntryUseCase {
+    private let repository: ThreadRepository
+    private let locationUseCase: GetCurrentLocationUseCase
+    private let locationSettings: LocationRepository
+    
+    init(
+        repository: ThreadRepository,
+        locationUseCase: GetCurrentLocationUseCase,
+        locationSettings: LocationRepository
+    ) {
+        self.repository = repository
+        self.locationUseCase = locationUseCase
+        self.locationSettings = locationSettings
+    }
+    
+    func execute(content: String, threadId: UUID) async throws -> Entry {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ValidationError.emptyContent
+        }
+        
+        // Check if location should be added
+        var location: LocationData?
+        do {
+            let settings = try await locationSettings.getLocationSettings()
+            if settings.isLocationTrackingEnabled {
+                // Try to get location with timeout
+                location = try await withTimeout(5.0) {
+                    try await locationUseCase.execute()
+                }
+            }
+        } catch {
+            // Location failed - continue without location
+            // Entry creation should not fail due to location issues
+        }
+        
+        let entry = Entry(
+            id: UUID(),
+            threadId: threadId,
+            content: content,
+            timestamp: Date(),
+            deletedAt: nil,
+            lastEditedAt: nil,
+            location: location
+        )
+        
+        try await repository.addEntry(entry, to: threadId)
+        return entry
+    }
+}
+```
+
+### UI Components for Location Display
+```swift
+// Interface/Components/EntryRowView.swift (Modified)
+struct EntryRowView: View {
+    let entry: Entry
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Timestamp
+            Text(formatTimestamp(entry.timestamp))
+                .font(.system(size: DesignSystem.timestampSize, weight: .medium))
+                .foregroundColor(DesignSystem.timestampColor)
+                .modifier(TimestampBackground())
+            
+            // Location (if available)
+            if let location = entry.location {
+                HStack(spacing: 4) {
+                    Text("📍")
+                        .font(.system(size: 12))
+                    Text("\(location.city), \(location.state)")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                .padding(.bottom, 2)
+            }
+            
+            // Content
+            Text(entry.content)
+                .font(.system(size: DesignSystem.contentSize))
+                .foregroundColor(DesignSystem.contentColor)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, DesignSystem.contentPadding)
+        .padding(.vertical, 8)
+    }
+}
+```
+
+### Privacy & Data Handling
+```swift
+// Privacy-First Location Storage
+struct LocationDataStorageStrategy {
+    // RULE: Never store exact coordinates in user-facing data
+    // RULE: City/State only for display
+    // RULE: All location data stays local (no network transmission)
+    
+    static func sanitizeForStorage(_ location: LocationData) -> LocationData {
+        return LocationData(
+            city: location.city,
+            state: location.state,
+            coordinates: nil, // Remove exact coordinates for privacy
+            timestamp: location.timestamp
+        )
+    }
+    
+    static func formatForDisplay(_ location: LocationData) -> String {
+        return "\(location.city), \(location.state)"
+    }
+}
+```
+
+### Location Settings UI Integration
+The location settings are integrated into the existing Settings screen through the modified SettingsScreen.swift:
+
+```swift
+// Interface/Screens/SettingsScreen.swift (Location Section Added)
+struct SettingsScreen: View {
+    @StateObject private var viewModel: SettingsViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            List {
+                // Security Section (existing)
+                securitySection
+                
+                // Display Section (existing)
+                displaySection
+                
+                // Location Section (NEW)
+                locationSection
+                
+                // About Section (existing)
+                aboutSection
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .alert("Location Permission Required", 
+                   isPresented: $viewModel.showLocationPermissionAlert) {
+                Button("Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Please enable location access in Settings to automatically add location to your journal entries.")
+            }
+        }
+    }
+    
+    private var locationSection: some View {
+        Section(header: Text("Location")) {
+            SettingsToggleRow(
+                title: "Add Location to Entries",
+                isOn: $viewModel.isLocationTrackingEnabled
+            ) {
+                await viewModel.toggleLocationTracking()
+            }
+            
+            if viewModel.isLocationTrackingEnabled && !viewModel.currentLocation.isEmpty {
+                HStack {
+                    Text("Show Current Location")
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(.label))
+                    
+                    Spacer()
+                    
+                    Text(viewModel.currentLocation)
+                        .font(.system(size: 17))
+                        .foregroundColor(Color(.secondaryLabel))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+            }
+        } footer: {
+            Text("When enabled, location will be automatically added to new journal entries. Your location data is stored locally on your device and never shared.")
+        }
+    }
+}
+```
+
+### Core Data Model Updates
+The Entry entity in Core Data needs to be updated to include location fields:
+
+```swift
+// Add to CDEntry entity in ThreadDataModel.xcdatamodeld
+// New attributes (all optional for migration compatibility):
+// - locationCity: String?
+// - locationState: String? 
+// - locationTimestamp: Date?
+
+// Migration from v1.3 → v1.4
+// This will be a lightweight migration since all new fields are optional
+```
+
+## 8. Data Flow, Privacy & Compliance
 
 ### Data Flow Diagram
 ```mermaid

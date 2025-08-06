@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracking Feature - ThreadJournal2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f2f2f7;
+            margin: 0;
+            padding: 20px;
+        }
+        .phone {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            margin: 0 auto 40px;
+            position: relative;
+        }
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 17px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 0 16px;
+            height: calc(100% - 44px);
+            overflow-y: auto;
+        }
+        
+        /* Entry with location */
+        .entry {
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .entry:last-child {
+            border-bottom: none;
+        }
+        .entry-content {
+            font-size: 16px;
+            line-height: 1.4;
+            color: #000;
+            margin-bottom: 8px;
+        }
+        .entry-metadata {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .entry-timestamp {
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        .entry-location {
+            font-size: 12px;
+            color: #8e8e93;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        
+        /* Settings screen */
+        .settings-group {
+            background: #fff;
+            border-radius: 10px;
+            margin: 16px 0;
+        }
+        .settings-item {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+        .settings-label {
+            font-size: 16px;
+            color: #000;
+        }
+        .settings-value {
+            font-size: 16px;
+            color: #007aff;
+        }
+        
+        /* Permission alert */
+        .alert-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .alert {
+            background: #fff;
+            border-radius: 14px;
+            width: 270px;
+            padding: 20px;
+            text-align: center;
+        }
+        .alert-title {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .alert-message {
+            font-size: 13px;
+            color: #000;
+            line-height: 1.4;
+            margin-bottom: 20px;
+        }
+        .alert-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .alert-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .alert-button-cancel {
+            background: #f0f0f0;
+            color: #000;
+        }
+        .alert-button-allow {
+            background: #007aff;
+            color: #fff;
+        }
+        
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 20px 0 16px;
+            text-align: center;
+        }
+        
+        .reference-badge {
+            position: absolute;
+            background: #007aff;
+            color: white;
+            border-radius: 12px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .reference-panel {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .reference-item {
+            padding: 8px;
+            border-radius: 6px;
+            margin: 4px 0;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        .reference-item:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="section-title">Location Tracking - Design Reference v1.2</div>
+    
+    <!-- Thread Detail with Location -->
+    <div class="phone">
+        <div class="screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>Thread Detail</span>
+                <span>100%</span>
+            </div>
+            <div class="content">
+                <div class="entry">
+                    <div class="entry-content">Had a great meeting with the team today. We discussed the new features and everyone seems excited about the direction we're heading.</div>
+                    <div class="entry-metadata">
+                        <div class="entry-timestamp">Today at 2:30 PM</div>
+                        <div class="entry-location">37.7749, -122.4194</div>
+                    </div>
+                </div>
+                <div class="entry">
+                    <div class="entry-content">Quick thoughts while waiting for the bus. Sometimes the best ideas come when you're not actively trying to think of them.</div>
+                    <div class="entry-metadata">
+                        <div class="entry-timestamp">Yesterday at 5:45 PM</div>
+                        <div class="entry-location">37.7849, -122.4094</div>
+                    </div>
+                </div>
+            </div>
+            <div class="reference-badge" style="top: 80px; right: 20px;" data-ref="Design:v1.2/EntryLocation">1</div>
+        </div>
+    </div>
+    
+    <!-- Settings Screen -->
+    <div class="phone">
+        <div class="screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>Settings</span>
+                <span>100%</span>
+            </div>
+            <div class="content">
+                <div class="settings-group">
+                    <div class="settings-item">
+                        <div class="settings-label">Location Tracking</div>
+                        <div class="settings-value">Always Capture</div>
+                    </div>
+                </div>
+                <div style="font-size: 13px; color: #8e8e93; margin: 8px 16px;">
+                    ThreadJournal captures your location to help you remember the context of your entries. You can change this setting at any time.
+                </div>
+            </div>
+            <div class="reference-badge" style="top: 120px; right: 20px;" data-ref="Design:v1.2/LocationSettings">2</div>
+        </div>
+    </div>
+    
+    <!-- Permission Alert -->
+    <div class="phone">
+        <div class="screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>New Entry</span>
+                <span>100%</span>
+            </div>
+            <div class="content">
+                <!-- Background content dimmed -->
+            </div>
+            <div class="alert-overlay">
+                <div class="alert">
+                    <div class="alert-title">"ThreadJournal" Would Like to Access Your Location</div>
+                    <div class="alert-message">ThreadJournal uses your location to remember where you created each entry, helping you recall the context of your thoughts.</div>
+                    <div class="alert-buttons">
+                        <button class="alert-button alert-button-cancel">Don't Allow</button>
+                        <button class="alert-button alert-button-allow">Allow</button>
+                    </div>
+                </div>
+            </div>
+            <div class="reference-badge" style="top: 400px; right: 20px;" data-ref="Design:v1.2/LocationPermission">3</div>
+        </div>
+    </div>
+    
+    <!-- Reference Panel -->
+    <div class="reference-panel">
+        <h3 style="margin-top: 0;">Location Tracking References</h3>
+        <div class="reference-item" data-ref="Design:v1.2/EntryLocation">1. Entry Location Display</div>
+        <div class="reference-item" data-ref="Design:v1.2/LocationSettings">2. Location Settings</div>
+        <div class="reference-item" data-ref="Design:v1.2/LocationPermission">3. Location Permission Alert</div>
+        
+        <h4>Component Specifications:</h4>
+        <div style="font-size: 12px; color: #666;">
+            <strong>Entry Location:</strong><br>
+            • Font: SF Mono, 12pt<br>
+            • Color: #8E8E93<br>
+            • Format: "lat, lng" (4 decimal places)<br>
+            • Position: Below timestamp<br><br>
+            
+            <strong>Settings:</strong><br>
+            • Standard iOS settings cell<br>
+            • Options: Always/Never/Ask Each Time<br>
+            • Explanatory text below<br><br>
+            
+            <strong>Permission Alert:</strong><br>
+            • Standard iOS location permission alert<br>
+            • Custom message explaining purpose<br>
+            • Allow/Don't Allow buttons
+        </div>
+    </div>
+    
+    <script>
+        // Click to copy reference
+        document.querySelectorAll('[data-ref]').forEach(el => {
+            el.addEventListener('click', () => {
+                const ref = el.getAttribute('data-ref');
+                navigator.clipboard.writeText(ref);
+                
+                // Visual feedback
+                const original = el.textContent;
+                el.textContent = '✓';
+                setTimeout(() => {
+                    el.textContent = original;
+                }, 1000);
+            });
+        });
+    </script>
+</body>
+</html>
