@@ -443,7 +443,7 @@ struct ThreadDetailViewFixed: View {
             
             // Edit text field - no internal scrolling, expands to fit content
             TextField("", text: $viewModel.editedContent, axis: .vertical)
-                .font(.system(size: contentSize))
+                .font(.system(size: baseContentSize * CGFloat(textSizePercentage) / 100))
                 .foregroundColor(Color(.label))
                 .textFieldStyle(.plain)
                 .lineLimit(3...20) // Min 3 lines for editing, max 20 lines
