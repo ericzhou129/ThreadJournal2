@@ -133,11 +133,19 @@ final class SettingsViewModel: ObservableObject {
         do {
             let settings = try await getSettingsUseCase.execute()
             
+            #if DEBUG
+            print("SettingsViewModel: Loaded settings - biometric: \(settings.biometricAuthEnabled), textSize: \(settings.textSizePercentage)")
+            #endif
+            
             // Update published properties on main thread
             biometricAuthEnabled = settings.biometricAuthEnabled
             textSizePercentage = settings.textSizePercentage
             
         } catch {
+            #if DEBUG
+            print("SettingsViewModel: Failed to load settings, using defaults")
+            #endif
+            
             // Use default values if loading fails
             biometricAuthEnabled = false
             textSizePercentage = 100

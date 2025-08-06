@@ -45,11 +45,17 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
     func get() async throws -> UserSettings {
         guard let data = userDefaults.data(forKey: key) else {
             // No settings exist, return defaults
+            #if DEBUG
+            print("UserDefaultsSettingsRepository: No settings found, returning defaults")
+            #endif
             return UserSettings()
         }
         
         do {
             let settings = try decoder.decode(UserSettings.self, from: data)
+            #if DEBUG
+            print("UserDefaultsSettingsRepository: Loaded settings - biometric: \(settings.biometricAuthEnabled), textSize: \(settings.textSizePercentage)")
+            #endif
             return settings
         } catch {
             // Data is corrupted or in wrong format, return defaults
@@ -72,6 +78,10 @@ final class UserDefaultsSettingsRepository: SettingsRepository {
             
             // Force synchronization to ensure data is written
             userDefaults.synchronize()
+            
+            #if DEBUG
+            print("UserDefaultsSettingsRepository: Saved settings - biometric: \(settings.biometricAuthEnabled), textSize: \(settings.textSizePercentage)")
+            #endif
         } catch {
             // Encoding failed - this is a serious error we should propagate
             #if DEBUG

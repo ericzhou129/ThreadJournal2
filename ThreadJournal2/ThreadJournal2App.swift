@@ -66,6 +66,10 @@ struct ThreadJournal2App: App {
             do {
                 let authEnabled = try await biometricService.isBiometricEnabled()
                 
+                #if DEBUG
+                print("App: Checking auth requirement - biometric enabled: \(authEnabled)")
+                #endif
+                
                 await MainActor.run {
                     needsAuthentication = authEnabled
                     hasCheckedSettings = true
@@ -74,9 +78,14 @@ struct ThreadJournal2App: App {
                     if !authEnabled {
                         isAuthenticated = true
                     }
+                    // If biometric IS enabled, keep isAuthenticated = false to trigger auth
                 }
             } catch {
                 // On error checking settings, default to not requiring authentication
+                #if DEBUG
+                print("App: Error checking settings: \(error)")
+                #endif
+                
                 await MainActor.run {
                     needsAuthentication = false
                     isAuthenticated = true
@@ -113,11 +122,10 @@ struct ThreadJournal2App: App {
             }
             
         case .active:
-            // Re-check authentication requirement when returning to active
-            // Only re-check if we've already checked once (app was backgrounded)
-            if hasCheckedSettings {
-                checkAuthenticationRequirement()
-            }
+            // When returning to active, if we need auth and aren't authenticated, 
+            // the UI will automatically show the auth screen
+            // Don't re-check settings here as it causes state issues
+            break
             
         case .inactive:
             // App is transitioning, maintain current state
