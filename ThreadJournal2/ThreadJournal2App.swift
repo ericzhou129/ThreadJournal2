@@ -18,6 +18,7 @@ struct ThreadJournal2App: App {
     @State private var needsAuthentication = false  // Default to no authentication
     @State private var biometricAuthService: BiometricAuthService?
     @State private var hasCheckedSettings = false
+    @State private var refreshID = UUID()  // Force view refresh
     
     var body: some Scene {
         WindowGroup {
@@ -36,13 +37,14 @@ struct ThreadJournal2App: App {
                     ThreadListView(viewModel: makeThreadListViewModel())
                 }
             }
+            .id(refreshID)  // Force view refresh when ID changes
             .onAppear {
                 if !hasCheckedSettings {
                     setupAuthentication()
                     checkAuthenticationRequirement()
                 }
             }
-            .onChange(of: scenePhase) { newPhase in
+            .onChange(of: scenePhase) { oldPhase, newPhase in
                 handleScenePhaseChange(newPhase)
             }
         }
@@ -127,28 +129,21 @@ struct ThreadJournal2App: App {
             print("App: Going to background - locking if needed")
             #endif
             if needsAuthentication {
-                // Use Task to ensure state change happens on MainActor
-                Task { @MainActor in
-                    isAuthenticated = false
-                    #if DEBUG
-                    print("App: Locked - will require auth on return")
-                    #endif
-                }
+                // Lock synchronously - don't use Task here
+                isAuthenticated = false
+                refreshID = UUID()  // Force UI refresh
+                #if DEBUG
+                print("App: Locked - isAuthenticated now: \(isAuthenticated)")
+                #endif
             }
             
         case .active:
             // When returning to active, log the state
             #if DEBUG
             print("App: Returning to active - needsAuth: \(needsAuthentication), isAuth: \(isAuthenticated)")
+            print("App: Should show auth screen: \(needsAuthentication && !isAuthenticated)")
             #endif
-            // The UI should automatically show auth screen if needed
-            // Force a small delay to ensure UI updates
-            if needsAuthentication && !isAuthenticated {
-                Task { @MainActor in
-                    // This forces the UI to re-evaluate
-                    isAuthenticated = false
-                }
-            }
+            // No need to do anything here - the UI will update based on the state
             
         case .inactive:
             // App is transitioning, maintain current state
