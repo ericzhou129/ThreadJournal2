@@ -274,4 +274,11 @@ private final class MockBiometricAuthService: BiometricAuthServiceProtocol {
         }
         return authenticateResult
     }
+    
+    func testBiometricAuthentication() async throws -> Bool {
+        if let error = authenticateError {
+            throw error
+        }
+        return authenticateResult
+    }
 }

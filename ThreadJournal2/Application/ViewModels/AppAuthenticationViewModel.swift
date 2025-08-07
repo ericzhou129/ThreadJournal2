@@ -18,9 +18,14 @@ final class AppAuthenticationViewModel: ObservableObject {
     @Published var needsAuthentication = false
     @Published var hasCheckedSettings = false
     
+    // MARK: - Private Properties
+    
+    /// Tracks whether the app has been explicitly locked for background
+    private var isLockedForBackground = false
+    
     // MARK: - Dependencies
     
-    private var biometricAuthService: BiometricAuthService?
+    private var biometricAuthService: BiometricAuthServiceProtocol?
     
     // MARK: - Initialization
     
@@ -29,13 +34,20 @@ final class AppAuthenticationViewModel: ObservableObject {
         checkAuthenticationRequirement()
     }
     
+    /// Testable initializer with dependency injection
+    init(biometricAuthService: BiometricAuthServiceProtocol) {
+        self.biometricAuthService = biometricAuthService
+        checkAuthenticationRequirement()
+    }
+    
     // MARK: - Public Methods
     
     func lockForBackground() {
         if needsAuthentication {
             isAuthenticated = false
+            isLockedForBackground = true
             #if DEBUG
-            print("AppAuthVM: Locked - isAuthenticated set to: \(isAuthenticated)")
+            print("AppAuthVM: Locked - isAuthenticated set to: \(isAuthenticated), isLockedForBackground: \(isLockedForBackground)")
             #endif
         }
     }
@@ -46,8 +58,12 @@ final class AppAuthenticationViewModel: ObservableObject {
         do {
             let authenticated = try await biometricService.authenticate()
             isAuthenticated = authenticated
+            // Clear the locked state once successfully authenticated
+            if authenticated {
+                isLockedForBackground = false
+            }
             #if DEBUG
-            print("AppAuthVM: Authentication result: \(authenticated)")
+            print("AppAuthVM: Authentication result: \(authenticated), isLockedForBackground: \(isLockedForBackground)")
             #endif
         } catch {
             isAuthenticated = false
@@ -66,7 +82,10 @@ final class AppAuthenticationViewModel: ObservableObject {
         Task {
             guard let biometricService = biometricAuthService else {
                 hasCheckedSettings = true
-                isAuthenticated = true
+                // Only set authenticated if not locked for background
+                if !isLockedForBackground {
+                    isAuthenticated = true
+                }
                 return
             }
             
@@ -74,14 +93,14 @@ final class AppAuthenticationViewModel: ObservableObject {
                 let authEnabled = try await biometricService.isBiometricEnabled()
                 
                 #if DEBUG
-                print("AppAuthVM: Checking auth requirement - biometric enabled: \(authEnabled)")
+                print("AppAuthVM: Checking auth requirement - biometric enabled: \(authEnabled), isLockedForBackground: \(isLockedForBackground)")
                 #endif
                 
                 needsAuthentication = authEnabled
                 hasCheckedSettings = true
                 
-                // If biometric is not enabled, allow immediate access
-                if !authEnabled {
+                // If biometric is not enabled, allow immediate access only if not locked for background
+                if !authEnabled && !isLockedForBackground {
                     isAuthenticated = true
                 }
             } catch {
@@ -90,7 +109,10 @@ final class AppAuthenticationViewModel: ObservableObject {
                 #endif
                 
                 needsAuthentication = false
-                isAuthenticated = true
+                // Only set authenticated if not locked for background
+                if !isLockedForBackground {
+                    isAuthenticated = true
+                }
                 hasCheckedSettings = true
             }
         }
