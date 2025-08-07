@@ -17,18 +17,25 @@ struct ThreadJournal2App: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Main content
-                if authViewModel.hasCheckedSettings && authViewModel.needsAuthentication && !authViewModel.isAuthenticated {
-                    AuthenticationRequiredView {
-                        try await authViewModel.performAuthentication()
-                    }
-                } else if !authViewModel.hasCheckedSettings {
-                    // Show a loading state while checking settings
+                // Main content - always present to maintain state
+                ThreadListView(viewModel: makeThreadListViewModel())
+                    .opacity(authViewModel.hasCheckedSettings ? 1 : 0)
+                
+                // Loading overlay while checking settings
+                if !authViewModel.hasCheckedSettings {
                     Color(.systemBackground)
                         .ignoresSafeArea()
                         .overlay(ProgressView())
-                } else {
-                    ThreadListView(viewModel: makeThreadListViewModel())
+                }
+                
+                // Authentication overlay when needed
+                if authViewModel.hasCheckedSettings && authViewModel.needsAuthentication && !authViewModel.isAuthenticated {
+                    #if DEBUG
+                    let _ = print("App: Showing AuthenticationRequiredView - hasChecked: \(authViewModel.hasCheckedSettings), needsAuth: \(authViewModel.needsAuthentication), isAuth: \(authViewModel.isAuthenticated)")
+                    #endif
+                    AuthenticationRequiredView {
+                        try await authViewModel.performAuthentication()
+                    }
                 }
             }
             .onChange(of: scenePhase) { oldPhase, newPhase in
@@ -53,11 +60,12 @@ struct ThreadJournal2App: App {
             authViewModel.lockForBackground()
             
         case .active:
-            // When returning to active, log the state
+            // When returning to active, refresh authentication state
             #if DEBUG
             print("App: Returning to active - needsAuth: \(authViewModel.needsAuthentication), isAuth: \(authViewModel.isAuthenticated)")
             print("App: Should show auth screen: \(authViewModel.needsAuthentication && !authViewModel.isAuthenticated)")
             #endif
+            authViewModel.refreshAuthenticationState()
             
         case .inactive:
             // App is transitioning, maintain current state

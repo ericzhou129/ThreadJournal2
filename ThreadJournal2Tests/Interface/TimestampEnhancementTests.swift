@@ -9,6 +9,24 @@ import XCTest
 import SwiftUI
 @testable import ThreadJournal2
 
+// MARK: - Mock Settings Repository
+
+private final class MockTimestampSettingsRepository: SettingsRepository {
+    var settings = UserSettings()
+    var saveCallCount = 0
+    var getCallCount = 0
+    
+    func save(_ settings: UserSettings) async throws {
+        saveCallCount += 1
+        self.settings = settings
+    }
+    
+    func get() async throws -> UserSettings {
+        getCallCount += 1
+        return settings
+    }
+}
+
 final class TimestampEnhancementTests: XCTestCase {
     
     private var repository: MockThreadRepository!
@@ -20,6 +38,7 @@ final class TimestampEnhancementTests: XCTestCase {
     private var createFieldUseCase: CreateCustomFieldUseCase!
     private var createGroupUseCase: CreateFieldGroupUseCase!
     private var deleteFieldUseCase: DeleteCustomFieldUseCase!
+    private var getSettingsUseCase: GetSettingsUseCase!
     
     override func setUp() {
         super.setUp()
@@ -33,6 +52,9 @@ final class TimestampEnhancementTests: XCTestCase {
         createFieldUseCase = CreateCustomFieldUseCase(threadRepository: repository)
         createGroupUseCase = CreateFieldGroupUseCase(threadRepository: repository)
         deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: repository)
+        
+        let mockSettingsRepository = MockTimestampSettingsRepository()
+        getSettingsUseCase = GetSettingsUseCaseImpl(repository: mockSettingsRepository)
     }
     
     override func tearDown() {
@@ -45,6 +67,7 @@ final class TimestampEnhancementTests: XCTestCase {
         createFieldUseCase = nil
         createGroupUseCase = nil
         deleteFieldUseCase = nil
+        getSettingsUseCase = nil
         super.tearDown()
     }
     
@@ -61,7 +84,8 @@ final class TimestampEnhancementTests: XCTestCase {
             exportThreadUseCase: exportThreadUseCase,
             createFieldUseCase: createFieldUseCase,
             createGroupUseCase: createGroupUseCase,
-            deleteFieldUseCase: deleteFieldUseCase
+            deleteFieldUseCase: deleteFieldUseCase,
+            getSettingsUseCase: getSettingsUseCase
         )
         
         // When - Check computed property with light color scheme
@@ -86,7 +110,8 @@ final class TimestampEnhancementTests: XCTestCase {
             exportThreadUseCase: exportThreadUseCase,
             createFieldUseCase: createFieldUseCase,
             createGroupUseCase: createGroupUseCase,
-            deleteFieldUseCase: deleteFieldUseCase
+            deleteFieldUseCase: deleteFieldUseCase,
+            getSettingsUseCase: getSettingsUseCase
         )
         
         // When - Check computed property with dark color scheme

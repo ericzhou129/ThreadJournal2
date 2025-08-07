@@ -9,6 +9,23 @@ import XCTest
 import SwiftUI
 @testable import ThreadJournal2
 
+// MARK: - Mock Settings Repository
+
+private final class MockThreadDetailSettingsRepository: SettingsRepository {
+    var settings = UserSettings()
+    var saveCallCount = 0
+    var getCallCount = 0
+    
+    func save(_ settings: UserSettings) async throws {
+        saveCallCount += 1
+        self.settings = settings
+    }
+    
+    func get() async throws -> UserSettings {
+        getCallCount += 1
+        return settings
+    }
+}
 
 final class ThreadDetailViewTests: XCTestCase {
     
@@ -20,6 +37,7 @@ final class ThreadDetailViewTests: XCTestCase {
     private var createFieldUseCase: CreateCustomFieldUseCase!
     private var createGroupUseCase: CreateFieldGroupUseCase!
     private var deleteFieldUseCase: DeleteCustomFieldUseCase!
+    private var getSettingsUseCase: GetSettingsUseCase!
     
     override func setUp() {
         super.setUp()
@@ -31,6 +49,10 @@ final class ThreadDetailViewTests: XCTestCase {
         createFieldUseCase = CreateCustomFieldUseCase(threadRepository: repository)
         createGroupUseCase = CreateFieldGroupUseCase(threadRepository: repository)
         deleteFieldUseCase = DeleteCustomFieldUseCase(threadRepository: repository)
+        
+        // Setup settings use case with mock repository
+        let mockSettingsRepository = MockThreadDetailSettingsRepository()
+        getSettingsUseCase = GetSettingsUseCaseImpl(repository: mockSettingsRepository)
     }
     
     override func tearDown() {
@@ -42,6 +64,7 @@ final class ThreadDetailViewTests: XCTestCase {
         createFieldUseCase = nil
         createGroupUseCase = nil
         deleteFieldUseCase = nil
+        getSettingsUseCase = nil
         super.tearDown()
     }
     
@@ -71,7 +94,8 @@ final class ThreadDetailViewTests: XCTestCase {
             exportThreadUseCase: exportThreadUseCase,
             createFieldUseCase: createFieldUseCase,
             createGroupUseCase: createGroupUseCase,
-            deleteFieldUseCase: deleteFieldUseCase
+            deleteFieldUseCase: deleteFieldUseCase,
+            getSettingsUseCase: getSettingsUseCase
         )
         
         // Then

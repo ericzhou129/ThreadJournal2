@@ -52,6 +52,11 @@ final class AppAuthenticationViewModel: ObservableObject {
         }
     }
     
+    func refreshAuthenticationState() {
+        // Re-check authentication requirements when coming back to foreground
+        checkAuthenticationRequirement()
+    }
+    
     func performAuthentication() async throws {
         guard let biometricService = biometricAuthService else { return }
         

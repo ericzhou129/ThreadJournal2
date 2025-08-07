@@ -14,28 +14,25 @@ final class SettingsComponentsTests: XCTestCase {
     // MARK: - SettingsToggleRow Tests
     
     func testSettingsToggleRowCreation() {
-        var toggleValue = false
-        var actionCalled = false
+        let toggleValue = false
         
         let toggleRow = SettingsToggleRow(
             title: "Test Toggle",
             isOn: .constant(toggleValue)
-        ) {
-            actionCalled = true
-        }
+        )
         
         XCTAssertNotNil(toggleRow)
         // Basic creation test - view should initialize without crashing
     }
     
     func testSettingsToggleRowWithLongTitle() {
-        var toggleValue = true
+        let toggleValue = true
         
         let longTitle = "This is a very long title that might wrap to multiple lines in the settings UI"
         let toggleRow = SettingsToggleRow(
             title: longTitle,
             isOn: .constant(toggleValue)
-        ) {}
+        )
         
         XCTAssertNotNil(toggleRow)
         // Long title should not cause issues
@@ -132,7 +129,7 @@ final class SettingsComponentsTests: XCTestCase {
             SettingsToggleRow(
                 title: "Toggle Setting",
                 isOn: .constant(toggleValue)
-            ) {}
+            )
             
             SettingsStepperRow(
                 title: "Stepper Setting", 
@@ -162,7 +159,7 @@ final class SettingsComponentsTests: XCTestCase {
         let toggleRow = SettingsToggleRow(
             title: "Accessible Toggle",
             isOn: .constant(toggleValue)
-        ) {}
+        )
         
         let stepperRow = SettingsStepperRow(
             title: "Accessible Stepper",

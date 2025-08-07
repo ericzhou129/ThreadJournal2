@@ -17,7 +17,7 @@ struct AuthenticationRequiredView: View {
     @State private var isAuthenticating = false
     @State private var showingError = false
     @State private var errorMessage = ""
-    @State private var hasAttemptedAuth = false
+    @Environment(\.scenePhase) private var scenePhase
     
     // MARK: - Body
     
@@ -34,10 +34,21 @@ struct AuthenticationRequiredView: View {
                     .tint(.accentColor)
             }
         }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            // Only trigger authentication when app becomes active
+            if newPhase == .active && oldPhase != .active {
+                #if DEBUG
+                print("AuthenticationRequiredView: App became active - triggering authentication")
+                #endif
+                authenticate()
+            }
+        }
         .onAppear {
-            // Automatically trigger authentication when view appears
-            if !hasAttemptedAuth {
-                hasAttemptedAuth = true
+            // Only authenticate if app is already active (initial launch)
+            if scenePhase == .active {
+                #if DEBUG
+                print("AuthenticationRequiredView: onAppear with active scene - triggering authentication")
+                #endif
                 authenticate()
             }
         }
@@ -55,11 +66,20 @@ struct AuthenticationRequiredView: View {
     
     private func authenticate() {
         Task {
+            #if DEBUG
+            print("AuthenticationRequiredView: Starting authentication")
+            #endif
             isAuthenticating = true
             
             do {
                 try await onAuthenticate()
+                #if DEBUG
+                print("AuthenticationRequiredView: Authentication succeeded")
+                #endif
             } catch {
+                #if DEBUG
+                print("AuthenticationRequiredView: Authentication failed - \(error)")
+                #endif
                 errorMessage = error.localizedDescription
                 showingError = true
             }
