@@ -655,6 +655,56 @@ final class CoreDataThreadRepository: ThreadRepository {
             try self.saveContext(context)
         }
     }
+    
+    func fetchFieldGroups(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomFieldGroup] {
+        let context = persistentContainer.viewContext
+        
+        return try await context.perform { [weak self] in
+            guard let self = self else { return [] }
+            
+            // Fetch parent fields (groups)
+            let parentFetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+            
+            var predicates = [
+                NSPredicate(format: "threadId == %@", threadId as CVarArg),
+                NSPredicate(format: "isGroup == YES")
+            ]
+            if !includeDeleted {
+                predicates.append(NSPredicate(format: "deletedAt == nil"))
+            }
+            parentFetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+            parentFetchRequest.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+            
+            do {
+                let parentResults = try context.fetch(parentFetchRequest)
+                var groups: [CustomFieldGroup] = []
+                
+                for parentManagedObject in parentResults {
+                    let parentField = try self.mapManagedObjectToCustomField(parentManagedObject)
+                    
+                    // Fetch child fields for this parent
+                    let childFetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "CustomField")
+                    
+                    var childPredicates = [NSPredicate(format: "parentField == %@", parentManagedObject)]
+                    if !includeDeleted {
+                        childPredicates.append(NSPredicate(format: "deletedAt == nil"))
+                    }
+                    childFetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: childPredicates)
+                    childFetchRequest.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+                    
+                    let childResults = try context.fetch(childFetchRequest)
+                    let childFields = try childResults.compactMap { try self.mapManagedObjectToCustomField($0) }
+                    
+                    let group = try CustomFieldGroup(parentField: parentField, childFields: childFields)
+                    groups.append(group)
+                }
+                
+                return groups
+            } catch {
+                throw PersistenceError.fetchFailed(underlying: error)
+            }
+        }
+    }
 }
 
 // MARK: - PersistenceError Extension

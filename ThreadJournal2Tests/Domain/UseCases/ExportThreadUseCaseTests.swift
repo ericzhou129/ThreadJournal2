@@ -58,6 +58,8 @@ final class ExportThreadUseCaseTests: XCTestCase {
         
         XCTAssertEqual(mockRepository.fetchCallCount, 1)
         XCTAssertEqual(mockRepository.fetchEntriesCallCount, 1)
+        XCTAssertEqual(mockRepository.fetchCustomFieldsCallCount, 1)
+        XCTAssertEqual(mockRepository.fetchFieldGroupsCallCount, 1)
         XCTAssertEqual(mockExporter.exportCallCount, 1)
     }
     

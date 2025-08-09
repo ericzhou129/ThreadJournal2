@@ -37,8 +37,14 @@ final class ExportThreadUseCase {
         // Fetch all entries for the thread
         let entries = try await repository.fetchEntries(for: threadId)
         
+        // Fetch all custom fields (including deleted ones with historical data)
+        let customFields = try await repository.fetchCustomFields(for: threadId, includeDeleted: true)
+        
+        // Fetch field groups (including deleted ones with historical data)
+        let fieldGroups = try await repository.fetchFieldGroups(for: threadId, includeDeleted: true)
+        
         // Use injected exporter to generate export data
-        return exporter.export(thread: thread, entries: entries)
+        return exporter.export(thread: thread, entries: entries, customFields: customFields, fieldGroups: fieldGroups)
     }
 }
 

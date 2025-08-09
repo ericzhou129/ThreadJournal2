@@ -314,4 +314,9 @@ final class MockThreadRepository: ThreadRepository {
         // Also clear entries for the soft deleted thread (simulating cascade delete)
         entries[threadId] = []
     }
+    
+    // MARK: - Test helpers for custom fields
+    
+    var fetchCustomFieldsCallCount = 0
+    var fetchFieldGroupsCallCount = 0
 }

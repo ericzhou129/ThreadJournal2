@@ -112,6 +112,14 @@ protocol ThreadRepository {
     /// - Parameter fieldId: The ID of the field to remove from its group
     /// - Throws: PersistenceError if the operation fails
     func removeFromGroup(fieldId: UUID) async throws
+    
+    /// Fetches field groups for a thread
+    /// - Parameters:
+    ///   - threadId: The ID of the thread
+    ///   - includeDeleted: Whether to include soft-deleted fields
+    /// - Returns: Array of field groups
+    /// - Throws: PersistenceError if the operation fails
+    func fetchFieldGroups(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomFieldGroup]
 }
 
 /// Errors that can occur during persistence operations

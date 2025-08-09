@@ -262,4 +262,11 @@ private class MockDeleteThreadRepository: ThreadRepository {
             throw PersistenceError.updateFailed(underlying: NSError(domain: "test", code: 1))
         }
     }
+    
+    func fetchFieldGroups(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomFieldGroup] {
+        if shouldThrowError {
+            throw PersistenceError.fetchFailed(underlying: NSError(domain: "test", code: 1))
+        }
+        return []
+    }
 }

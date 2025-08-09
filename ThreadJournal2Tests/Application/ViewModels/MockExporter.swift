@@ -15,7 +15,7 @@ final class MockExporter: Exporter {
     var exportResult: ExportData?
     var shouldFail = false
     
-    func export(thread: ThreadJournal2.Thread, entries: [Entry]) -> ExportData {
+    func export(thread: ThreadJournal2.Thread, entries: [Entry], customFields: [CustomField], fieldGroups: [CustomFieldGroup]) -> ExportData {
         exportCallCount += 1
         
         if shouldFail {

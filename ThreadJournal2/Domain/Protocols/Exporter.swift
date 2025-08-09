@@ -9,5 +9,5 @@ import Foundation
 
 /// Protocol for exporting thread data to various formats
 protocol Exporter {
-    func export(thread: Thread, entries: [Entry]) -> ExportData
+    func export(thread: Thread, entries: [Entry], customFields: [CustomField], fieldGroups: [CustomFieldGroup]) -> ExportData
 }

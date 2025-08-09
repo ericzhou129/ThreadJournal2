@@ -12,6 +12,7 @@ extension MockThreadRepository {
     private struct AssociatedKeys {
         static var customFields: UInt8 = 0
         static var softDeletedFieldIds: UInt8 = 0
+        static var fieldGroups: UInt8 = 0
     }
     
     var customFields: [CustomField] {
@@ -32,6 +33,15 @@ extension MockThreadRepository {
         }
     }
     
+    var fieldGroups: [CustomFieldGroup] {
+        get {
+            objc_getAssociatedObject(self, &AssociatedKeys.fieldGroups) as? [CustomFieldGroup] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.fieldGroups, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+    
     func createCustomField(_ field: CustomField) async throws {
         customFields.append(field)
     }
@@ -47,6 +57,7 @@ extension MockThreadRepository {
     }
     
     func fetchCustomFields(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomField] {
+        fetchCustomFieldsCallCount += 1
         return customFields.filter { $0.threadId == threadId }
     }
     
@@ -65,5 +76,10 @@ extension MockThreadRepository {
     
     func removeFromGroup(fieldId: UUID) async throws {
         // Mock implementation - in real implementation would update relationships
+    }
+    
+    func fetchFieldGroups(for threadId: UUID, includeDeleted: Bool) async throws -> [CustomFieldGroup] {
+        fetchFieldGroupsCallCount += 1
+        return fieldGroups.filter { $0.parentField.threadId == threadId }
     }
 }
