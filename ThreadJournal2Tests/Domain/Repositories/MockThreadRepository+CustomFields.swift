@@ -82,4 +82,11 @@ extension MockThreadRepository {
         fetchFieldGroupsCallCount += 1
         return fieldGroups.filter { $0.parentField.threadId == threadId }
     }
+    
+    /// Sets custom fields for a thread (for performance testing)
+    func setCustomFields(_ fields: [CustomField], for threadId: UUID) {
+        // Filter fields by the specific threadId and add them to the global customFields array
+        let threadFields = fields.filter { $0.threadId == threadId }
+        customFields = customFields.filter { $0.threadId != threadId } + threadFields
+    }
 }

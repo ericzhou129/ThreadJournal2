@@ -53,8 +53,17 @@ final class AppAuthenticationViewModel: ObservableObject {
     }
     
     func refreshAuthenticationState() {
-        // Re-check authentication requirements when coming back to foreground
-        checkAuthenticationRequirement()
+        // When coming back from background, if we were locked and biometric is enabled,
+        // ensure we stay locked (not authenticated) until user authenticates
+        if isLockedForBackground && needsAuthentication {
+            isAuthenticated = false
+            #if DEBUG
+            print("AppAuthVM: Refreshing state - maintaining locked state, isAuthenticated: \(isAuthenticated)")
+            #endif
+        } else {
+            // Re-check authentication requirements when coming back to foreground
+            checkAuthenticationRequirement()
+        }
     }
     
     func performAuthentication() async throws {

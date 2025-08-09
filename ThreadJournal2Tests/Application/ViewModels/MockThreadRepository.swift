@@ -319,4 +319,16 @@ final class MockThreadRepository: ThreadRepository {
     
     var fetchCustomFieldsCallCount = 0
     var fetchFieldGroupsCallCount = 0
+    
+    /// Sets entries for a thread (for performance testing)
+    func setEntries(_ entryList: [DomainEntry], for threadId: UUID) {
+        entriesByThread[threadId] = entryList
+        mockEntries[threadId] = entryList
+    }
+    
+    /// Adds a thread directly (for performance testing)
+    func addThread(_ thread: DomainThread) {
+        mockThreads.append(thread)
+        threads.append(thread)
+    }
 }

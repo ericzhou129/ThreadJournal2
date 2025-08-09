@@ -221,6 +221,44 @@ final class CoreDataThreadRepository: ThreadRepository {
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [threadPredicate, notDeletedPredicate])
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
             
+            // Performance optimizations
+            fetchRequest.relationshipKeyPathsForPrefetching = ["fieldValues", "thread"]
+            fetchRequest.fetchBatchSize = 50
+            fetchRequest.returnsObjectsAsFaults = false
+            
+            do {
+                let results = try context.fetch(fetchRequest)
+                return try results.compactMap { try self.mapManagedObjectToEntry($0) }
+            } catch {
+                throw PersistenceError.fetchFailed(underlying: error)
+            }
+        }
+    }
+    
+    /// Optimized batch fetching of entries with pagination support
+    func fetchEntries(for threadId: UUID, offset: Int = 0, limit: Int? = nil) async throws -> [Entry] {
+        let context = persistentContainer.viewContext
+        
+        return try await context.perform { [weak self] in
+            guard let self = self else { return [] }
+            
+            let fetchRequest: NSFetchRequest<NSManagedObject> = NSFetchRequest(entityName: "Entry")
+            let threadPredicate = NSPredicate(format: "threadId == %@", threadId as CVarArg)
+            let notDeletedPredicate = NSPredicate(format: "deletedAt == nil")
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [threadPredicate, notDeletedPredicate])
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "timestamp", ascending: true)]
+            
+            // Pagination
+            fetchRequest.fetchOffset = offset
+            if let limit = limit {
+                fetchRequest.fetchLimit = limit
+            }
+            
+            // Performance optimizations
+            fetchRequest.relationshipKeyPathsForPrefetching = ["fieldValues"]
+            fetchRequest.fetchBatchSize = min(limit ?? 50, 50)
+            fetchRequest.returnsObjectsAsFaults = false
+            
             do {
                 let results = try context.fetch(fetchRequest)
                 return try results.compactMap { try self.mapManagedObjectToEntry($0) }
@@ -586,6 +624,10 @@ final class CoreDataThreadRepository: ThreadRepository {
             }
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "order", ascending: true)]
+            
+            // Performance optimizations for custom fields
+            fetchRequest.fetchBatchSize = 20 // Most threads won't have more than 20 fields
+            fetchRequest.returnsObjectsAsFaults = false
             
             do {
                 let results = try context.fetch(fetchRequest)

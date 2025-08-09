@@ -115,6 +115,22 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Timer for triggering draft saves
     private var draftSaveTimer: Timer?
     
+    // MARK: - Performance Optimizations
+    
+    /// Cache for custom field definitions per thread
+    private static var customFieldsCache: [UUID: [CustomField]] = [:]
+    private static var customFieldsCacheTimestamps: [UUID: Date] = [:]
+    private static let customFieldsCacheTimeToLive: TimeInterval = 300 // 5 minutes
+    
+    /// Lazy loaded field values for entries
+    private var lazyLoadedFieldValues: [UUID: [EntryFieldValue]] = [:]
+    
+    /// Set of entry IDs whose field values have been loaded
+    private var loadedFieldValueEntries: Set<UUID> = []
+    
+    /// Batch size for loading entries
+    private let entriesBatchSize = 50
+    
     // MARK: - Initialization
     
     /// Initializes the view model with required dependencies
@@ -197,6 +213,59 @@ final class ThreadDetailViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    /// Gets cached custom fields for the current thread
+    func getCachedCustomFields() async -> [CustomField] {
+        guard let threadId = currentThreadId else { return [] }
+        
+        // Check cache first
+        if let cachedFields = Self.customFieldsCache[threadId],
+           let cacheTime = Self.customFieldsCacheTimestamps[threadId] {
+            let timeElapsed = Date().timeIntervalSince(cacheTime)
+            if timeElapsed <= Self.customFieldsCacheTimeToLive {
+                return cachedFields
+            }
+            
+            // Cache expired, remove it
+            Self.customFieldsCache.removeValue(forKey: threadId)
+            Self.customFieldsCacheTimestamps.removeValue(forKey: threadId)
+        }
+        
+        // Fetch from repository and cache
+        do {
+            let fields = try await repository.fetchCustomFields(
+                for: threadId,
+                includeDeleted: false
+            )
+            
+            Self.customFieldsCache[threadId] = fields
+            Self.customFieldsCacheTimestamps[threadId] = Date()
+            
+            return fields
+        } catch {
+            print("Failed to fetch custom fields: \(error)")
+            return []
+        }
+    }
+    
+    /// Loads field values for an entry lazily
+    func loadFieldValuesForEntry(_ entryId: UUID) async -> [EntryFieldValue] {
+        // Return cached values if already loaded
+        if loadedFieldValueEntries.contains(entryId),
+           let cachedValues = lazyLoadedFieldValues[entryId] {
+            return cachedValues
+        }
+        
+        // Load from database - in a real implementation, this would be optimized
+        // For now, return the values already in the entry
+        if let entry = entries.first(where: { $0.id == entryId }) {
+            lazyLoadedFieldValues[entryId] = entry.customFieldValues
+            loadedFieldValueEntries.insert(entryId)
+            return entry.customFieldValues
+        }
+        
+        return []
     }
     
     /// Adds a new entry to the current thread
@@ -487,5 +556,36 @@ extension ThreadDetailViewModel {
     func cancelDeleteEntry() {
         entryToDelete = nil
         showDeleteConfirmation = false
+    }
+    
+    // MARK: - Memory Management
+    
+    /// Clears all caches to free memory
+    static func clearAllCaches() {
+        customFieldsCache.removeAll()
+        customFieldsCacheTimestamps.removeAll()
+    }
+    
+    /// Removes expired cache entries to manage memory
+    static func cleanupExpiredCaches() {
+        let currentTime = Date()
+        let expiredKeys = customFieldsCacheTimestamps.compactMap { (key, timestamp) in
+            currentTime.timeIntervalSince(timestamp) > customFieldsCacheTimeToLive ? key : nil
+        }
+        
+        for key in expiredKeys {
+            customFieldsCache.removeValue(forKey: key)
+            customFieldsCacheTimestamps.removeValue(forKey: key)
+        }
+    }
+    
+    /// Clears lazy-loaded field values for entries no longer visible
+    func cleanupLazyLoadedValues(visibleEntryIds: Set<UUID>) {
+        let entriesToRemove = loadedFieldValueEntries.subtracting(visibleEntryIds)
+        
+        for entryId in entriesToRemove {
+            lazyLoadedFieldValues.removeValue(forKey: entryId)
+            loadedFieldValueEntries.remove(entryId)
+        }
     }
 }

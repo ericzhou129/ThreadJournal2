@@ -14,6 +14,9 @@ struct ThreadJournal2App: App {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var authViewModel = AppAuthenticationViewModel()
     
+    // Initialize memory management service on app startup
+    private let memoryService = MemoryManagementService.shared
+    
     var body: some Scene {
         WindowGroup {
             ZStack {
