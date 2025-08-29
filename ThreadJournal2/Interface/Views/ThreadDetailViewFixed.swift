@@ -262,26 +262,41 @@ struct ThreadDetailViewFixed: View {
                     
                     if viewModel.isVoiceRecording {
                         recordingUIView
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
+                            ))
                     } else {
-                        HStack(alignment: .bottom, spacing: 12) {
-                            composeTextField
-                            if !availableFields.isEmpty {
-                                customFieldsButton
-                            }
-                            expandButton
-                            sendButton
-                        }
-                        
-                        // Voice button below the text field
-                        if viewModel.isVoiceRecordingAvailable {
-                            VoiceRecordButton {
-                                Task {
-                                    await viewModel.startVoiceRecording()
+                        VStack(spacing: 12) {
+                            HStack(alignment: .bottom, spacing: 12) {
+                                composeTextField
+                                if !availableFields.isEmpty {
+                                    customFieldsButton
                                 }
+                                expandButton
+                                sendButton
+                            }
+                            
+                            // Voice button below the text field
+                            if viewModel.isVoiceRecordingAvailable {
+                                VoiceRecordButton {
+                                    Task {
+                                        await viewModel.startVoiceRecording()
+                                    }
+                                }
+                                .transition(.asymmetric(
+                                    insertion: .scale.combined(with: .opacity),
+                                    removal: .scale.combined(with: .opacity)
+                                ))
                             }
                         }
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
                     }
                 }
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: viewModel.isVoiceRecording)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
             }

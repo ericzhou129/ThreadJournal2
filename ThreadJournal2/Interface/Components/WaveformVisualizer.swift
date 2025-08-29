@@ -8,8 +8,17 @@
 import SwiftUI
 import UIKit
 
+struct PressedButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
 struct WaveformVisualizer: View {
     @State private var animationPhase = 0.0
+    @State private var isVisible = false
     let onStopAndEdit: () -> Void
     let onStopAndSave: () -> Void
     let audioLevel: Float
@@ -29,6 +38,13 @@ struct WaveformVisualizer: View {
             HStack(spacing: 2) {
                 ForEach(0..<barCount, id: \.self) { index in
                     waveformBar(at: index)
+                        .opacity(isVisible ? 1.0 : 0.0)
+                        .scaleEffect(isVisible ? 1.0 : 0.5)
+                        .animation(
+                            .spring(response: 0.6, dampingFraction: 0.8)
+                            .delay(Double(index) * 0.05),
+                            value: isVisible
+                        )
                 }
             }
             .frame(maxWidth: .infinity)
@@ -44,9 +60,14 @@ struct WaveformVisualizer: View {
                         .background(
                             Circle()
                                 .fill(.white)
+                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                         )
+                        .scaleEffect(1.0)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(PressedButtonStyle())
+                .opacity(isVisible ? 1.0 : 0.0)
+                .scaleEffect(isVisible ? 1.0 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.3), value: isVisible)
                 
                 // Stop & Save button (checkmark icon)
                 Button(action: onStopAndSave) {
@@ -57,16 +78,27 @@ struct WaveformVisualizer: View {
                         .background(
                             Circle()
                                 .fill(.white)
+                                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
                         )
+                        .scaleEffect(1.0)
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(PressedButtonStyle())
+                .opacity(isVisible ? 1.0 : 0.0)
+                .scaleEffect(isVisible ? 1.0 : 0.8)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(0.35), value: isVisible)
             }
             .padding(.trailing, 8)
         }
         .frame(height: 44)
         .background(.black)
         .cornerRadius(12)
+        .scaleEffect(isVisible ? 1.0 : 0.9)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isVisible)
         .onAppear {
+            withAnimation {
+                isVisible = true
+            }
             startAnimation()
         }
     }
@@ -76,13 +108,19 @@ struct WaveformVisualizer: View {
         let animatedHeight = baseHeight * animationMultiplier(for: index)
         
         return Rectangle()
-            .fill(.white)
+            .fill(
+                LinearGradient(
+                    colors: [.white, .white.opacity(0.8)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .frame(width: 3, height: animatedHeight)
             .cornerRadius(1.5)
             .animation(
-                .easeInOut(duration: 0.8)
+                .easeInOut(duration: 0.6 + Double.random(in: 0...0.4))
                 .repeatForever(autoreverses: true)
-                .delay(Double(index) * 0.1),
+                .delay(Double(index) * 0.08),
                 value: animationPhase
             )
     }
@@ -97,7 +135,7 @@ struct WaveformVisualizer: View {
     }
     
     private func startAnimation() {
-        withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false)) {
+        withAnimation(.linear(duration: 1.8).repeatForever(autoreverses: false)) {
             animationPhase = .pi * 2
         }
     }
