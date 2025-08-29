@@ -401,6 +401,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "ThreadJournal uses Face ID to protect your private journal entries. When enabled, you'll need to authenticate every time you open the app to ensure your personal thoughts remain secure.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ThreadJournal needs access to your microphone to enable voice-to-text entries. Your voice recordings are processed entirely on your device and never leave your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -430,6 +431,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "ThreadJournal uses Face ID to protect your private journal entries. When enabled, you'll need to authenticate every time you open the app to ensure your personal thoughts remain secure.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "ThreadJournal needs access to your microphone to enable voice-to-text entries. Your voice recordings are processed entirely on your device and never leave your phone.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
