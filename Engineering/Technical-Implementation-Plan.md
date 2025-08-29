@@ -17,7 +17,8 @@ ThreadJournal is a minimalist, local-first iOS journaling application that organ
 
 ### Voice Entry Design Philosophy
 **Simplified Approach**: The voice entry feature follows a "zero-configuration" philosophy:
-- **Bundled Model**: Whisper Small model (39MB) included in app bundle - works immediately
+- **WhisperKit Integration**: Uses openai_whisper-small model (~216MB) via WhisperKit framework
+- **Auto-Download Model**: Model downloads automatically on first use (Path B approach) and caches for offline use
 - **No Settings**: No configuration needed - it just works out of the box
 - **Inline UI**: Recording happens directly in thread view with minimal UI
 - **Manual Stop Only**: Recording continues through pauses (no auto-stop except 5-min safety)
@@ -25,6 +26,8 @@ ThreadJournal is a minimalist, local-first iOS journaling application that organ
   - Stop & Edit (✏️): Fills text field for editing
   - Stop & Save (✓): Creates entry immediately
 - **2-Second Chunks**: Live transcription feedback every 2 seconds
+- **Apple Neural Engine**: Optimized for ANE for efficient on-device processing
+- **Privacy First**: All processing happens on-device, no cloud services required
 
 ### ADR-000: Scope & Constraints
 **Status**: Accepted  
@@ -65,12 +68,11 @@ graph TB
     
     subgraph "Voice Context"
         AudioCapture[Audio Capture Service]
-        TranscriptionService[Transcription Service]
-        ModelManager[Model Manager]
-        VoiceEntry[Voice Entry Service]
-        AudioCapture --> TranscriptionService
-        TranscriptionService --> ModelManager
-        VoiceEntry --> TranscriptionService
+        WhisperKitService[WhisperKit Service]
+        VoiceEntryCoordinator[Voice Entry Coordinator]
+        AudioCapture --> WhisperKitService
+        VoiceEntryCoordinator --> AudioCapture
+        VoiceEntryCoordinator --> WhisperKitService
     end
     
     subgraph "Export Context"
@@ -208,9 +210,7 @@ ThreadJournal/
 │   │   ├── QueuedEntry.swift
 │   │   ├── ThreadSuggestion.swift
 │   │   ├── AIConfiguration.swift
-│   │   ├── VoiceTranscription.swift
-│   │   ├── VoiceSettings.swift
-│   │   └── WhisperModel.swift
+│   │   └── VoiceTranscription.swift
 │   ├── UseCases/
 │   │   ├── CreateThreadUseCase.swift
 │   │   ├── AddEntryUseCase.swift
@@ -239,7 +239,7 @@ ThreadJournal/
 │   │   ├── ThreadListPresenter.swift
 │   │   └── ThreadDetailPresenter.swift
 │   ├── Services/
-│   │   └── TranscriptionService.swift
+│   │   └── VoiceEntryCoordinator.swift
 │   └── ViewModels/
 │       ├── ThreadListViewModel.swift
 │       ├── ThreadDetailViewModel.swift
@@ -294,8 +294,9 @@ ThreadJournal/
     │   └── AudioSessionManager.swift
     ├── ML/
     │   ├── ModelManager.swift
-    │   ├── WhisperKitService.swift
-    │   └── ModelDownloadService.swift
+    │   └── WhisperKitService.swift
+    ├── Audio/
+    │   └── AudioCaptureService.swift
     └── Queue/
         └── OfflineQueueService.swift
 ```
