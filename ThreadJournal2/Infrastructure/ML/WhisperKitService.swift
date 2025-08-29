@@ -63,7 +63,9 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     // Download progress tracking
     @Published var downloadProgress: Float = 0.0
     @Published var isDownloading = false
-    @Published var modelSizeBytes: Int64 = 0
+    @Published var modelSizeBytes: Int64 = 216_000_000 // ~216MB for openai_whisper-small
+    @Published var downloadPermissionRequested = false
+    @Published var downloadPermissionGranted = false
     
     var isInitialized: Bool {
         whisperKit != nil
@@ -92,12 +94,25 @@ final class WhisperKitService: WhisperKitServiceProtocol {
                     logLevel: .debug
                 )
             } else {
-                // Path B: Auto-download model using WhisperKit's built-in mechanism
-                print("WhisperKitService: No bundled model found, downloading via WhisperKit...")
-                isDownloading = true
+                // Path B: Check if model needs to be downloaded
+                let needsDownload = !isModelCached()
+                
+                if needsDownload {
+                    // Request permission before downloading
+                    if !downloadPermissionGranted {
+                        downloadPermissionRequested = true
+                        throw WhisperKitServiceError.initializationFailed("Model download permission required")
+                    }
+                    
+                    print("WhisperKitService: No bundled model found, downloading via WhisperKit...")
+                    isDownloading = true
+                    downloadProgress = 0.0
+                } else {
+                    print("WhisperKitService: Using cached model")
+                }
                 
                 // Use WhisperKit's automatic download mechanism
-                // This will download from HuggingFace and cache locally
+                // This will download from HuggingFace and cache locally if needed
                 whisperKit = try await WhisperKit(
                     model: modelName,
                     computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
@@ -107,8 +122,11 @@ final class WhisperKitService: WhisperKitServiceProtocol {
                     prewarm: true
                 )
                 
-                isDownloading = false
-                print("WhisperKitService: Model downloaded and initialized")
+                if needsDownload {
+                    isDownloading = false
+                    downloadProgress = 1.0
+                    print("WhisperKitService: Model downloaded and initialized")
+                }
             }
             
             guard whisperKit != nil else {
@@ -122,6 +140,18 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             print("WhisperKitService: Initialization failed: \(error)")
             throw WhisperKitServiceError.initializationFailed(error.localizedDescription)
         }
+    }
+    
+    /// Grants permission to download the model
+    func grantDownloadPermission() {
+        downloadPermissionGranted = true
+        downloadPermissionRequested = false
+    }
+    
+    /// Denies permission to download the model
+    func denyDownloadPermission() {
+        downloadPermissionGranted = false
+        downloadPermissionRequested = false
     }
     
     // MARK: - Transcription Methods
@@ -139,12 +169,15 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             // Convert audio data to the format expected by WhisperKit
             let audioArray = try convertAudioDataToFloatArray(audio)
             
+            // Log audio array details
+            print("WhisperKitService: Transcribing audio array with \(audioArray.count) samples")
+            
             // Perform transcription with streaming support
             let transcriptionResult = try await whisperKit.transcribe(
                 audioArray: audioArray,
                 decodeOptions: DecodingOptions(
                     task: .transcribe,
-                    language: nil, // Auto-detect language
+                    language: "en", // Force English to prevent language detection issues
                     temperatureFallbackCount: 3,
                     sampleLength: 224, // Optimal for 2-second chunks
                     usePrefillPrompt: false,
@@ -155,7 +188,17 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             
             // Extract and return the transcribed text
             // WhisperKit returns an array of TranscriptionResult
+            print("WhisperKitService: Got \(transcriptionResult.count) transcription results")
+            
             if !transcriptionResult.isEmpty {
+                // Log each transcription result for debugging
+                for (index, result) in transcriptionResult.enumerated() {
+                    print("WhisperKitService: Result \(index): \(result.segments.count) segments")
+                    for (segIndex, segment) in result.segments.enumerated() {
+                        print("WhisperKitService: Segment \(segIndex): '\(segment.text)'")
+                    }
+                }
+                
                 // Get all segments and combine their text
                 let text = transcriptionResult
                     .flatMap { $0.segments }
@@ -164,9 +207,13 @@ final class WhisperKitService: WhisperKitServiceProtocol {
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 if !text.isEmpty {
-                    print("WhisperKitService: Transcribed: \(text)")
+                    print("WhisperKitService: Final transcription: '\(text)'")
                     return text
+                } else {
+                    print("WhisperKitService: WARNING - No text content in transcription results")
                 }
+            } else {
+                print("WhisperKitService: WARNING - No transcription results returned")
             }
             
             return ""
@@ -197,14 +244,91 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         return bundlePath
     }
     
-    private func convertAudioDataToFloatArray(_ audioData: Data) throws -> [Float] {
-        // Convert PCM audio data to Float array expected by WhisperKit
-        let int16Array = audioData.withUnsafeBytes { bytes in
-            Array(bytes.bindMemory(to: Int16.self))
+    /// Checks if the model is already cached locally
+    private func isModelCached() -> Bool {
+        // WhisperKit caches models in the Application Support directory
+        let fileManager = FileManager.default
+        guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory,
+                                                  in: .userDomainMask).first else {
+            return false
         }
         
-        // Convert Int16 to Float and normalize to [-1.0, 1.0]
-        return int16Array.map { Float($0) / Float(Int16.max) }
+        let modelDir = appSupportDir.appendingPathComponent("com.argmax.whisperkit")
+                                   .appendingPathComponent(modelName)
+        
+        return fileManager.fileExists(atPath: modelDir.path)
+    }
+    
+    private func convertAudioDataToFloatArray(_ audioData: Data) throws -> [Float] {
+        print("WhisperKitService: Converting audio data of size \(audioData.count) bytes")
+        
+        // AudioCaptureService outputs Float32 PCM data in WAV format
+        // We need to extract the raw PCM Float32 samples from the WAV file
+        
+        // First, try to parse as WAV file and extract Float32 PCM data
+        if let floatArray = extractFloat32FromWAVData(audioData) {
+            print("WhisperKitService: Extracted \(floatArray.count) Float32 samples from WAV")
+            return floatArray
+        }
+        
+        // Fallback: Try to interpret as raw Float32 data
+        let floatArray = audioData.withUnsafeBytes { bytes in
+            Array(bytes.bindMemory(to: Float.self))
+        }
+        
+        print("WhisperKitService: Interpreted as raw Float32 data: \(floatArray.count) samples")
+        
+        // Validate the audio data
+        let maxValue = floatArray.max() ?? 0.0
+        let minValue = floatArray.min() ?? 0.0
+        let rms = sqrt(floatArray.map { $0 * $0 }.reduce(0, +) / Float(floatArray.count))
+        
+        print("WhisperKitService: Audio validation - min: \(minValue), max: \(maxValue), RMS: \(rms)")
+        
+        // Check if audio is silent (very low RMS indicates silence)
+        if rms < 0.001 {
+            print("WhisperKitService: WARNING - Audio appears to be silent (RMS: \(rms))")
+        }
+        
+        return floatArray
+    }
+    
+    /// Extracts Float32 PCM data from a WAV file
+    private func extractFloat32FromWAVData(_ wavData: Data) -> [Float]? {
+        // WAV file format parsing
+        guard wavData.count > 44 else { return nil } // WAV header is at least 44 bytes
+        
+        // Check for WAV file signature "RIFF"
+        let riffSignature = wavData.subdata(in: 0..<4)
+        guard riffSignature == "RIFF".data(using: .ascii) else { return nil }
+        
+        // Check for WAV format "WAVE"
+        let waveSignature = wavData.subdata(in: 8..<12)
+        guard waveSignature == "WAVE".data(using: .ascii) else { return nil }
+        
+        // Find the "data" chunk
+        var offset = 12
+        while offset < wavData.count - 8 {
+            let chunkId = wavData.subdata(in: offset..<offset+4)
+            let chunkSize = wavData.subdata(in: offset+4..<offset+8).withUnsafeBytes {
+                $0.load(as: UInt32.self)
+            }
+            
+            if chunkId == "data".data(using: .ascii) {
+                // Found data chunk, extract Float32 samples
+                let dataStart = offset + 8
+                let dataEnd = min(dataStart + Int(chunkSize), wavData.count)
+                let pcmData = wavData.subdata(in: dataStart..<dataEnd)
+                
+                return pcmData.withUnsafeBytes { bytes in
+                    Array(bytes.bindMemory(to: Float.self))
+                }
+            }
+            
+            offset += 8 + Int(chunkSize)
+        }
+        
+        return nil
     }
     
     deinit {
