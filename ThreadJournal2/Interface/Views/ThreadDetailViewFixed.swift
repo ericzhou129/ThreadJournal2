@@ -280,8 +280,11 @@ struct ThreadDetailViewFixed: View {
                             // Voice button below the text field
                             if viewModel.isVoiceRecordingAvailable {
                                 VoiceRecordButton {
+                                    print("DEBUG: Voice button tapped")
                                     Task {
+                                        print("DEBUG: Starting async task for voice recording")
                                         await viewModel.startVoiceRecording()
+                                        print("DEBUG: Voice recording task completed")
                                     }
                                 }
                                 .transition(.asymmetric(

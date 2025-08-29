@@ -182,17 +182,15 @@ final class VoiceEntryCoordinator: ObservableObject {
     private func processTranscriptionChunk() async {
         guard isRecording else { return }
         
-        // The AudioCaptureService handles 2-second chunks internally via its chunk timer
-        // For now, we'll simulate chunk transcription by getting incremental updates
-        // In a real implementation with access to chunk data, we would:
-        // 1. Get the latest 2-second audio chunk from AudioCaptureService
-        // 2. Send it to WhisperKitService for transcription
-        // 3. Update the partial transcription
+        // Get the latest audio chunk from AudioCaptureService
+        guard let audioChunk = audioService.getLatestChunk(), !audioChunk.isEmpty else {
+            // No new chunk available yet
+            return
+        }
         
-        // Mock implementation for chunk-based transcription
         do {
-            // Simulate getting a chunk of transcribed text
-            let chunkTranscription = try await transcriptionService.transcribeChunk(audio: Data())
+            // Transcribe the actual audio chunk
+            let chunkTranscription = try await transcriptionService.transcribeChunk(audio: audioChunk)
             
             if !chunkTranscription.isEmpty {
                 // Move previous partial to accumulated

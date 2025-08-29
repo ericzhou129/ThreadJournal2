@@ -484,10 +484,14 @@ final class ThreadDetailViewModel: ObservableObject {
     
     /// Starts voice recording
     func startVoiceRecording() async {
+        print("DEBUG: startVoiceRecording called")
+        print("DEBUG: voiceCoordinator is \(voiceCoordinator == nil ? "nil" : "present")")
         guard let coordinator = voiceCoordinator else {
+            print("DEBUG: No voice coordinator - recording not available")
             voiceRecordingError = "Voice recording not available"
             return
         }
+        print("DEBUG: Starting recording with coordinator")
         
         do {
             try await coordinator.startRecording()

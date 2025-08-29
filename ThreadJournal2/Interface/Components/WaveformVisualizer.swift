@@ -130,7 +130,9 @@ struct WaveformVisualizer: View {
         let baseAnimation = 0.5 + 0.7 * abs(sin(phase))
         
         // Modulate animation with audio level (0.0 to 1.0)
-        let levelMultiplier = 0.3 + (CGFloat(audioLevel) * 0.7)
+        // Ensure audioLevel is valid and clamped to prevent NaN
+        let safeAudioLevel = max(0.0, min(1.0, audioLevel.isNaN ? 0.0 : audioLevel))
+        let levelMultiplier = 0.3 + (CGFloat(safeAudioLevel) * 0.7)
         return baseAnimation * levelMultiplier
     }
     

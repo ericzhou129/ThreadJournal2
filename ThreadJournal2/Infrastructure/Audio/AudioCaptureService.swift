@@ -8,6 +8,7 @@ protocol AudioCaptureServiceProtocol {
     func getAudioLevel() -> Float
     func isRecording() -> Bool
     func getRecordingDuration() -> TimeInterval
+    func getLatestChunk() -> Data?
 }
 
 enum AudioCaptureError: LocalizedError {
@@ -41,6 +42,7 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     private let audioSession = AVAudioSession.sharedInstance()
     private var audioBuffers: [AVAudioPCMBuffer] = []
     private var chunkBuffers: [Data] = []
+    private var processedChunkCount = 0
     private var isRecordingActive = false
     private var currentAudioLevel: Float = 0.0
     private var recordingStartTime: Date?
@@ -91,6 +93,7 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         audioBuffers.removeAll()
         chunkBuffers.removeAll()
         currentChunkBuffers.removeAll()
+        processedChunkCount = 0
         audioEngine.prepare()
         
         try audioEngine.start()
@@ -130,6 +133,17 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     
     func isRecording() -> Bool {
         isRecordingActive
+    }
+    
+    func getLatestChunk() -> Data? {
+        // Return the next unprocessed chunk if available
+        guard processedChunkCount < chunkBuffers.count else {
+            return nil
+        }
+        
+        let chunk = chunkBuffers[processedChunkCount]
+        processedChunkCount += 1
+        return chunk
     }
     
     private func setupAudioSession() async throws {
