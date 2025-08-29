@@ -75,6 +75,12 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     }
     
     func startRecording() async throws {
+        // Prevent multiple simultaneous recording attempts
+        guard !isRecordingActive else {
+            print("WARNING: Recording already in progress, ignoring start request")
+            return
+        }
+        
         guard await requestMicrophonePermission() else {
             throw AudioCaptureError.microphonePermissionDenied
         }
@@ -161,6 +167,9 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
             throw AudioCaptureError.audioSessionSetupFailed
         }
         
+        // Remove any existing tap before installing a new one
+        inputNode.removeTap(onBus: 0)
+        
         inputNode.installTap(
             onBus: 0,
             bufferSize: bufferSize,
@@ -228,7 +237,9 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         let rms = sqrt(sum / Float(frameLength))
         let decibels = 20 * log10(max(0.00001, rms))
         
-        currentAudioLevel = (decibels + 80) / 80
+        // Ensure audio level is valid and clamped between 0.0 and 1.0
+        let normalizedLevel = (decibels + 80) / 80
+        currentAudioLevel = max(0.0, min(1.0, normalizedLevel.isNaN ? 0.0 : normalizedLevel))
         return decibels
     }
     
