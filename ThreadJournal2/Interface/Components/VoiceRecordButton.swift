@@ -13,7 +13,7 @@ struct VoiceRecordButton: View {
     @State private var isPressed = false
     
     var body: some View {
-        Button(action: {}) {
+        Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "mic.fill")
                     .font(.system(size: 20, weight: .medium))
@@ -44,11 +44,11 @@ struct VoiceRecordButton: View {
         .buttonStyle(PlainButtonStyle())
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
         .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity) {
-            // On release
+            // On release - execute the action
             withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
                 isPressed = false
             }
-            action()
+            action() // Execute the provided action closure
         } onPressingChanged: { pressing in
             withAnimation(.spring(response: 0.2, dampingFraction: 0.8)) {
                 isPressed = pressing
