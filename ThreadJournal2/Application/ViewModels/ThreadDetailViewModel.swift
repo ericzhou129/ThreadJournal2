@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 /// View model managing thread detail display, entry creation, and draft auto-save
 @MainActor
@@ -48,6 +49,29 @@ final class ThreadDetailViewModel: ObservableObject {
     @Published private(set) var isExporting = false
     @Published var exportError: String?
     @Published private(set) var exportedFileURL: URL?
+    
+    // MARK: - Voice Recording State
+    
+    /// Voice recording coordinator
+    @Published private(set) var voiceCoordinator: VoiceEntryCoordinator?
+    
+    /// Current voice recording state
+    @Published private(set) var isVoiceRecording = false
+    
+    /// Accumulated transcription from voice recording
+    @Published private(set) var voiceTranscription = ""
+    
+    /// Partial transcription being processed
+    @Published private(set) var partialVoiceTranscription = ""
+    
+    /// Audio level for waveform visualization
+    @Published private(set) var voiceAudioLevel: Float = 0.0
+    
+    /// Voice recording duration
+    @Published private(set) var voiceRecordingDuration: TimeInterval = 0.0
+    
+    /// Voice recording error
+    @Published private(set) var voiceRecordingError: String?
     
     // MARK: - Edit/Delete Entry State
     
@@ -105,6 +129,10 @@ final class ThreadDetailViewModel: ObservableObject {
     private let draftManager: DraftManager
     private let exportThreadUseCase: ExportThreadUseCase
     
+    // Voice recording services
+    private let audioService: AudioCaptureServiceProtocol?
+    private let transcriptionService: WhisperKitServiceProtocol?
+    
     /// Current thread ID being displayed
     private var currentThreadId: UUID?
     
@@ -141,13 +169,17 @@ final class ThreadDetailViewModel: ObservableObject {
     ///   - deleteEntryUseCase: Use case for deleting entries
     ///   - draftManager: Manager for draft auto-save functionality
     ///   - exportThreadUseCase: Use case for exporting threads to CSV
+    ///   - audioService: Optional audio capture service for voice recording
+    ///   - transcriptionService: Optional transcription service for voice recording
     init(
         repository: ThreadRepository,
         addEntryUseCase: AddEntryUseCase,
         updateEntryUseCase: UpdateEntryUseCase,
         deleteEntryUseCase: DeleteEntryUseCase,
         draftManager: DraftManager,
-        exportThreadUseCase: ExportThreadUseCase
+        exportThreadUseCase: ExportThreadUseCase,
+        audioService: AudioCaptureServiceProtocol? = nil,
+        transcriptionService: WhisperKitServiceProtocol? = nil
     ) {
         self.repository = repository
         self.addEntryUseCase = addEntryUseCase
@@ -155,6 +187,8 @@ final class ThreadDetailViewModel: ObservableObject {
         self.deleteEntryUseCase = deleteEntryUseCase
         self.draftManager = draftManager
         self.exportThreadUseCase = exportThreadUseCase
+        self.audioService = audioService
+        self.transcriptionService = transcriptionService
         
         // Configure draft manager auto-save callback
         if let inMemoryDraftManager = draftManager as? InMemoryDraftManager {
@@ -163,6 +197,15 @@ final class ThreadDetailViewModel: ObservableObject {
                     await self?.performDraftAutoSave(threadId: threadId, content: content)
                 }
             }
+        }
+        
+        // Initialize voice coordinator if services are available
+        if let audioService = audioService, let transcriptionService = transcriptionService {
+            voiceCoordinator = VoiceEntryCoordinator(
+                audioService: audioService,
+                transcriptionService: transcriptionService
+            )
+            setupVoiceObservers()
         }
     }
     
@@ -404,6 +447,107 @@ final class ThreadDetailViewModel: ObservableObject {
                 draftState = .typing
             }
         }
+    }
+    
+    // MARK: - Voice Recording Methods
+    
+    /// Sets up observers for voice coordinator state changes
+    private func setupVoiceObservers() {
+        guard let coordinator = voiceCoordinator else { return }
+        
+        // Observe transcription updates
+        coordinator.$accumulatedTranscription
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$voiceTranscription)
+        
+        coordinator.$currentPartialTranscription
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$partialVoiceTranscription)
+        
+        coordinator.$audioLevel
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$voiceAudioLevel)
+        
+        coordinator.$recordingDuration
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$voiceRecordingDuration)
+        
+        coordinator.$isRecording
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$isVoiceRecording)
+        
+        coordinator.$error
+            .receive(on: DispatchQueue.main)
+            .map { $0?.localizedDescription }
+            .assign(to: &$voiceRecordingError)
+    }
+    
+    /// Starts voice recording
+    func startVoiceRecording() async {
+        guard let coordinator = voiceCoordinator else {
+            voiceRecordingError = "Voice recording not available"
+            return
+        }
+        
+        do {
+            try await coordinator.startRecording()
+        } catch {
+            voiceRecordingError = error.localizedDescription
+        }
+    }
+    
+    /// Stops recording and fills the compose field for editing
+    func stopAndEdit() async {
+        guard let coordinator = voiceCoordinator else { return }
+        
+        do {
+            let finalTranscription = try await coordinator.stopRecording()
+            if !finalTranscription.isEmpty {
+                // Add transcription to existing draft content with a space if needed
+                if !draftContent.isEmpty && !draftContent.hasSuffix(" ") {
+                    draftContent += " "
+                }
+                draftContent += finalTranscription
+            }
+        } catch {
+            voiceRecordingError = error.localizedDescription
+        }
+    }
+    
+    /// Stops recording and saves entry immediately without editing
+    func stopAndSave() async {
+        guard let coordinator = voiceCoordinator else { return }
+        
+        do {
+            let finalTranscription = try await coordinator.stopRecording()
+            if !finalTranscription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // Temporarily store current draft content
+                let originalDraft = draftContent
+                
+                // Set transcription as draft content
+                draftContent = finalTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Add entry immediately
+                await addEntry(fieldValues: [])
+                
+                // Restore original draft if save failed
+                if hasFailedSave {
+                    draftContent = originalDraft
+                }
+            }
+        } catch {
+            voiceRecordingError = error.localizedDescription
+        }
+    }
+    
+    /// Cancels voice recording without saving
+    func cancelVoiceRecording() async {
+        await voiceCoordinator?.cancelRecording()
+    }
+    
+    /// Whether voice recording is available
+    var isVoiceRecordingAvailable: Bool {
+        return voiceCoordinator != nil
     }
 }
 

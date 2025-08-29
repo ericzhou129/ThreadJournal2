@@ -26,7 +26,7 @@ struct ThreadListView: View {
         NavigationStack(path: $navigationPath) {
             ZStack {
                 // Background color
-                Color(.systemGroupedBackground)
+                UnToldTheme.shared.background
                     .ignoresSafeArea()
                 
                 // Main content
@@ -55,7 +55,7 @@ struct ThreadListView: View {
                         showingSettingsSheet = true
                     }) {
                         Image(systemName: "gearshape.fill")
-                            .foregroundColor(.primary)
+                            .foregroundColor(UnToldTheme.shared.primaryText)
                     }
                 }
             }
@@ -139,6 +139,10 @@ struct ThreadListView: View {
             let settingsRepository = UserDefaultsSettingsRepository()
             let getSettingsUseCase = GetSettingsUseCaseImpl(repository: settingsRepository)
             
+            // Voice recording services
+            let audioService = AudioCaptureService()
+            let transcriptionService = WhisperKitService()
+            
             ThreadDetailViewFixed(
                 threadId: thread.id,
                 repository: viewModel.repository,
@@ -150,7 +154,9 @@ struct ThreadListView: View {
                 createFieldUseCase: createFieldUseCase,
                 createGroupUseCase: createGroupUseCase,
                 deleteFieldUseCase: deleteFieldUseCase,
-                getSettingsUseCase: getSettingsUseCase
+                getSettingsUseCase: getSettingsUseCase,
+                audioService: audioService,
+                transcriptionService: transcriptionService
             )
         }
     }
@@ -161,7 +167,7 @@ struct ThreadListView: View {
                 // Thread title
                 Text(threadWithMeta.thread.title)
                     .font(.system(size: titleSize, weight: .semibold, design: .default))
-                    .foregroundColor(Color(.label))
+                    .foregroundColor(UnToldTheme.shared.primaryText)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,12 +178,12 @@ struct ThreadListView: View {
                     Text("\(count) \(count == 1 ? "entry" : "entries")")
                     
                     Text("•")
-                        .foregroundColor(Color(.tertiaryLabel))
+                        .foregroundColor(UnToldTheme.shared.tertiaryText)
                     
                     Text(formatLastUpdated(threadWithMeta.thread.updatedAt))
                 }
                 .font(.system(size: metaSize, weight: .regular, design: .default))
-                .foregroundColor(Color(.secondaryLabel))
+                .foregroundColor(UnToldTheme.shared.secondaryText)
             }
             
             // Ellipsis menu button
@@ -190,14 +196,14 @@ struct ThreadListView: View {
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 16))
-                    .foregroundColor(Color(.secondaryLabel))
+                    .foregroundColor(UnToldTheme.shared.secondaryText)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .menuStyle(.automatic)
         }
         .padding(20)
-        .background(Color(.systemBackground))
+        .background(UnToldTheme.shared.cardBackground)
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
@@ -208,11 +214,11 @@ struct ThreadListView: View {
             
             Text("No threads yet")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(Color(.label))
+                .foregroundColor(UnToldTheme.shared.primaryText)
             
             Text("Tap + to create your first thread.")
                 .font(.system(size: 16))
-                .foregroundColor(Color(.secondaryLabel))
+                .foregroundColor(UnToldTheme.shared.secondaryText)
             
             Spacer()
         }
@@ -225,9 +231,9 @@ struct ThreadListView: View {
         }) {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundColor(UnToldTheme.shared.buttonText)
                 .frame(width: 56, height: 56)
-                .background(Color(.label))
+                .background(UnToldTheme.shared.buttonBackground)
                 .clipShape(Circle())
                 .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
         }

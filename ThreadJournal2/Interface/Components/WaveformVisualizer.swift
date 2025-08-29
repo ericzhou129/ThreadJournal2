@@ -12,9 +12,16 @@ struct WaveformVisualizer: View {
     @State private var animationPhase = 0.0
     let onStopAndEdit: () -> Void
     let onStopAndSave: () -> Void
+    let audioLevel: Float
     
     let barCount = 10
     let baseBars = [12, 20, 16, 24, 18, 22, 14, 20, 16, 18]
+    
+    init(audioLevel: Float = 0.0, onStopAndEdit: @escaping () -> Void, onStopAndSave: @escaping () -> Void) {
+        self.audioLevel = audioLevel
+        self.onStopAndEdit = onStopAndEdit
+        self.onStopAndSave = onStopAndSave
+    }
     
     var body: some View {
         HStack(spacing: 0) {
@@ -82,7 +89,11 @@ struct WaveformVisualizer: View {
     
     private func animationMultiplier(for index: Int) -> CGFloat {
         let phase = animationPhase + Double(index) * 0.3
-        return 0.5 + 0.7 * abs(sin(phase))
+        let baseAnimation = 0.5 + 0.7 * abs(sin(phase))
+        
+        // Modulate animation with audio level (0.0 to 1.0)
+        let levelMultiplier = 0.3 + (CGFloat(audioLevel) * 0.7)
+        return baseAnimation * levelMultiplier
     }
     
     private func startAnimation() {
@@ -94,8 +105,9 @@ struct WaveformVisualizer: View {
 
 #Preview {
     VStack(spacing: 20) {
-        // Recording state
+        // Recording state with high audio level
         WaveformVisualizer(
+            audioLevel: 0.8,
             onStopAndEdit: {
                 print("Stop & Edit tapped")
             },
@@ -105,8 +117,9 @@ struct WaveformVisualizer: View {
         )
         .padding(.horizontal)
         
-        // Different background for contrast
+        // Different background for contrast with low audio level
         WaveformVisualizer(
+            audioLevel: 0.2,
             onStopAndEdit: { },
             onStopAndSave: { }
         )

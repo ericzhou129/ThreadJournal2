@@ -19,10 +19,7 @@ struct ThreadDetailViewFixed: View {
     @State private var availableFields: [CustomField] = []
     @State private var fieldValues: [UUID: String] = [:]
     
-    // Voice recording states
-    @State private var isRecording = false
-    @State private var transcriptionPreview = ""
-    @State private var partialTranscription = ""
+    // Voice recording states (now using ViewModel state)
     @State private var textSizePercentage: Int = 100
     @FocusState private var isComposeFieldFocused: Bool
     
@@ -57,7 +54,9 @@ struct ThreadDetailViewFixed: View {
         createFieldUseCase: CreateCustomFieldUseCase,
         createGroupUseCase: CreateFieldGroupUseCase,
         deleteFieldUseCase: DeleteCustomFieldUseCase,
-        getSettingsUseCase: GetSettingsUseCase
+        getSettingsUseCase: GetSettingsUseCase,
+        audioService: AudioCaptureServiceProtocol? = nil,
+        transcriptionService: WhisperKitServiceProtocol? = nil
     ) {
         self.threadId = threadId
         self.repository = repository
@@ -72,7 +71,9 @@ struct ThreadDetailViewFixed: View {
             updateEntryUseCase: updateEntryUseCase,
             deleteEntryUseCase: deleteEntryUseCase,
             draftManager: draftManager,
-            exportThreadUseCase: exportThreadUseCase
+            exportThreadUseCase: exportThreadUseCase,
+            audioService: audioService,
+            transcriptionService: transcriptionService
         )
         self._viewModel = StateObject(wrappedValue: viewModel)
     }
@@ -259,7 +260,7 @@ struct ThreadDetailViewFixed: View {
                         )
                     }
                     
-                    if isRecording {
+                    if viewModel.isVoiceRecording {
                         recordingUIView
                     } else {
                         HStack(alignment: .bottom, spacing: 12) {
@@ -272,8 +273,12 @@ struct ThreadDetailViewFixed: View {
                         }
                         
                         // Voice button below the text field
-                        VoiceRecordButton {
-                            startRecording()
+                        if viewModel.isVoiceRecordingAvailable {
+                            VoiceRecordButton {
+                                Task {
+                                    await viewModel.startVoiceRecording()
+                                }
+                            }
                         }
                     }
                 }
@@ -802,22 +807,22 @@ extension ThreadDetailViewFixed {
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        if !transcriptionPreview.isEmpty {
-                            Text(transcriptionPreview)
+                        if !viewModel.voiceTranscription.isEmpty {
+                            Text(viewModel.voiceTranscription)
                                 .font(.system(size: 16))
                                 .foregroundColor(.primary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
-                        if !partialTranscription.isEmpty {
-                            Text(partialTranscription)
+                        if !viewModel.partialVoiceTranscription.isEmpty {
+                            Text(viewModel.partialVoiceTranscription)
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
                                 .italic()
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
-                        if transcriptionPreview.isEmpty && partialTranscription.isEmpty {
+                        if viewModel.voiceTranscription.isEmpty && viewModel.partialVoiceTranscription.isEmpty {
                             Text("Listening...")
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
@@ -840,100 +845,19 @@ extension ThreadDetailViewFixed {
             
             // Waveform with stop buttons
             WaveformVisualizer(
+                audioLevel: viewModel.voiceAudioLevel,
                 onStopAndEdit: {
-                    stopRecordingAndEdit()
+                    Task {
+                        await viewModel.stopAndEdit()
+                    }
                 },
                 onStopAndSave: {
-                    stopRecordingAndSave()
+                    Task {
+                        await viewModel.stopAndSave()
+                    }
                 }
             )
         }
     }
     
-    // MARK: - Voice Recording Actions
-    
-    private func startRecording() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isRecording = true
-            transcriptionPreview = ""
-            partialTranscription = ""
-        }
-        
-        // Mock transcription updates for demonstration
-        startMockTranscription()
-    }
-    
-    private func stopRecordingAndEdit() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isRecording = false
-            
-            // Fill the compose field with the transcribed text
-            let fullTranscription = transcriptionPreview + partialTranscription
-            if !fullTranscription.isEmpty {
-                viewModel.draftContent = fullTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
-                isComposeFieldFocused = true
-            }
-            
-            // Clear transcription
-            transcriptionPreview = ""
-            partialTranscription = ""
-        }
-    }
-    
-    private func stopRecordingAndSave() {
-        let fullTranscription = transcriptionPreview + partialTranscription
-        
-        withAnimation(.easeInOut(duration: 0.3)) {
-            isRecording = false
-            transcriptionPreview = ""
-            partialTranscription = ""
-        }
-        
-        // Save directly as entry if there's content
-        if !fullTranscription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Task {
-                // Temporarily set draft content for the save operation
-                let originalDraftContent = viewModel.draftContent
-                viewModel.draftContent = fullTranscription.trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                // Add the entry
-                await viewModel.addEntry(fieldValues: [])
-                
-                // Restore original draft content (should be empty after successful save)
-                if viewModel.draftContent.isEmpty {
-                    viewModel.draftContent = originalDraftContent
-                }
-            }
-        }
-    }
-    
-    private func startMockTranscription() {
-        // Mock progressive transcription for UI demonstration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            if isRecording {
-                transcriptionPreview = "Had a really productive day today."
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            if isRecording {
-                transcriptionPreview += " Managed to implement the voice entry feature"
-                partialTranscription = " and it's working better than expected..."
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.5) {
-            if isRecording {
-                transcriptionPreview += " and it's working better than expected"
-                partialTranscription = ". The simplicity really makes a difference."
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
-            if isRecording {
-                transcriptionPreview += ". The simplicity really makes a difference"
-                partialTranscription = " for the user experience."
-            }
-        }
-    }
 }

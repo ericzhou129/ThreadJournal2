@@ -515,6 +515,113 @@ final class ThreadDetailViewModelTests: XCTestCase {
         XCTAssertFalse(sut.showDeleteConfirmation)
         XCTAssertEqual(sut.entries.count, 1) // Entry should still exist
     }
+    
+    // MARK: - Voice Recording Tests
+    
+    func testVoiceRecordingAvailability_WithServices() {
+        // Given
+        let mockAudioService = MockAudioCaptureService()
+        let mockTranscriptionService = MockWhisperKitService()
+        let mockExporter = MockExporter()
+        let exportThreadUseCase = ExportThreadUseCase(
+            repository: mockRepository,
+            exporter: mockExporter
+        )
+        
+        let sutWithVoiceServices = ThreadDetailViewModel(
+            repository: mockRepository,
+            addEntryUseCase: addEntryUseCase,
+            updateEntryUseCase: updateEntryUseCase,
+            deleteEntryUseCase: deleteEntryUseCase,
+            draftManager: mockDraftManager,
+            exportThreadUseCase: exportThreadUseCase,
+            audioService: mockAudioService,
+            transcriptionService: mockTranscriptionService
+        )
+        
+        // Then
+        XCTAssertTrue(sutWithVoiceServices.isVoiceRecordingAvailable)
+        XCTAssertNotNil(sutWithVoiceServices.voiceCoordinator)
+    }
+    
+    func testVoiceRecordingAvailability_WithoutServices() {
+        // When/Then
+        XCTAssertFalse(sut.isVoiceRecordingAvailable)
+        XCTAssertNil(sut.voiceCoordinator)
+    }
+    
+    func testStartVoiceRecording_WithoutServices() async {
+        // When
+        await sut.startVoiceRecording()
+        
+        // Then
+        XCTAssertEqual(sut.voiceRecordingError, "Voice recording not available")
+        XCTAssertFalse(sut.isVoiceRecording)
+    }
+    
+    func testStopAndEdit_WithoutServices() async {
+        // When
+        await sut.stopAndEdit()
+        
+        // Then - Should complete without error
+        XCTAssertEqual(sut.draftContent, "")
+    }
+    
+    func testStopAndSave_WithoutServices() async {
+        // When
+        await sut.stopAndSave()
+        
+        // Then - Should complete without error
+        XCTAssertEqual(sut.draftContent, "")
+    }
+    
+    func testCancelVoiceRecording_WithoutServices() async {
+        // When
+        await sut.cancelVoiceRecording()
+        
+        // Then - Should complete without error (no-op)
+    }
+}
+
+// MARK: - Mock Voice Services
+
+private class MockAudioCaptureService: AudioCaptureServiceProtocol {
+    var shouldStartRecordingSucceed = true
+    var startRecordingCalled = false
+    var stopRecordingCalled = false
+    var recordingData = Data()
+    private var _isRecording = false
+    
+    func requestMicrophonePermission() async -> Bool {
+        return true
+    }
+    
+    func startRecording() async throws {
+        startRecordingCalled = true
+        if shouldStartRecordingSucceed {
+            _isRecording = true
+        } else {
+            throw AudioCaptureError.recordingFailed
+        }
+    }
+    
+    func stopRecording() async throws -> Data {
+        stopRecordingCalled = true
+        _isRecording = false
+        return recordingData
+    }
+    
+    func getAudioLevel() -> Float {
+        return 0.5
+    }
+    
+    func isRecording() -> Bool {
+        return _isRecording
+    }
+    
+    func getRecordingDuration() -> TimeInterval {
+        return 10.0
+    }
 }
 
 // MARK: - Mock Draft Manager
