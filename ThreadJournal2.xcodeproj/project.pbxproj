@@ -23,6 +23,10 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXBuildFile section */
+		BB5487F22E2A0CDD0083EDF6 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = BB5487F12E2A0CDD0083EDF5 /* WhisperKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BB5487C42E2A0CDA0083EDF3 /* ThreadJournal2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ThreadJournal2.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB5487D12E2A0CDD0083EDF3 /* ThreadJournal2Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ThreadJournal2Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB5487F22E2A0CDD0083EDF6 /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = ThreadJournal2;
 			packageProductDependencies = (
+				BB5487F12E2A0CDD0083EDF5 /* WhisperKit */,
 			);
 			productName = ThreadJournal2;
 			productReference = BB5487C42E2A0CDA0083EDF3 /* ThreadJournal2.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = BB5487BB2E2A0CDA0083EDF3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BB5487F02E2A0CDD0083EDF4 /* XCRemoteSwiftPackageReference "WhisperKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BB5487C52E2A0CDA0083EDF3 /* Products */;
 			projectDirPath = "";
@@ -267,6 +276,25 @@
 			targetProxy = BB5487DC2E2A0CDD0083EDF3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BB5487F02E2A0CDD0083EDF4 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.13.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB5487F12E2A0CDD0083EDF5 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB5487F02E2A0CDD0083EDF4 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		BB5487E32E2A0CDD0083EDF3 /* Debug */ = {

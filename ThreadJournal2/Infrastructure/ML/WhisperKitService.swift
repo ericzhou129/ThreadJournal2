@@ -1,19 +1,16 @@
 import Foundation
 import AVFoundation
-// import WhisperKit // Uncomment after adding WhisperKit via Xcode's Package Dependencies
+import WhisperKit
 
 /*
- * WhisperKit Integration Status: READY FOR SPM SETUP
+ * WhisperKit Integration: ACTIVE
  * 
- * This service is prepared for WhisperKit integration but currently uses mock implementations.
- * To complete the integration:
- * 
- * 1. Add WhisperKit via Swift Package Manager (see Engineering/WhisperKit-Integration-Guide.md)
- * 2. Uncomment the WhisperKit import above
- * 3. Uncomment the real implementation code marked with TODO comments
- * 4. Bundle the Whisper Small model (see Engineering/Whisper-Model-Bundling-Instructions.md)
- * 
- * The service interface is complete and ready for use by AudioCaptureService integration.
+ * This service uses WhisperKit for on-device speech recognition.
+ * Configuration:
+ * - Model: openai_whisper-small (multilingual, ~216MB)
+ * - Download: Automatic on first use (Path B)
+ * - Compute: CPU and Neural Engine
+ * - Storage: Application Support directory
  */
 
 // MARK: - Protocol
@@ -57,29 +54,19 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     
     // MARK: - Properties
     
-    // private var whisperKit: WhisperKit? // Uncomment after WhisperKit integration
-    private var isServiceReady = false
+    private var whisperKit: WhisperKit?
     private let modelName = "openai_whisper-small"
     private var currentTask: Task<Void, Never>?
-    private var mockPhraseIndex = 0
     
     private let audioQueue = DispatchQueue(label: "whisperkit.audio", qos: .userInitiated)
     
-    // Mock phrases for demo - cycles through these based on audio chunks
-    private let mockPhrases = [
-        "Hello, this is a test of the voice recording feature.",
-        "The quick brown fox jumps over the lazy dog.",
-        "Voice transcription is working properly.",
-        "This demonstrates real-time speech to text.",
-        "ThreadJournal makes it easy to capture your thoughts.",
-        "Just tap to speak and watch your words appear.",
-        "The audio is processed entirely on your device.",
-        "Your privacy is protected with on-device processing."
-    ]
+    // Download progress tracking
+    @Published var downloadProgress: Float = 0.0
+    @Published var isDownloading = false
+    @Published var modelSizeBytes: Int64 = 0
     
     var isInitialized: Bool {
-        // return whisperKit != nil // Use this after WhisperKit integration
-        isServiceReady
+        whisperKit != nil
     }
     
     // MARK: - Initialization
@@ -87,33 +74,51 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     init() {}
     
     func initialize() async throws {
-        guard !isServiceReady else { return }
+        guard whisperKit == nil else { return }
         
         do {
-            // TODO: Uncomment for real WhisperKit integration
-            /*
-            // Try to initialize with bundled model first
+            print("WhisperKitService: Initializing with model: \(modelName)")
+            
+            // Path A: Try to use bundled model first (if available)
             if let bundledModelPath = getBundledModelPath() {
+                print("WhisperKitService: Found bundled model at \(bundledModelPath)")
                 whisperKit = try await WhisperKit(
-                    modelFolder: bundledModelPath
+                    model: modelName,
+                    downloadBase: URL(fileURLWithPath: bundledModelPath),
+                    computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
+                                         textDecoderCompute: .cpuAndNeuralEngine),
+                    verbose: true,
+                    logLevel: .debug
                 )
             } else {
-                // Fallback to WhisperKit auto-download
-                // This will download the model on first use
-                whisperKit = try await WhisperKit()
+                // Path B: Download model on first launch
+                print("WhisperKitService: No bundled model found, downloading...")
+                isDownloading = true
+                
+                // Initialize with auto-download from HuggingFace
+                whisperKit = try await WhisperKit(
+                    model: modelName,
+                    downloadBase: URL(string: "https://huggingface.co/argmaxinc/whisperkit-coreml")!,
+                    computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
+                                         textDecoderCompute: .cpuAndNeuralEngine),
+                    verbose: true,
+                    logLevel: .debug,
+                    prewarm: true
+                )
+                
+                isDownloading = false
+                print("WhisperKitService: Model downloaded and initialized")
             }
             
             guard whisperKit != nil else {
                 throw WhisperKitServiceError.initializationFailed("Failed to create WhisperKit instance")
             }
-            */
             
-            // Mock initialization
-            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            isServiceReady = true
-            print("WhisperKitService: Using mock implementation. Add WhisperKit package for real transcription.")
+            print("WhisperKitService: Successfully initialized with \(modelName)")
             
-        } catch {
+        } catch let error {
+            isDownloading = false
+            print("WhisperKitService: Initialization failed: \(error)")
             throw WhisperKitServiceError.initializationFailed(error.localizedDescription)
         }
     }
@@ -121,7 +126,7 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     // MARK: - Transcription Methods
     
     func transcribeChunk(audio: Data) async throws -> String {
-        guard isServiceReady else {
+        guard let whisperKit = whisperKit else {
             throw WhisperKitServiceError.notInitialized
         }
         
@@ -130,36 +135,43 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         }
         
         do {
-            // TODO: Uncomment for real WhisperKit integration
-            /*
-            guard let whisperKit = whisperKit else {
-                throw WhisperKitServiceError.notInitialized
-            }
-            
             // Convert audio data to the format expected by WhisperKit
             let audioArray = try convertAudioDataToFloatArray(audio)
             
-            // Perform transcription
-            let result = try await whisperKit.transcribe(audioArray: audioArray)
+            // Perform transcription with streaming support
+            let transcriptionResult = try await whisperKit.transcribe(
+                audioArray: audioArray,
+                decodeOptions: DecodingOptions(
+                    task: .transcribe,
+                    language: nil, // Auto-detect language
+                    temperatureFallbackCount: 3,
+                    sampleLength: 224, // Optimal for 2-second chunks
+                    usePrefillPrompt: false,
+                    skipSpecialTokens: true,
+                    withoutTimestamps: false // Enable for word-level timing
+                )
+            )
             
-            // Return the transcribed text
-            return result?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            */
+            // Extract and return the transcribed text
+            // WhisperKit returns an array of TranscriptionResult
+            if !transcriptionResult.isEmpty {
+                // Get all segments and combine their text
+                let text = transcriptionResult
+                    .flatMap { $0.segments }
+                    .map { $0.text }
+                    .joined(separator: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !text.isEmpty {
+                    print("WhisperKitService: Transcribed: \(text)")
+                    return text
+                }
+            }
             
-            // Mock implementation - return different phrases based on audio data
-            // This simulates more realistic transcription for demo purposes
-            try await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-            
-            // Use audio data size to vary the response
-            let phrase = mockPhrases[mockPhraseIndex % mockPhrases.count]
-            mockPhraseIndex += 1
-            
-            // Return part of the phrase based on chunk size
-            let words = phrase.split(separator: " ")
-            let wordCount = min(max(1, audio.count / 5000), words.count)
-            return words.prefix(wordCount).joined(separator: " ")
+            return ""
             
         } catch {
+            print("WhisperKitService: Transcription error: \(error)")
             throw WhisperKitServiceError.transcriptionFailed(error.localizedDescription)
         }
     }
@@ -186,7 +198,6 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     
     private func convertAudioDataToFloatArray(_ audioData: Data) throws -> [Float] {
         // Convert PCM audio data to Float array expected by WhisperKit
-        let int16Count = audioData.count / MemoryLayout<Int16>.size
         let int16Array = audioData.withUnsafeBytes { bytes in
             Array(bytes.bindMemory(to: Int16.self))
         }
