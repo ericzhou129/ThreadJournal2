@@ -82,23 +82,24 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             // Path A: Try to use bundled model first (if available)
             if let bundledModelPath = getBundledModelPath() {
                 print("WhisperKitService: Found bundled model at \(bundledModelPath)")
+                let bundledURL = URL(fileURLWithPath: bundledModelPath).deletingLastPathComponent()
                 whisperKit = try await WhisperKit(
                     model: modelName,
-                    downloadBase: URL(fileURLWithPath: bundledModelPath),
+                    downloadBase: bundledURL,
                     computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
                                          textDecoderCompute: .cpuAndNeuralEngine),
                     verbose: true,
                     logLevel: .debug
                 )
             } else {
-                // Path B: Download model on first launch
-                print("WhisperKitService: No bundled model found, downloading...")
+                // Path B: Auto-download model using WhisperKit's built-in mechanism
+                print("WhisperKitService: No bundled model found, downloading via WhisperKit...")
                 isDownloading = true
                 
-                // Initialize with auto-download from HuggingFace
+                // Use WhisperKit's automatic download mechanism
+                // This will download from HuggingFace and cache locally
                 whisperKit = try await WhisperKit(
                     model: modelName,
-                    downloadBase: URL(string: "https://huggingface.co/argmaxinc/whisperkit-coreml")!,
                     computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
                                          textDecoderCompute: .cpuAndNeuralEngine),
                     verbose: true,
