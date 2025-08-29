@@ -427,12 +427,12 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         let numChannels: UInt16 = 1
         data.append(withUnsafeBytes(of: numChannels.littleEndian) { Data($0) })
         
-        // Sample rate (44100 Hz)
-        let sampleRate: UInt32 = 44100
+        // Sample rate (16000 Hz - Whisper requirement)
+        let sampleRate: UInt32 = 16000
         data.append(withUnsafeBytes(of: sampleRate.littleEndian) { Data($0) })
         
         // Byte rate (sampleRate * numChannels * bitsPerSample / 8)
-        let byteRate: UInt32 = 44100 * 1 * 32 / 8
+        let byteRate: UInt32 = 16000 * 1 * 32 / 8
         data.append(withUnsafeBytes(of: byteRate.littleEndian) { Data($0) })
         
         // Block align (numChannels * bitsPerSample / 8)

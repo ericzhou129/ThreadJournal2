@@ -50,7 +50,7 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     private var safetyTimer: Timer?
     
     private let bufferSize: AVAudioFrameCount = 1024
-    private let sampleRate: Double = 44100.0
+    private let sampleRate: Double = 16000.0 // Whisper requires 16kHz
     private let chunkDuration: TimeInterval = 2.0
     private let safetyTimeoutDuration: TimeInterval = 300.0 // 5 minutes
     private let silenceThreshold: Float = -60.0 // dB
