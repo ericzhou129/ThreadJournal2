@@ -622,6 +622,10 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
     func getRecordingDuration() -> TimeInterval {
         return 10.0
     }
+    
+    func getLatestChunk() -> Data? {
+        return nil // Mock returns nil for simplicity
+    }
 }
 
 // MARK: - Mock Draft Manager

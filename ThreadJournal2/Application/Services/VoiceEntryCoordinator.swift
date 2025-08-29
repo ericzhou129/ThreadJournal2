@@ -9,14 +9,11 @@ import Foundation
 
 /// Errors that can occur during voice entry coordination
 enum VoiceEntryError: LocalizedError {
-    case modelDownloadDenied
     case transcriptionServiceNotAvailable
     case audioServiceNotAvailable
     
     var errorDescription: String? {
         switch self {
-        case .modelDownloadDenied:
-            return "Voice transcription model download was denied"
         case .transcriptionServiceNotAvailable:
             return "Voice transcription service is not available"
         case .audioServiceNotAvailable:
@@ -48,11 +45,6 @@ final class VoiceEntryCoordinator: ObservableObject {
     
     /// Error state
     @Published private(set) var error: Error?
-    
-    /// Model download state
-    @Published private(set) var isDownloadingModel = false
-    @Published private(set) var downloadProgress: Float = 0.0
-    @Published private(set) var downloadPermissionRequested = false
     
     // MARK: - Private Properties
     
@@ -96,24 +88,7 @@ final class VoiceEntryCoordinator: ObservableObject {
         
         // Initialize transcription service if needed
         if !transcriptionService.isInitialized {
-            // Check if we need to handle download permission
-            if let whisperService = transcriptionService as? WhisperKitService {
-                // Start observing download state
-                observeDownloadState(whisperService)
-                
-                do {
-                    try await transcriptionService.initialize()
-                } catch {
-                    // Check if this is a permission error
-                    if whisperService.downloadPermissionRequested {
-                        downloadPermissionRequested = true
-                        throw error
-                    }
-                    throw error
-                }
-            } else {
-                try await transcriptionService.initialize()
-            }
+            try await transcriptionService.initialize()
         }
         
         // Clear previous state
@@ -193,48 +168,7 @@ final class VoiceEntryCoordinator: ObservableObject {
         return combined.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    /// Grants permission to download the transcription model
-    func grantModelDownloadPermission() async {
-        guard let whisperService = transcriptionService as? WhisperKitService else { return }
-        
-        whisperService.grantDownloadPermission()
-        downloadPermissionRequested = false
-        
-        // Retry initialization
-        do {
-            try await transcriptionService.initialize()
-        } catch {
-            self.error = error
-        }
-    }
-    
-    /// Denies permission to download the transcription model
-    func denyModelDownloadPermission() {
-        guard let whisperService = transcriptionService as? WhisperKitService else { return }
-        
-        whisperService.denyDownloadPermission()
-        downloadPermissionRequested = false
-        error = VoiceEntryError.modelDownloadDenied
-    }
-    
     // MARK: - Private Methods
-    
-    /// Observes the download state of WhisperKit service
-    private func observeDownloadState(_ whisperService: WhisperKitService) {
-        // Note: In a real implementation, we would set up proper Combine publishers
-        // For now, we'll use a simple polling mechanism
-        Task { @MainActor in
-            while !transcriptionService.isInitialized {
-                isDownloadingModel = whisperService.isDownloading
-                downloadProgress = whisperService.downloadProgress
-                downloadPermissionRequested = whisperService.downloadPermissionRequested
-                
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            }
-            
-            isDownloadingModel = false
-        }
-    }
     
     private func startTranscriptionTimer() {
         transcriptionTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in

@@ -73,11 +73,6 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Voice recording error
     @Published private(set) var voiceRecordingError: String?
     
-    /// Model download state
-    @Published private(set) var isDownloadingVoiceModel = false
-    @Published private(set) var voiceModelDownloadProgress: Float = 0.0
-    @Published private(set) var voiceModelDownloadPermissionRequested = false
-    
     // MARK: - Edit/Delete Entry State
     
     /// The entry currently being edited
@@ -485,18 +480,6 @@ final class ThreadDetailViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .map { $0?.localizedDescription }
             .assign(to: &$voiceRecordingError)
-        
-        coordinator.$isDownloadingModel
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$isDownloadingVoiceModel)
-        
-        coordinator.$downloadProgress
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$voiceModelDownloadProgress)
-        
-        coordinator.$downloadPermissionRequested
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$voiceModelDownloadPermissionRequested)
     }
     
     /// Starts voice recording
@@ -569,16 +552,6 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Whether voice recording is available
     var isVoiceRecordingAvailable: Bool {
         return voiceCoordinator != nil
-    }
-    
-    /// Grants permission to download the voice transcription model
-    func grantVoiceModelDownloadPermission() async {
-        await voiceCoordinator?.grantModelDownloadPermission()
-    }
-    
-    /// Denies permission to download the voice transcription model
-    func denyVoiceModelDownloadPermission() {
-        voiceCoordinator?.denyModelDownloadPermission()
     }
 }
 

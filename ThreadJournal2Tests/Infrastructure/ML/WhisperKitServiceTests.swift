@@ -233,6 +233,117 @@ final class WhisperKitServiceTests: XCTestCase {
         )
     }
     
+    // MARK: - WAV Parsing Tests
+    
+    func testExtractFloat32FromWAVData() {
+        // Given - Create a simple WAV file with Float32 PCM data
+        let service = WhisperKitService()
+        let testSamples: [Float] = [0.1, 0.2, -0.1, -0.2, 0.0]
+        let wavData = createTestWAVFile(samples: testSamples)
+        
+        // When
+        let extractedSamples = service.extractFloat32FromWAVDataForTesting(wavData)
+        
+        // Then
+        XCTAssertNotNil(extractedSamples, "Should successfully extract samples from WAV data")
+        XCTAssertEqual(extractedSamples?.count, testSamples.count, "Should extract correct number of samples")
+        
+        if let extracted = extractedSamples {
+            for (index, expectedSample) in testSamples.enumerated() {
+                XCTAssertEqual(extracted[index], expectedSample, accuracy: 0.0001, 
+                             "Sample \(index) should match expected value")
+            }
+        }
+    }
+    
+    func testExtractFloat32FromInvalidWAVData() {
+        // Given
+        let service = WhisperKitService()
+        let invalidData = Data(repeating: 0xFF, count: 100)
+        
+        // When
+        let extractedSamples = service.extractFloat32FromWAVDataForTesting(invalidData)
+        
+        // Then
+        XCTAssertNil(extractedSamples, "Should return nil for invalid WAV data")
+    }
+    
+    func testExtractFloat32FromEmptyData() {
+        // Given
+        let service = WhisperKitService()
+        let emptyData = Data()
+        
+        // When
+        let extractedSamples = service.extractFloat32FromWAVDataForTesting(emptyData)
+        
+        // Then
+        XCTAssertNil(extractedSamples, "Should return nil for empty data")
+    }
+    
+    private func createTestWAVFile(samples: [Float]) -> Data {
+        var data = Data()
+        
+        // RIFF header
+        data.append("RIFF".data(using: .ascii)!)
+        
+        // File size placeholder (will be updated)
+        let fileSizePlaceholder = data.count
+        data.append(Data(count: 4)) // Placeholder for file size
+        
+        // WAVE format
+        data.append("WAVE".data(using: .ascii)!)
+        
+        // fmt chunk
+        data.append("fmt ".data(using: .ascii)!)
+        
+        // fmt chunk size (16 bytes for PCM)
+        let fmtSize: UInt32 = 16
+        data.append(withUnsafeBytes(of: fmtSize.littleEndian) { Data($0) })
+        
+        // Audio format (3 = IEEE Float)
+        let audioFormat: UInt16 = 3
+        data.append(withUnsafeBytes(of: audioFormat.littleEndian) { Data($0) })
+        
+        // Number of channels (1 = mono)
+        let numChannels: UInt16 = 1
+        data.append(withUnsafeBytes(of: numChannels.littleEndian) { Data($0) })
+        
+        // Sample rate (44100 Hz)
+        let sampleRate: UInt32 = 44100
+        data.append(withUnsafeBytes(of: sampleRate.littleEndian) { Data($0) })
+        
+        // Byte rate (sampleRate * numChannels * bitsPerSample / 8)
+        let byteRate: UInt32 = 44100 * 1 * 32 / 8
+        data.append(withUnsafeBytes(of: byteRate.littleEndian) { Data($0) })
+        
+        // Block align (numChannels * bitsPerSample / 8)
+        let blockAlign: UInt16 = 1 * 32 / 8
+        data.append(withUnsafeBytes(of: blockAlign.littleEndian) { Data($0) })
+        
+        // Bits per sample (32 for Float32)
+        let bitsPerSample: UInt16 = 32
+        data.append(withUnsafeBytes(of: bitsPerSample.littleEndian) { Data($0) })
+        
+        // data chunk
+        data.append("data".data(using: .ascii)!)
+        
+        // data chunk size
+        let dataSize: UInt32 = UInt32(samples.count * MemoryLayout<Float>.size)
+        data.append(withUnsafeBytes(of: dataSize.littleEndian) { Data($0) })
+        
+        // PCM data (Float32 samples)
+        for sample in samples {
+            data.append(withUnsafeBytes(of: sample) { Data($0) })
+        }
+        
+        // Update file size in header (total size - 8 bytes for RIFF header)
+        let totalFileSize = UInt32(data.count - 8)
+        data.replaceSubrange(fileSizePlaceholder..<(fileSizePlaceholder + 4), 
+                           with: withUnsafeBytes(of: totalFileSize.littleEndian) { Data($0) })
+        
+        return data
+    }
+    
     // MARK: - Integration Tests
     
     func testServiceProtocolConformance() {

@@ -13,7 +13,11 @@ final class AudioCaptureServiceTests: XCTestCase {
     
     override func tearDown() {
         if sut.isRecording() {
-            try? await sut.stopRecording()
+            // Note: Can't use await in synchronous tearDown, 
+            // tests should properly clean up their own recordings
+            Task {
+                try? await sut.stopRecording()
+            }
         }
         sut = nil
         super.tearDown()

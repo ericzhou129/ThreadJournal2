@@ -129,8 +129,6 @@ struct ThreadDetailViewFixed: View {
         .overlay {
             if viewModel.isExporting {
                 exportingOverlay
-            } else if viewModel.isDownloadingVoiceModel {
-                voiceModelDownloadingOverlay
             }
         }
         .alert("Delete Entry?", isPresented: $viewModel.showDeleteConfirmation) {
@@ -144,18 +142,6 @@ struct ThreadDetailViewFixed: View {
             }
         } message: {
             Text("This entry will be removed from your journal.")
-        }
-        .alert("Download Voice Model?", isPresented: $viewModel.voiceModelDownloadPermissionRequested) {
-            Button("Cancel", role: .cancel) {
-                viewModel.denyVoiceModelDownloadPermission()
-            }
-            Button("Download", role: .default) {
-                Task {
-                    await viewModel.grantVoiceModelDownloadPermission()
-                }
-            }
-        } message: {
-            Text("Voice transcription requires downloading a ~216MB AI model for on-device processing. This is a one-time download.")
         }
         .sheet(isPresented: $showingFieldSelector) {
             FieldSelectorSheet(
@@ -410,31 +396,6 @@ struct ThreadDetailViewFixed: View {
             )
     }
     
-    private var voiceModelDownloadingOverlay: some View {
-        Color.black.opacity(0.3)
-            .ignoresSafeArea()
-            .overlay(
-                VStack(spacing: 16) {
-                    ProgressView(value: viewModel.voiceModelDownloadProgress)
-                        .progressViewStyle(LinearProgressViewStyle())
-                        .frame(width: 200)
-                    
-                    VStack(spacing: 4) {
-                        Text("Downloading Voice Model")
-                            .font(.headline)
-                        Text("~216MB • One-time download")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.0f%%", viewModel.voiceModelDownloadProgress * 100))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(24)
-                .background(Color(.systemBackground))
-                .cornerRadius(16)
-            )
-    }
     
     private func entryView(entry: Entry, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 0) {

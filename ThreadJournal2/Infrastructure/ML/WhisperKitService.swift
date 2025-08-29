@@ -60,12 +60,9 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     
     private let audioQueue = DispatchQueue(label: "whisperkit.audio", qos: .userInitiated)
     
-    // Download progress tracking
-    @Published var downloadProgress: Float = 0.0
-    @Published var isDownloading = false
-    @Published var modelSizeBytes: Int64 = 216_000_000 // ~216MB for openai_whisper-small
-    @Published var downloadPermissionRequested = false
-    @Published var downloadPermissionGranted = false
+    // Download progress tracking (internal only)
+    private var downloadProgress: Float = 0.0
+    private var isDownloading = false
     
     var isInitialized: Bool {
         whisperKit != nil
@@ -94,25 +91,10 @@ final class WhisperKitService: WhisperKitServiceProtocol {
                     logLevel: .debug
                 )
             } else {
-                // Path B: Check if model needs to be downloaded
-                let needsDownload = !isModelCached()
-                
-                if needsDownload {
-                    // Request permission before downloading
-                    if !downloadPermissionGranted {
-                        downloadPermissionRequested = true
-                        throw WhisperKitServiceError.initializationFailed("Model download permission required")
-                    }
-                    
-                    print("WhisperKitService: No bundled model found, downloading via WhisperKit...")
-                    isDownloading = true
-                    downloadProgress = 0.0
-                } else {
-                    print("WhisperKitService: Using cached model")
-                }
-                
-                // Use WhisperKit's automatic download mechanism
+                // Path B: Use WhisperKit's automatic download mechanism
                 // This will download from HuggingFace and cache locally if needed
+                print("WhisperKitService: Using WhisperKit with automatic model management...")
+                
                 whisperKit = try await WhisperKit(
                     model: modelName,
                     computeOptions: .init(audioEncoderCompute: .cpuAndNeuralEngine,
@@ -122,11 +104,7 @@ final class WhisperKitService: WhisperKitServiceProtocol {
                     prewarm: true
                 )
                 
-                if needsDownload {
-                    isDownloading = false
-                    downloadProgress = 1.0
-                    print("WhisperKitService: Model downloaded and initialized")
-                }
+                print("WhisperKitService: Model initialized successfully")
             }
             
             guard whisperKit != nil else {
@@ -142,17 +120,6 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         }
     }
     
-    /// Grants permission to download the model
-    func grantDownloadPermission() {
-        downloadPermissionGranted = true
-        downloadPermissionRequested = false
-    }
-    
-    /// Denies permission to download the model
-    func denyDownloadPermission() {
-        downloadPermissionGranted = false
-        downloadPermissionRequested = false
-    }
     
     // MARK: - Transcription Methods
     
@@ -244,20 +211,6 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         return bundlePath
     }
     
-    /// Checks if the model is already cached locally
-    private func isModelCached() -> Bool {
-        // WhisperKit caches models in the Application Support directory
-        let fileManager = FileManager.default
-        guard let appSupportDir = fileManager.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else {
-            return false
-        }
-        
-        let modelDir = appSupportDir.appendingPathComponent("com.argmax.whisperkit")
-                                   .appendingPathComponent(modelName)
-        
-        return fileManager.fileExists(atPath: modelDir.path)
-    }
     
     private func convertAudioDataToFloatArray(_ audioData: Data) throws -> [Float] {
         print("WhisperKitService: Converting audio data of size \(audioData.count) bytes")
@@ -266,17 +219,42 @@ final class WhisperKitService: WhisperKitServiceProtocol {
         // We need to extract the raw PCM Float32 samples from the WAV file
         
         // First, try to parse as WAV file and extract Float32 PCM data
-        if let floatArray = extractFloat32FromWAVData(audioData) {
-            print("WhisperKitService: Extracted \(floatArray.count) Float32 samples from WAV")
+        if let floatArray = extractFloat32FromWAVData(audioData), !floatArray.isEmpty {
+            print("WhisperKitService: Successfully extracted \(floatArray.count) Float32 samples from WAV")
+            
+            // Validate the extracted audio data
+            let maxValue = floatArray.max() ?? 0.0
+            let minValue = floatArray.min() ?? 0.0
+            let rms = sqrt(floatArray.map { $0 * $0 }.reduce(0, +) / Float(floatArray.count))
+            
+            print("WhisperKitService: Audio validation - min: \(minValue), max: \(maxValue), RMS: \(rms)")
+            
+            // Check if audio is silent (very low RMS indicates silence)
+            if rms < 0.001 {
+                print("WhisperKitService: WARNING - Audio appears to be silent (RMS: \(rms))")
+            }
+            
             return floatArray
         }
         
+        print("WhisperKitService: WAV parsing failed, attempting fallback to raw Float32 interpretation")
+        
         // Fallback: Try to interpret as raw Float32 data
+        guard audioData.count % MemoryLayout<Float>.size == 0 else {
+            print("WhisperKitService: ERROR - Audio data size (\(audioData.count)) is not a multiple of Float size (\(MemoryLayout<Float>.size))")
+            throw WhisperKitServiceError.invalidAudioData
+        }
+        
         let floatArray = audioData.withUnsafeBytes { bytes in
             Array(bytes.bindMemory(to: Float.self))
         }
         
         print("WhisperKitService: Interpreted as raw Float32 data: \(floatArray.count) samples")
+        
+        guard !floatArray.isEmpty else {
+            print("WhisperKitService: ERROR - No audio samples extracted")
+            throw WhisperKitServiceError.invalidAudioData
+        }
         
         // Validate the audio data
         let maxValue = floatArray.max() ?? 0.0
@@ -295,44 +273,210 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     
     /// Extracts Float32 PCM data from a WAV file
     private func extractFloat32FromWAVData(_ wavData: Data) -> [Float]? {
+        print("WhisperKitService: Parsing WAV data of size \(wavData.count) bytes")
+        
         // WAV file format parsing
-        guard wavData.count > 44 else { return nil } // WAV header is at least 44 bytes
+        guard wavData.count > 44 else { 
+            print("WhisperKitService: WAV data too small (need >44 bytes, got \(wavData.count))")
+            return nil 
+        }
         
         // Check for WAV file signature "RIFF"
         let riffSignature = wavData.subdata(in: 0..<4)
-        guard riffSignature == "RIFF".data(using: .ascii) else { return nil }
+        guard riffSignature == "RIFF".data(using: .ascii) else { 
+            print("WhisperKitService: Missing RIFF signature")
+            return nil 
+        }
+        
+        // Get file size from RIFF header
+        let riffSize = wavData.subdata(in: 4..<8).withUnsafeBytes {
+            UInt32(littleEndian: $0.load(as: UInt32.self))
+        }
+        print("WhisperKitService: RIFF size: \(riffSize)")
         
         // Check for WAV format "WAVE"
         let waveSignature = wavData.subdata(in: 8..<12)
-        guard waveSignature == "WAVE".data(using: .ascii) else { return nil }
+        guard waveSignature == "WAVE".data(using: .ascii) else { 
+            print("WhisperKitService: Missing WAVE signature")
+            return nil 
+        }
         
-        // Find the "data" chunk
+        // Parse chunks to find format and data
+        var audioFormat: UInt16 = 0
+        var numChannels: UInt16 = 0
+        var sampleRate: UInt32 = 0
+        var bitsPerSample: UInt16 = 0
+        var dataChunkData: Data? = nil
+        
         var offset = 12
         while offset < wavData.count - 8 {
             let chunkId = wavData.subdata(in: offset..<offset+4)
             let chunkSize = wavData.subdata(in: offset+4..<offset+8).withUnsafeBytes {
-                $0.load(as: UInt32.self)
+                UInt32(littleEndian: $0.load(as: UInt32.self))
             }
             
-            if chunkId == "data".data(using: .ascii) {
-                // Found data chunk, extract Float32 samples
+            print("WhisperKitService: Found chunk '\(String(data: chunkId, encoding: .ascii) ?? "unknown")' with size \(chunkSize)")
+            
+            if chunkId == "fmt ".data(using: .ascii) {
+                // Format chunk - extract audio format information
+                let fmtStart = offset + 8
+                guard fmtStart + 16 <= wavData.count else {
+                    print("WhisperKitService: fmt chunk too small")
+                    return nil
+                }
+                
+                audioFormat = wavData.subdata(in: fmtStart..<fmtStart+2).withUnsafeBytes {
+                    UInt16(littleEndian: $0.load(as: UInt16.self))
+                }
+                numChannels = wavData.subdata(in: fmtStart+2..<fmtStart+4).withUnsafeBytes {
+                    UInt16(littleEndian: $0.load(as: UInt16.self))
+                }
+                sampleRate = wavData.subdata(in: fmtStart+4..<fmtStart+8).withUnsafeBytes {
+                    UInt32(littleEndian: $0.load(as: UInt32.self))
+                }
+                
+                // Skip byte rate (4 bytes) and block align (2 bytes)
+                if fmtStart + 16 <= wavData.count {
+                    bitsPerSample = wavData.subdata(in: fmtStart+14..<fmtStart+16).withUnsafeBytes {
+                        UInt16(littleEndian: $0.load(as: UInt16.self))
+                    }
+                }
+                
+                print("WhisperKitService: Format - audioFormat: \(audioFormat), channels: \(numChannels), sampleRate: \(sampleRate), bitsPerSample: \(bitsPerSample)")
+                
+            } else if chunkId == "data".data(using: .ascii) {
+                // Data chunk - extract PCM samples
                 let dataStart = offset + 8
                 let dataEnd = min(dataStart + Int(chunkSize), wavData.count)
-                let pcmData = wavData.subdata(in: dataStart..<dataEnd)
-                
-                return pcmData.withUnsafeBytes { bytes in
-                    Array(bytes.bindMemory(to: Float.self))
-                }
+                dataChunkData = wavData.subdata(in: dataStart..<dataEnd)
+                print("WhisperKitService: Found data chunk with \(dataChunkData?.count ?? 0) bytes")
             }
             
-            offset += 8 + Int(chunkSize)
+            // Move to next chunk (with proper alignment)
+            let alignedChunkSize = (Int(chunkSize) + 1) & ~1 // Align to even boundary
+            offset += 8 + alignedChunkSize
         }
         
-        return nil
+        // Validate format
+        guard audioFormat == 3, // IEEE Float (32-bit float)
+              numChannels == 1,   // Mono
+              bitsPerSample == 32 // 32-bit
+        else {
+            print("WhisperKitService: Unsupported audio format - format: \(audioFormat), channels: \(numChannels), bits: \(bitsPerSample)")
+            return nil
+        }
+        
+        // Extract Float32 samples from data chunk
+        guard let pcmData = dataChunkData, !pcmData.isEmpty else {
+            print("WhisperKitService: No PCM data found")
+            return nil
+        }
+        
+        let floatArray = pcmData.withUnsafeBytes { bytes in
+            Array(bytes.bindMemory(to: Float.self))
+        }
+        
+        print("WhisperKitService: Successfully extracted \(floatArray.count) Float32 samples")
+        return floatArray
     }
     
     deinit {
         currentTask?.cancel()
+    }
+    
+    // MARK: - Testing Support
+    
+    /// Exposed for testing purposes only
+    func extractFloat32FromWAVDataForTesting(_ wavData: Data) -> [Float]? {
+        return extractFloat32FromWAVData(wavData)
+    }
+    
+    /// Test method to validate WAV parsing with a minimal WAV file
+    func testWAVParsingWithSampleData() {
+        print("WhisperKitService: Testing WAV parsing with sample data")
+        
+        // Create a minimal WAV file with Float32 PCM data
+        let testSamples: [Float] = [0.1, -0.1, 0.2, -0.2, 0.0]
+        let wavData = createTestWAVFile(samples: testSamples)
+        
+        print("WhisperKitService: Created test WAV file with \(wavData.count) bytes")
+        
+        // Test the parsing
+        if let extractedSamples = extractFloat32FromWAVData(wavData) {
+            print("WhisperKitService: Successfully parsed \(extractedSamples.count) samples")
+            print("WhisperKitService: Original samples: \(testSamples)")
+            print("WhisperKitService: Extracted samples: \(extractedSamples)")
+            
+            // Verify samples match
+            let samplesMatch = zip(testSamples, extractedSamples).allSatisfy { abs($0.0 - $0.1) < 0.0001 }
+            print("WhisperKitService: Samples match: \(samplesMatch)")
+        } else {
+            print("WhisperKitService: ERROR - Failed to parse test WAV file")
+        }
+    }
+    
+    private func createTestWAVFile(samples: [Float]) -> Data {
+        var data = Data()
+        
+        // RIFF header
+        data.append("RIFF".data(using: .ascii)!)
+        
+        // File size (will be updated later)
+        let fileSizeOffset = data.count
+        data.append(Data(count: 4)) // Placeholder for file size
+        
+        // WAVE format
+        data.append("WAVE".data(using: .ascii)!)
+        
+        // fmt chunk
+        data.append("fmt ".data(using: .ascii)!)
+        
+        // fmt chunk size (16 bytes for basic PCM)
+        let fmtSize: UInt32 = 16
+        data.append(withUnsafeBytes(of: fmtSize.littleEndian) { Data($0) })
+        
+        // Audio format (3 = IEEE Float)
+        let audioFormat: UInt16 = 3
+        data.append(withUnsafeBytes(of: audioFormat.littleEndian) { Data($0) })
+        
+        // Number of channels (1 = mono)
+        let numChannels: UInt16 = 1
+        data.append(withUnsafeBytes(of: numChannels.littleEndian) { Data($0) })
+        
+        // Sample rate (44100 Hz)
+        let sampleRate: UInt32 = 44100
+        data.append(withUnsafeBytes(of: sampleRate.littleEndian) { Data($0) })
+        
+        // Byte rate (sampleRate * numChannels * bitsPerSample / 8)
+        let byteRate: UInt32 = 44100 * 1 * 32 / 8
+        data.append(withUnsafeBytes(of: byteRate.littleEndian) { Data($0) })
+        
+        // Block align (numChannels * bitsPerSample / 8)
+        let blockAlign: UInt16 = 1 * 32 / 8
+        data.append(withUnsafeBytes(of: blockAlign.littleEndian) { Data($0) })
+        
+        // Bits per sample (32 for Float32)
+        let bitsPerSample: UInt16 = 32
+        data.append(withUnsafeBytes(of: bitsPerSample.littleEndian) { Data($0) })
+        
+        // data chunk
+        data.append("data".data(using: .ascii)!)
+        
+        // data chunk size
+        let dataSize: UInt32 = UInt32(samples.count * MemoryLayout<Float>.size)
+        data.append(withUnsafeBytes(of: dataSize.littleEndian) { Data($0) })
+        
+        // PCM data (Float32 samples)
+        for sample in samples {
+            data.append(withUnsafeBytes(of: sample) { Data($0) })
+        }
+        
+        // Update file size in header (total size - 8 bytes for RIFF header)
+        let totalFileSize = UInt32(data.count - 8)
+        data.replaceSubrange(fileSizeOffset..<(fileSizeOffset + 4), 
+                           with: withUnsafeBytes(of: totalFileSize.littleEndian) { Data($0) })
+        
+        return data
     }
 }
 

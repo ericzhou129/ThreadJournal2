@@ -164,6 +164,10 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
         return _recordingDuration
     }
     
+    func getLatestChunk() -> Data? {
+        return nil // Mock returns nil for simplicity
+    }
+    
     // Helper methods for tests
     func setAudioLevel(_ level: Float) {
         _audioLevel = level
