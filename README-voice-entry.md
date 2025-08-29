@@ -1,38 +1,43 @@
-# Voice Entry Feature - Setup Guide
+# Voice Entry Feature - Developer Guide
 
 ## Overview
-ThreadJournal's voice entry feature enables users to create journal entries using voice dictation with complete on-device processing. The feature uses WhisperKit for Core ML-based transcription, ensuring privacy and offline functionality.
+ThreadJournal's voice entry feature enables users to create journal entries using voice dictation with complete on-device processing. The feature uses WhisperKit for Core ML-based transcription with a bundled Whisper Small model, ensuring privacy, offline functionality, and zero-configuration user experience.
 
-## Quick Start
+## Key Features
 
-### 1. Add WhisperKit Dependency
-1. Open `ThreadJournal2.xcodeproj` in Xcode
-2. Select the project in the navigator
-3. Go to "Package Dependencies" tab
-4. Click the "+" button
-5. Enter: `https://github.com/argmaxinc/WhisperKit`
-6. Select version: Latest (1.0.0 or higher)
-7. Click "Add Package"
-8. Select target: ThreadJournal2
+### Zero-Configuration Approach
+- **Bundled Model**: Whisper Small model (39MB) is included in the app bundle
+- **No Downloads**: Users can start using voice entry immediately after install
+- **Offline-First**: No internet connection required for transcription
+- **Instant Availability**: No waiting for model downloads or setup
 
-### 2. Add Microphone Permission
-Add to `Info.plist`:
+### User Experience
+- **Two Recording Modes**: Tap-to-record and hold-to-record
+- **Real-time Feedback**: Live partial transcription results
+- **Smart Actions**: Stop & Edit vs Stop & Save options
+- **Audio Visualization**: Waveform display during recording
+- **Safety Limits**: 5-minute maximum recording duration
+
+### Developer Setup
+
+#### 1. WhisperKit Integration
+The app integrates WhisperKit via Swift Package Manager:
+- Repository: `https://github.com/argmaxinc/WhisperKit`
+- Version: 1.0.0 or higher
+- Target: ThreadJournal2
+
+#### 2. Microphone Permission
+Required `Info.plist` entry:
 ```xml
 <key>NSMicrophoneUsageDescription</key>
 <string>ThreadJournal needs microphone access to transcribe your voice entries</string>
 ```
 
-### 3. Build and Run
-```bash
-# Clean build folder
-xcodebuild clean -scheme ThreadJournal2
-
-# Build the project
-xcodebuild build -scheme ThreadJournal2 -destination 'platform=iOS Simulator,name=iPhone 15'
-
-# Run tests
-xcodebuild test -scheme ThreadJournal2 -destination 'platform=iOS Simulator,name=iPhone 15'
-```
+#### 3. Model Bundling
+The Whisper Small model is bundled in the app using folder references:
+- Location: `ThreadJournal2/Resources/Models/openai_whisper-small/`
+- Size: ~39MB
+- Contents: AudioEncoder.mlmodelc, TextDecoder.mlmodelc, MelSpectrogram.mlmodelc, config.json, tokenizer.json
 
 ## Architecture
 
@@ -87,29 +92,30 @@ Voice Entry System
 - Models stored in private app container
 - Microphone permission required
 
-## Model Management
+## Bundled Model Details
 
-### Default Model
-- **Name**: Whisper Small (Multilingual)
-- **Size**: 39 MB
-- **Languages**: 99+ languages
-- **Performance**: <1s to first partial on A16+
+### Whisper Small (Multilingual)
+- **Name**: openai_whisper-small
+- **Size**: 39MB (bundled in app)
+- **Languages**: 99+ languages with automatic detection
+- **Performance**: <1s to first partial result on A16+ devices
+- **Format**: Core ML (.mlmodelc) optimized for iOS
 
-### Model Download
-Models are downloaded on-demand from Hugging Face:
+### Bundle Location
 ```
-https://huggingface.co/argmaxinc/whisperkit-coreml/openai_whisper-small
+ThreadJournal2.app/openai_whisper-small/
+├── AudioEncoder.mlmodelc/      # Speech-to-audio-features model
+├── TextDecoder.mlmodelc/       # Audio-features-to-text model  
+├── MelSpectrogram.mlmodelc/    # Audio preprocessing model
+├── config.json                 # Model configuration
+└── tokenizer.json             # Text tokenization rules
 ```
 
-### Storage Location
-```
-Documents/WhisperModels/openai_whisper-small/
-├── AudioEncoder.mlmodelc
-├── TextDecoder.mlmodelc
-├── MelSpectrogram.mlmodelc
-├── config.json
-└── tokenizer.json
-```
+### No Downloads Required
+- Models are pre-bundled during build process
+- No first-launch download wait times
+- No network dependency for voice features
+- Consistent experience across all devices
 
 ## Performance Guidelines
 
@@ -172,11 +178,11 @@ AVAudioApplication.requestRecordPermission { granted in
 }
 ```
 
-#### Model Download Failed
-- Check network connectivity
-- Verify sufficient storage (80MB free)
-- Clear cache and retry
-- Check Hugging Face availability
+#### Model Not Found
+- Verify model bundle is included in Xcode project
+- Check folder references (blue folders) not groups (yellow)
+- Ensure Bundle.main.path(forResource: "openai_whisper-small") returns valid path
+- Rebuild project to refresh bundle contents
 
 #### No Audio Captured
 - Verify audio session configuration
@@ -201,23 +207,36 @@ AVAudioApplication.requestRecordPermission { granted in
 
 ### Example Integration
 ```swift
-struct ComposeBar: View {
-    @StateObject private var voiceVM = VoiceEntryViewModel()
-    @State private var showVoiceEntry = false
+// In ThreadDetailView - voice recording integration
+struct ThreadComposer: View {
+    @StateObject private var viewModel: ThreadDetailViewModel
     
     var body: some View {
-        HStack {
-            TextField("What's on your mind?", text: $text)
+        VStack {
+            TextField("What's on your mind?", text: $viewModel.newEntryText)
             
-            Button(action: { showVoiceEntry = true }) {
-                Image(systemName: "mic.fill")
-            }
-            .sheet(isPresented: $showVoiceEntry) {
-                VoiceEntryView(viewModel: voiceVM)
+            if viewModel.isVoiceRecordingAvailable {
+                VoiceRecordButton {
+                    Task {
+                        await viewModel.startVoiceRecording()
+                    }
+                }
             }
         }
     }
 }
+
+// Voice recording coordinator usage
+let coordinator = VoiceEntryCoordinator(
+    audioService: AudioCaptureService(),
+    transcriptionService: WhisperKitService()
+)
+
+// Start recording
+try await coordinator.startRecording()
+
+// Get final transcription
+let transcription = try await coordinator.stopRecording()
 ```
 
 ## Future Enhancements
@@ -236,11 +255,12 @@ struct ComposeBar: View {
 
 ## Known Limitations
 
-1. **Model Size**: 39MB download required
-2. **Language Detection**: Auto-detection may be slow
-3. **Background Recording**: Not supported due to iOS restrictions
-4. **Long Recordings**: Memory usage increases linearly
-5. **Accuracy**: Varies with accent and audio quality
+1. **App Size Impact**: 39MB increase in app bundle size
+2. **Language Detection**: Auto-detection adds slight processing delay
+3. **Background Recording**: Not supported due to iOS app lifecycle restrictions
+4. **Recording Duration**: 5-minute safety limit to prevent excessive memory usage
+5. **Device Performance**: Older devices (pre-A14) may have slower transcription
+6. **Accuracy Factors**: Performance varies with microphone quality, background noise, and speech clarity
 
 ## Support
 

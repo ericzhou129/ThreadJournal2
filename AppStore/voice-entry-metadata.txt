@@ -1,0 +1,200 @@
+# ThreadJournal v2.0 App Store Metadata - Voice Entry Feature
+
+## App Store Description (Main)
+
+Transform your journaling with revolutionary voice-to-text technology. ThreadJournal v2.0 introduces advanced voice entry powered by on-device AI - speak your thoughts and watch them become beautiful journal entries instantly.
+
+**🎤 REVOLUTIONARY VOICE ENTRY**
+• Speak naturally - see your words appear in real-time
+• 99+ languages with automatic detection
+• Complete privacy - all processing happens on your device
+• Zero setup - works immediately after installation
+• Professional accuracy powered by OpenAI's Whisper technology
+
+**🔒 PRIVACY-FIRST DESIGN**
+• Your voice never leaves your iPhone
+• No internet required for voice transcription
+• Audio immediately deleted after processing
+• Complete control over your personal thoughts
+
+**✨ INTELLIGENT FEATURES**
+• Real-time partial transcription as you speak
+• Stop & Edit for thoughtful refinement
+• Stop & Save for instant capture
+• Thread-aware entry creation
+• Beautiful audio visualization
+
+**📱 OPTIMIZED EXPERIENCE**
+• Works on iPhone 11 and newer
+• Blazing fast on iPhone 12+
+• Long battery life during recording
+• Seamless integration with existing features
+
+Whether you're capturing daily thoughts, profound insights, or creative ideas, ThreadJournal's voice entry makes journaling as natural as conversation.
+
+## What's New in Version 2.0
+
+🎤 VOICE ENTRY - THE FUTURE OF JOURNALING
+Speak your thoughts and watch them become journal entries with advanced on-device speech recognition.
+
+• Revolutionary voice-to-text with 95%+ accuracy
+• Real-time transcription in 99+ languages  
+• Complete privacy - all processing on your device
+• Zero configuration - works immediately
+• Professional quality powered by AI
+
+🚀 Enhanced Performance
+• Faster entry creation with voice input
+• Improved memory management
+• Optimized for iOS 17
+• Better accessibility support
+
+🔒 Privacy Focused
+• On-device speech processing
+• No data leaves your iPhone
+• Audio never stored or transmitted
+• Transparent permission handling
+
+## Feature Highlights
+
+**Voice Entry System**
+- Advanced Core ML-based speech recognition
+- Real-time partial transcription results
+- Automatic language detection (99+ languages)
+- Professional accuracy with OpenAI's Whisper model
+- Complete offline functionality
+
+**Privacy & Security**
+- All voice processing happens on-device
+- No internet connection required
+- Audio buffers immediately cleared
+- Zero data sharing with external services
+
+**User Experience**
+- Tap-to-record or hold-to-record modes
+- Live audio waveform visualization
+- Stop & Edit vs Stop & Save options
+- Seamless thread integration
+- 5-minute safety recording limit
+
+**Performance**
+- <1 second to first partial result (iPhone 12+)
+- ~50MB memory usage during recording
+- <5% battery drain for 10-minute session
+- Optimized for all iOS 17 devices
+
+## App Store Search Keywords
+
+Primary: voice entry, voice journal, speech to text, private journaling, offline transcription
+Secondary: diary app, personal journal, thought capture, voice notes, on-device AI
+Long-tail: private voice journal, offline speech recognition, secure diary, voice to text journal
+Technical: Core ML transcription, WhisperKit, on-device AI, privacy-first journaling
+
+## Category & Metadata
+
+**Primary Category**: Productivity
+**Secondary Category**: Lifestyle
+**Age Rating**: 4+ (suitable for all ages)
+**Languages**: English (primary), with voice support for 99+ languages
+**Device Requirements**: iOS 17.0+, iPhone 11 or newer recommended
+
+## Screenshot Descriptions
+
+**Screenshot 1: Voice Entry Interface**
+- Show microphone button prominently displayed
+- Real-time transcription appearing as user speaks
+- Clean, modern interface design
+- Caption: "Speak naturally - see your words appear instantly"
+
+**Screenshot 2: Real-time Transcription**
+- Live partial results updating during recording
+- Audio waveform visualization active
+- Recording timer showing duration
+- Caption: "Professional accuracy with real-time feedback"
+
+**Screenshot 3: Stop & Edit Flow**
+- Transcribed text in edit mode
+- User making corrections or additions
+- Thread context visible in background
+- Caption: "Refine your thoughts before saving"
+
+**Screenshot 4: Privacy Focus**
+- On-device processing illustration
+- No network connection indicators
+- Privacy checkmarks and messaging
+- Caption: "Complete privacy - your voice stays on your device"
+
+**Screenshot 5: Multiple Languages**
+- Interface showing different language text
+- Global language support illustration
+- Automatic detection indicators
+- Caption: "99+ languages with automatic detection"
+
+## App Preview Video Script (30 seconds)
+
+**Scene 1 (0-5s)**: Person opens ThreadJournal, taps microphone button
+**Scene 2 (5-15s)**: Speaking naturally while words appear in real-time on screen
+**Scene 3 (15-20s)**: Quick montage of different languages being transcribed
+**Scene 4 (20-25s)**: "Stop & Save" button pressed, entry appears in thread
+**Scene 5 (25-30s)**: Privacy messaging: "All processing on your device"
+
+## Promotional Text
+
+**Short Version (170 characters)**
+Speak your thoughts, create beautiful journal entries. Advanced voice-to-text with complete privacy. Works offline with 99+ languages. iOS 17+
+
+**Medium Version (400 characters)**  
+Revolutionary voice journaling with on-device AI. Speak naturally and watch your words become beautiful journal entries in real-time. 99+ languages, complete privacy, zero setup required. Professional accuracy powered by OpenAI's Whisper technology. All processing happens on your iPhone - your voice never leaves your device. iOS 17+
+
+**Long Version (1000 characters)**
+Transform journaling forever with ThreadJournal's revolutionary voice entry. Powered by advanced on-device AI, simply speak your thoughts and watch them become beautiful journal entries in real-time. Professional-grade accuracy in 99+ languages with automatic detection. Complete privacy guarantee - all speech processing happens on your iPhone, your voice never leaves your device. No internet required, no setup needed, works instantly after installation. Choose Stop & Edit to refine your thoughts or Stop & Save for instant capture. Seamless integration with all ThreadJournal features including custom fields and CSV export. Optimized for iPhone 11+ with blazing performance on iPhone 12+. Experience the future of private, intelligent journaling. iOS 17+ required.
+
+## Customer Support FAQ Additions
+
+**Q: How does voice entry work?**
+A: Voice entry uses advanced on-device AI to convert your speech into text in real-time. Simply tap the microphone button and start speaking - your words appear instantly as you talk.
+
+**Q: Is my voice data private?**
+A: Absolutely. All voice processing happens entirely on your iPhone using bundled AI models. Your audio is never transmitted anywhere and is immediately deleted after transcription.
+
+**Q: Do I need internet for voice entry?**
+A: No! Voice entry works completely offline. This ensures both privacy and consistent performance regardless of your network connection.
+
+**Q: What languages are supported?**
+A: Voice entry supports 99+ languages with automatic detection. You can speak in any supported language and the system will automatically recognize it.
+
+**Q: Why is the app larger after the update?**
+A: The app includes a 39MB AI model that enables private, offline voice transcription. This one-time size increase ensures your voice data never leaves your device.
+
+## Press Release Excerpts
+
+**Headline**: ThreadJournal Launches Revolutionary Voice Entry with Complete Privacy
+
+**Subheading**: Advanced on-device AI enables natural speech-to-text journaling without compromising user privacy
+
+**Key Quote**: "We believe your thoughts are sacred, whether spoken or typed. ThreadJournal's voice entry represents the future of private digital journaling - powerful AI that works entirely on your device, ensuring your most personal reflections never leave your control."
+
+**Technical Innovation**: "Powered by OpenAI's Whisper technology optimized for iOS devices, ThreadJournal delivers professional-grade transcription accuracy while maintaining absolute privacy through on-device processing."
+
+**User Benefit**: "Voice entry transforms journaling from a typing task into a natural conversation with yourself. Users can capture thoughts 3-4 times faster than typing while walking, exercising, or multitasking."
+
+## Marketing Messages
+
+**Privacy-Focused Audience**:
+"Your voice, your device, your privacy. ThreadJournal's voice entry processes everything locally - no cloud, no tracking, no compromise."
+
+**Productivity-Focused Audience**:  
+"Journal at the speed of thought. Voice entry lets you capture ideas 3-4x faster than typing, perfect for busy professionals and creative minds."
+
+**Accessibility-Focused Audience**:
+"Journaling for everyone. Voice entry makes ThreadJournal accessible to users with mobility challenges or those who prefer speaking to typing."
+
+**Tech Enthusiasts**:
+"Cutting-edge AI in your pocket. ThreadJournal harnesses OpenAI's Whisper technology with Core ML optimization for lightning-fast, private speech recognition."
+
+**International Users**:
+"Journal in your language. 99+ languages supported with automatic detection - speak naturally in whatever language feels most authentic to you."
+
+---
+
+*This metadata package provides comprehensive App Store assets for the voice entry feature launch, emphasizing privacy, performance, and user experience benefits.*

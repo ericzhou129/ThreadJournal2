@@ -85,6 +85,34 @@ The project uses GitHub Actions for continuous integration. The CI pipeline:
 - Runs unit and UI tests
 - Generates code coverage reports
 
+## Voice Entry
+
+ThreadJournal includes an advanced voice-to-text feature that enables users to create journal entries through speech recognition. The feature is designed with privacy and performance in mind.
+
+### Key Features
+- **Complete privacy**: All transcription happens on-device using bundled Core ML models
+- **Zero configuration**: No model downloads or setup required - ready to use immediately
+- **Real-time transcription**: See your words appear as you speak with live partial results
+- **Multilingual support**: Supports 99+ languages with automatic language detection
+- **Intelligent processing**: Stop & Edit for revision, Stop & Save for immediate entry creation
+- **Safety features**: 5-minute maximum recording length with automatic stop
+
+### Usage
+1. Open any thread in ThreadJournal
+2. Tap the microphone button below the compose area
+3. Grant microphone permission when prompted (first time only)
+4. Tap and hold to speak, or tap once to start/stop recording
+5. Choose "Stop & Edit" to review and modify the transcription
+6. Choose "Stop & Save" to create the entry immediately
+
+### System Requirements
+- iOS 17.0 or later
+- iPhone 12 or newer recommended for optimal performance
+- Approximately 39MB additional app size for bundled speech models
+
+### Privacy
+All voice processing occurs entirely on your device. No audio data is ever transmitted to external servers, ensuring complete privacy of your journal entries.
+
 ## Performance
 
 ThreadJournal is designed to handle large datasets efficiently:
@@ -92,6 +120,7 @@ ThreadJournal is designed to handle large datasets efficiently:
 - **Thread List**: Loads 100 threads in < 200ms
 - **Thread Detail**: Opens threads with 1000 entries in < 300ms  
 - **Entry Creation**: Adds new entries in < 50ms
+- **Voice Transcription**: First partial results in < 1 second on supported devices
 - **CSV Export**: Exports 1000 entries in < 3 seconds
 - **Memory Usage**: Stays under 150MB with 100 threads and 15,000 entries
 
