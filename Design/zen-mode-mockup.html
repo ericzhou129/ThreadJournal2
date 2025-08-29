@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Mode - Write First Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f8f8;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            padding: 40px 20px;
+            justify-content: center;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1c1c1e;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #8e8e93;
+            font-size: 18px;
+            margin-bottom: 40px;
+            width: 100%;
+        }
+        
+        .state-label {
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 30px 0 15px;
+        }
+        
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            position: relative;
+            border: 10px solid #1c1c1e;
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            padding: 60px 20px 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            background: linear-gradient(to bottom, white 70%, transparent);
+        }
+        
+        .hamburger {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+        
+        .hamburger:hover {
+            opacity: 0.6;
+        }
+        
+        .hamburger span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: #1c1c1e;
+            margin: 4px 0;
+        }
+        
+        /* Writing Area */
+        .writing-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 120px 20px 100px;
+        }
+        
+        .text-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 18px;
+            line-height: 1.5;
+            color: #1c1c1e;
+            resize: none;
+            font-family: inherit;
+            background: transparent;
+        }
+        
+        .text-input::placeholder {
+            color: #c7c7cc;
+        }
+        
+        /* Bottom Bar */
+        .bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #f2f2f7;
+        }
+        
+        .bottom-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .thread-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: #f2f2f7;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+        
+        .thread-selector:hover {
+            background: #e5e5ea;
+        }
+        
+        .ai-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #34c759;
+        }
+        
+        .ai-indicator.thinking {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .ai-indicator.offline {
+            background: #ff9500;
+        }
+        
+        .ai-indicator.manual {
+            background: #007AFF;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .send-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #007AFF;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .send-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .send-button:disabled {
+            background: #c7c7cc;
+            cursor: not-allowed;
+        }
+        
+        /* Thread Drawer */
+        .thread-drawer {
+            position: absolute;
+            top: 0;
+            left: -75%;
+            width: 75%;
+            height: 100%;
+            background: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+        
+        .thread-drawer.open {
+            transform: translateX(100%);
+        }
+        
+        .drawer-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 99;
+        }
+        
+        .drawer-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .drawer-header {
+            padding: 60px 20px 20px;
+            border-bottom: 1px solid #f2f2f7;
+        }
+        
+        .drawer-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1c1c1e;
+        }
+        
+        .new-thread-button {
+            margin-top: 15px;
+            padding: 12px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .thread-list {
+            padding: 20px;
+        }
+        
+        .thread-item {
+            padding: 15px;
+            border-bottom: 1px solid #f2f2f7;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .thread-item:hover {
+            background: #f2f2f7;
+        }
+        
+        .thread-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1c1c1e;
+            margin-bottom: 4px;
+        }
+        
+        .thread-meta {
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        
+        /* Success Toast */
+        .success-toast {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1c1c1e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 200;
+        }
+        
+        .success-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Thread Picker Sheet */
+        .thread-picker {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 150;
+            max-height: 70%;
+        }
+        
+        .thread-picker.open {
+            transform: translateY(-100%);
+        }
+        
+        .picker-header {
+            padding: 20px;
+            border-bottom: 1px solid #f2f2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .picker-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .close-picker {
+            color: #007AFF;
+            cursor: pointer;
+        }
+        
+        .picker-list {
+            padding: 10px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .picker-item {
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        .picker-item:hover {
+            background: #f2f2f7;
+        }
+        
+        .picker-item.selected {
+            background: #007AFF;
+            color: white;
+        }
+        
+        /* Offline Banner */
+        .offline-banner {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            right: 20px;
+            background: #ff9500;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+        }
+        
+        .offline-banner.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Reference Panel */
+        .reference-panel {
+            position: fixed;
+            right: 20px;
+            top: 100px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 280px;
+        }
+        
+        .reference-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1c1c1e;
+        }
+        
+        .reference-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .reference-item:hover {
+            background: #f2f2f7;
+        }
+        
+        .code {
+            font-family: 'SF Mono', Monaco, monospace;
+            background: #f2f2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zen Mode: Write First Design</h1>
+        <p class="subtitle">A calm, focused writing experience with intelligent thread routing</p>
+        
+        <!-- Reference Panel -->
+        <div class="reference-panel">
+            <div class="reference-title">Zen Mode Components</div>
+            <div class="reference-item">
+                <span class="code">ZenWritingView</span><br>
+                <small>Full-screen writing interface</small>
+            </div>
+            <div class="reference-item">
+                <span class="code">ThreadDrawer</span><br>
+                <small>Slide-out thread navigation</small>
+            </div>
+            <div class="reference-item">
+                <span class="code">ThreadSelector</span><br>
+                <small>AI/manual thread selection</small>
+            </div>
+            <div class="reference-item">
+                <span class="code">ThreadPicker</span><br>
+                <small>Bottom sheet for manual selection</small>
+            </div>
+            <div class="reference-item">
+                <span class="code">SuccessToast</span><br>
+                <small>Confirmation feedback</small>
+            </div>
+        </div>
+        
+        <!-- State 1: Empty (App Launch) -->
+        <div class="state-label">State 1: App Launch - Ready to Write</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="writing-area">
+                    <textarea class="text-input" placeholder="What's on your mind?" autofocus></textarea>
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="bottom-content">
+                        <div class="thread-selector">
+                            <span class="ai-indicator"></span>
+                            <span>AI will select thread</span>
+                        </div>
+                        <button class="send-button" disabled>↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- State 2: Writing with AI Thinking -->
+        <div class="state-label">State 2: Writing - AI Processing</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="writing-area">
+                    <textarea class="text-input">Had an amazing breakthrough with the product design today. The team really came together and we found a solution that works for everyone. Can't wait to implement it tomorrow!</textarea>
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="bottom-content">
+                        <div class="thread-selector">
+                            <span class="ai-indicator thinking"></span>
+                            <span>Analyzing...</span>
+                        </div>
+                        <button class="send-button">↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- State 3: AI Suggestion Ready -->
+        <div class="state-label">State 3: AI Suggestion Ready (High Confidence)</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="writing-area">
+                    <textarea class="text-input">Had an amazing breakthrough with the product design today. The team really came together and we found a solution that works for everyone. Can't wait to implement it tomorrow!</textarea>
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="bottom-content">
+                        <div class="thread-selector">
+                            <span class="ai-indicator"></span>
+                            <span>→ Work Thoughts</span>
+                        </div>
+                        <button class="send-button">↑</button>
+                    </div>
+                </div>
+                
+                <div class="success-toast">
+                    ✓ Added to Work Thoughts
+                </div>
+            </div>
+        </div>
+        
+        <!-- State 4: Thread Drawer Open -->
+        <div class="state-label">State 4: Thread Drawer Open</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="drawer-overlay visible"></div>
+                
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="writing-area" style="opacity: 0.3;">
+                    <textarea class="text-input" placeholder="What's on your mind?"></textarea>
+                </div>
+                
+                <div class="bottom-bar" style="opacity: 0.3;">
+                    <div class="bottom-content">
+                        <div class="thread-selector">
+                            <span class="ai-indicator"></span>
+                            <span>AI will select thread</span>
+                        </div>
+                        <button class="send-button" disabled>↑</button>
+                    </div>
+                </div>
+                
+                <div class="thread-drawer open">
+                    <div class="drawer-header">
+                        <div class="drawer-title">Your Threads</div>
+                        <button class="new-thread-button">+ New Thread</button>
+                    </div>
+                    <div class="thread-list">
+                        <div class="thread-item">
+                            <div class="thread-name">Work Thoughts</div>
+                            <div class="thread-meta">23 entries • Updated 2 hours ago</div>
+                        </div>
+                        <div class="thread-item">
+                            <div class="thread-name">Daily Reflections</div>
+                            <div class="thread-meta">156 entries • Updated yesterday</div>
+                        </div>
+                        <div class="thread-item">
+                            <div class="thread-name">Project Ideas</div>
+                            <div class="thread-meta">8 entries • Updated 3 days ago</div>
+                        </div>
+                        <div class="thread-item">
+                            <div class="thread-name">Personal Growth</div>
+                            <div class="thread-meta">42 entries • Updated last week</div>
+                        </div>
+                        <div class="thread-item">
+                            <div class="thread-name">Other</div>
+                            <div class="thread-meta">5 entries • Updated 2 weeks ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- State 5: Manual Thread Selection -->
+        <div class="state-label">State 5: Manual Thread Selection</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="writing-area">
+                    <textarea class="text-input">Feeling grateful for the sunny weather today. Perfect for a long walk.</textarea>
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="bottom-content">
+                        <div class="thread-selector">
+                            <span class="ai-indicator manual"></span>
+                            <span>📌 Daily Reflections</span>
+                        </div>
+                        <button class="send-button">↑</button>
+                    </div>
+                </div>
+                
+                <div class="thread-picker open">
+                    <div class="picker-header">
+                        <span class="picker-title">Select Thread</span>
+                        <span class="close-picker">Done</span>
+                    </div>
+                    <div class="picker-list">
+                        <div class="picker-item">Work Thoughts</div>
+                        <div class="picker-item selected">Daily Reflections</div>
+                        <div class="picker-item">Project Ideas</div>
+                        <div class="picker-item">Personal Growth</div>
+                        <div class="picker-item">Other</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- State 6: Offline Mode -->
+        <div class="state-label">State 6: Offline - Manual Selection Required</div>
+        <div class="phone-frame">
+            <div class="screen">
+                <div class="header">
+                    <div class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="offline-banner show">
+                    No connection - Select thread manually
+                </div>
+                
+                <div class="writing-area">
+                    <textarea class="text-input">Remember to call mom tomorrow about the family dinner plans.</textarea>
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="bottom-content">
+                        <div class="thread-selector" style="border: 2px solid #ff9500;">
+                            <span class="ai-indicator offline"></span>
+                            <span>Select thread ↓</span>
+                        </div>
+                        <button class="send-button" disabled>↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Simulate interactive elements
+        document.querySelectorAll('.thread-selector').forEach(selector => {
+            selector.addEventListener('click', function() {
+                console.log('Thread selector clicked');
+            });
+        });
+        
+        document.querySelectorAll('.hamburger').forEach(menu => {
+            menu.addEventListener('click', function() {
+                console.log('Menu clicked');
+            });
+        });
+        
+        // Auto-resize textareas
+        document.querySelectorAll('.text-input').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 400) + 'px';
+            });
+        });
+    </script>
+</body>
+</html>

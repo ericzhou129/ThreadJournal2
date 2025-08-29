@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Simplified Voice Entry Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+            background: #F2F2F7;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+        
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(375px, 1fr));
+            gap: 24px;
+        }
+        
+        .mockup-section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #000;
+        }
+        
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 14px;
+        }
+        
+        .navigation-bar {
+            height: 44px;
+            background: #F8F8F8;
+            border-bottom: 0.5px solid #C6C6C8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+        
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .nav-button {
+            font-size: 17px;
+            color: #007AFF;
+            cursor: pointer;
+        }
+        
+        .thread-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 120px;
+        }
+        
+        .entry {
+            margin-bottom: 24px;
+        }
+        
+        .timestamp {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 500;
+            color: #666;
+            background: #E8F3FF;
+            padding: 2px 10px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .entry-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #000;
+        }
+        
+        /* Compose Area */
+        .compose-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(248, 248, 248, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 0.5px solid #C6C6C8;
+        }
+        
+        .compose-area {
+            padding: 12px 16px;
+        }
+        
+        .compose-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .text-field {
+            flex: 1;
+            background: #F2F2F7;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 16px;
+            min-height: 36px;
+        }
+        
+        .compose-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #007AFF;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        
+        .compose-button.disabled {
+            background: #C4C4C6;
+        }
+        
+        /* Voice Button */
+        .voice-button {
+            width: 100%;
+            height: 44px;
+            background: #007AFF;
+            border: none;
+            border-radius: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .voice-button:active {
+            transform: scale(0.98);
+        }
+        
+        .mic-icon {
+            width: 20px;
+            height: 20px;
+            background: white;
+            -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>') center/contain no-repeat;
+            mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>') center/contain no-repeat;
+        }
+        
+        .voice-label {
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        /* Recording State */
+        .recording-container {
+            padding: 12px 16px;
+        }
+        
+        .transcription-preview {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            min-height: 60px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .transcription-text {
+            font-size: 16px;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .partial-text {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .waveform-container {
+            height: 44px;
+            background: #000;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            padding: 0 60px;
+            position: relative;
+        }
+        
+        .waveform-bar {
+            width: 3px;
+            background: white;
+            border-radius: 1.5px;
+            animation: wave 0.8s ease-in-out infinite;
+        }
+        
+        .waveform-bar:nth-child(1) { height: 12px; animation-delay: 0s; }
+        .waveform-bar:nth-child(2) { height: 20px; animation-delay: 0.1s; }
+        .waveform-bar:nth-child(3) { height: 16px; animation-delay: 0.2s; }
+        .waveform-bar:nth-child(4) { height: 24px; animation-delay: 0.3s; }
+        .waveform-bar:nth-child(5) { height: 18px; animation-delay: 0.4s; }
+        .waveform-bar:nth-child(6) { height: 22px; animation-delay: 0.5s; }
+        .waveform-bar:nth-child(7) { height: 14px; animation-delay: 0.6s; }
+        .waveform-bar:nth-child(8) { height: 20px; animation-delay: 0.7s; }
+        .waveform-bar:nth-child(9) { height: 16px; animation-delay: 0.8s; }
+        .waveform-bar:nth-child(10) { height: 18px; animation-delay: 0.9s; }
+        
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.5); }
+            50% { transform: scaleY(1.2); }
+        }
+        
+        .stop-buttons {
+            position: absolute;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+        }
+        
+        .stop-button {
+            width: 32px;
+            height: 32px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .stop-button:active {
+            transform: scale(0.9);
+        }
+        
+        .stop-icon {
+            width: 12px;
+            height: 12px;
+            background: #000;
+            border-radius: 2px;
+        }
+        
+        .edit-icon {
+            width: 16px;
+            height: 16px;
+            background: #000;
+            -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>') center/contain no-repeat;
+            mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>') center/contain no-repeat;
+        }
+        
+        .save-icon {
+            width: 16px;
+            height: 16px;
+            background: #000;
+            -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>') center/contain no-repeat;
+            mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>') center/contain no-repeat;
+        }
+        
+        .description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin-top: 16px;
+            padding: 16px;
+            background: #F8F8F8;
+            border-radius: 8px;
+        }
+        
+        /* Flow Arrows */
+        .flow-arrow {
+            text-align: center;
+            font-size: 24px;
+            color: #007AFF;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simplified Voice Entry</h1>
+        <p class="subtitle">Inline voice recording with zero configuration - it just works!</p>
+        
+        <div class="mockup-grid">
+            <!-- Default State -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">1. Default State - Ready to Record</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">‹ Back</span>
+                            <span class="nav-title">Personal Reflections</span>
+                            <span class="nav-button">⋯</span>
+                        </div>
+                        
+                        <div class="thread-content">
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 9:15 AM</div>
+                                <div class="entry-text">
+                                    Started working on the new feature today. The requirements are clear and I'm excited to get started.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 2:30 PM</div>
+                                <div class="entry-text">
+                                    Made good progress on the implementation. The architecture is coming together nicely.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 4:45 PM</div>
+                                <div class="entry-text">
+                                    Just finished the core functionality. Tomorrow I'll focus on testing and polish.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="compose-container">
+                            <div class="compose-area">
+                                <div class="compose-row">
+                                    <input type="text" class="text-field" placeholder="What's on your mind?">
+                                    <button class="compose-button">↑</button>
+                                </div>
+                                <button class="voice-button">
+                                    <div class="mic-icon"></div>
+                                    <span class="voice-label">Tap to speak</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Default state showing the voice button below the text input. The button spans the full width and is always visible. No settings or configuration needed - the Whisper model is bundled with the app.
+                </div>
+            </div>
+            
+            <!-- Recording State -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">2. Recording - Minimal Waveform</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">‹ Back</span>
+                            <span class="nav-title">Personal Reflections</span>
+                            <span class="nav-button">⋯</span>
+                        </div>
+                        
+                        <div class="thread-content">
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 9:15 AM</div>
+                                <div class="entry-text">
+                                    Started working on the new feature today. The requirements are clear and I'm excited to get started.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 2:30 PM</div>
+                                <div class="entry-text">
+                                    Made good progress on the implementation. The architecture is coming together nicely.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 4:45 PM</div>
+                                <div class="entry-text">
+                                    Just finished the core functionality. Tomorrow I'll focus on testing and polish.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="compose-container">
+                            <div class="recording-container">
+                                <div class="transcription-preview">
+                                    <div class="transcription-text">
+                                        Had a really productive day today. Managed to implement the voice entry feature and 
+                                        <span class="partial-text">it's working better than expected...</span>
+                                    </div>
+                                </div>
+                                <div class="waveform-container">
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="waveform-bar"></div>
+                                    <div class="stop-buttons">
+                                        <div class="stop-button" title="Stop & Edit">
+                                            <div class="edit-icon"></div>
+                                        </div>
+                                        <div class="stop-button" title="Stop & Save">
+                                            <div class="save-icon"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    When recording, the text field is replaced with a live transcription preview and a minimal waveform. Two minimal buttons on the right: pencil icon for "Stop & Edit" (fills text field) and checkmark for "Stop & Save" (creates entry immediately). No auto-stop - continues recording through pauses and silences.
+                </div>
+            </div>
+            
+            <!-- Stop & Edit Flow -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">3A. Stop & Edit - Text Field Filled</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">‹ Back</span>
+                            <span class="nav-title">Personal Reflections</span>
+                            <span class="nav-button">⋯</span>
+                        </div>
+                        
+                        <div class="thread-content">
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 9:15 AM</div>
+                                <div class="entry-text">
+                                    Started working on the new feature today. The requirements are clear and I'm excited to get started.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 2:30 PM</div>
+                                <div class="entry-text">
+                                    Made good progress on the implementation. The architecture is coming together nicely.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 4:45 PM</div>
+                                <div class="entry-text">
+                                    Just finished the core functionality. Tomorrow I'll focus on testing and polish.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="compose-container">
+                            <div class="compose-area">
+                                <div class="compose-row">
+                                    <input type="text" class="text-field" value="Had a really productive day today. Managed to implement the voice entry feature and it's working better than expected. The simplicity really makes a difference.">
+                                    <button class="compose-button">↑</button>
+                                </div>
+                                <button class="voice-button">
+                                    <div class="mic-icon"></div>
+                                    <span class="voice-label">Tap to speak</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    With "Stop & Edit" (pencil icon), the transcribed text fills the text field for editing before sending. User can modify the text or tap send. The voice button remains available.
+                </div>
+            </div>
+            
+            <!-- Stop & Save Flow -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">3B. Stop & Save - Entry Created</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">‹ Back</span>
+                            <span class="nav-title">Personal Reflections</span>
+                            <span class="nav-button">⋯</span>
+                        </div>
+                        
+                        <div class="thread-content">
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 9:15 AM</div>
+                                <div class="entry-text">
+                                    Started working on the new feature today. The requirements are clear and I'm excited to get started.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 2:30 PM</div>
+                                <div class="entry-text">
+                                    Made good progress on the implementation. The architecture is coming together nicely.
+                                </div>
+                            </div>
+                            
+                            <div class="entry">
+                                <div class="timestamp">Dec 28, 2024 • 4:45 PM</div>
+                                <div class="entry-text">
+                                    Just finished the core functionality. Tomorrow I'll focus on testing and polish.
+                                </div>
+                            </div>
+                            
+                            <div class="entry" style="background: #F0FFF0; margin: -8px; padding: 8px; border-radius: 8px;">
+                                <div class="timestamp">Dec 28, 2024 • 5:30 PM</div>
+                                <div class="entry-text">
+                                    Had a really productive day today. Managed to implement the voice entry feature and it's working better than expected. The simplicity really makes a difference.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="compose-container">
+                            <div class="compose-area">
+                                <div class="compose-row">
+                                    <input type="text" class="text-field" placeholder="What's on your mind?">
+                                    <button class="compose-button disabled">↑</button>
+                                </div>
+                                <button class="voice-button">
+                                    <div class="mic-icon"></div>
+                                    <span class="voice-label">Tap to speak</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    With "Stop & Save" (checkmark icon), the transcription is immediately saved as a new entry. No editing step - perfect for stream-of-consciousness journaling. The entry briefly highlights green to confirm it was saved.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technical Notes -->
+        <div style="margin-top: 48px; padding: 24px; background: white; border-radius: 12px;">
+            <h2 style="font-size: 24px; margin-bottom: 16px;">Implementation Simplifications</h2>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">Zero Configuration</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>No Settings:</strong> Voice entry works out of the box, no preferences needed</li>
+                    <li><strong>No Downloads:</strong> Whisper Small model bundled with app (39MB)</li>
+                    <li><strong>No Permissions UI:</strong> Standard iOS microphone permission only</li>
+                    <li><strong>No Model Selection:</strong> One model that works for everyone</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">Inline Experience</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>No Modal:</strong> Recording happens in the same view</li>
+                    <li><strong>Thread Visible:</strong> User can see their entries while recording</li>
+                    <li><strong>Minimal UI:</strong> Just a waveform, no complex controls</li>
+                    <li><strong>Auto-transcribe:</strong> Text automatically fills the input field</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">User Flow</h3>
+                <ol style="line-height: 1.8;">
+                    <li>Tap the blue "Tap to speak" button</li>
+                    <li>Speak naturally while watching real-time transcription</li>
+                    <li>Tap stop button or pause speaking for 3 seconds</li>
+                    <li>Text appears in input field, ready to edit or send</li>
+                    <li>Tap send to add to thread</li>
+                </ol>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">Technical Benefits</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>Simpler Codebase:</strong> No settings, model management, or download UI</li>
+                    <li><strong>Better UX:</strong> Works immediately, no setup required</li>
+                    <li><strong>Predictable:</strong> Same experience for all users</li>
+                    <li><strong>Maintainable:</strong> Fewer edge cases and error states</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

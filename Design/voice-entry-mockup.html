@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreadJournal - Voice Entry Design Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+            background: #F2F2F7;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+        
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(375px, 1fr));
+            gap: 24px;
+        }
+        
+        .mockup-section {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mockup-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #000;
+        }
+        
+        .phone-container {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 14px;
+        }
+        
+        .navigation-bar {
+            height: 44px;
+            background: #F8F8F8;
+            border-bottom: 0.5px solid #C6C6C8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+        
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #000;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .nav-button {
+            font-size: 17px;
+            color: #007AFF;
+            cursor: pointer;
+        }
+        
+        .content-area {
+            padding: 16px;
+            height: calc(100% - 88px);
+            overflow-y: auto;
+            background: #fff;
+        }
+        
+        /* Voice Entry Specific Styles */
+        .voice-entry-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .transcription-area {
+            flex: 1;
+            padding: 16px;
+            background: #F8F8F8;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow-y: auto;
+        }
+        
+        .transcription-text {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #000;
+        }
+        
+        .partial-text {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .waveform-container {
+            height: 80px;
+            background: #F2F2F7;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .waveform-bars {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 60px;
+        }
+        
+        .waveform-bar {
+            width: 3px;
+            background: #007AFF;
+            border-radius: 2px;
+            animation: wave 1s ease-in-out infinite;
+        }
+        
+        .waveform-bar:nth-child(odd) {
+            animation-delay: 0.1s;
+        }
+        
+        .waveform-bar:nth-child(even) {
+            animation-delay: 0.2s;
+        }
+        
+        @keyframes wave {
+            0%, 100% { height: 20px; }
+            50% { height: 40px; }
+        }
+        
+        .recording-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 16px;
+        }
+        
+        .record-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #FF3B30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .record-button.recording {
+            background: #FF3B30;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+        
+        .record-icon {
+            width: 30px;
+            height: 30px;
+            background: white;
+            border-radius: 50%;
+        }
+        
+        .stop-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 4px;
+        }
+        
+        .control-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #F2F2F7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .recording-time {
+            font-size: 17px;
+            font-weight: 600;
+            color: #FF3B30;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .recording-mode-toggle {
+            display: flex;
+            background: #F2F2F7;
+            border-radius: 8px;
+            padding: 2px;
+            margin-bottom: 16px;
+        }
+        
+        .mode-option {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mode-option.active {
+            background: white;
+            font-weight: 600;
+        }
+        
+        /* Model Download UI */
+        .model-status {
+            padding: 16px;
+            background: #FFF3CD;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .model-status-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+        }
+        
+        .model-status-text {
+            font-size: 14px;
+            color: #856404;
+            margin-bottom: 12px;
+        }
+        
+        .download-progress {
+            height: 4px;
+            background: #E0E0E0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .download-progress-bar {
+            height: 100%;
+            background: #007AFF;
+            width: 45%;
+            transition: width 0.3s ease;
+        }
+        
+        .download-info {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* Settings */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        
+        .settings-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 16px;
+        }
+        
+        .settings-row {
+            background: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 0.5px solid #E5E5EA;
+        }
+        
+        .settings-row:first-child {
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        
+        .settings-row:last-child {
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            border-bottom: none;
+        }
+        
+        .settings-label {
+            font-size: 17px;
+            color: #000;
+        }
+        
+        .settings-value {
+            font-size: 17px;
+            color: #999;
+        }
+        
+        .toggle-switch {
+            width: 51px;
+            height: 31px;
+            background: #E5E5EA;
+            border-radius: 15.5px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .toggle-switch.on {
+            background: #34C759;
+        }
+        
+        .toggle-knob {
+            width: 27px;
+            height: 27px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.on .toggle-knob {
+            transform: translateX(20px);
+        }
+        
+        .model-selector {
+            background: #F2F2F7;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        
+        /* Thread suggestion */
+        .thread-suggestion {
+            padding: 12px;
+            background: #E8F3FF;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .suggestion-label {
+            font-size: 14px;
+            color: #007AFF;
+            font-weight: 600;
+        }
+        
+        .suggestion-thread {
+            font-size: 16px;
+            color: #000;
+            margin-top: 4px;
+        }
+        
+        .confidence-badge {
+            background: #007AFF;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        /* Error states */
+        .error-message {
+            padding: 12px;
+            background: #FFE5E5;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .error-text {
+            font-size: 14px;
+            color: #D70015;
+        }
+        
+        .description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+            margin-top: 16px;
+            padding: 16px;
+            background: #F8F8F8;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ThreadJournal Voice Entry</h1>
+        <p class="subtitle">Private, on-device voice transcription using WhisperKit</p>
+        
+        <div class="mockup-grid">
+            <!-- Recording State -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">1. Active Recording</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">Cancel</span>
+                            <span class="nav-title">Voice Entry</span>
+                            <span class="nav-button">Save</span>
+                        </div>
+                        <div class="content-area">
+                            <div class="voice-entry-container">
+                                <div class="recording-mode-toggle">
+                                    <div class="mode-option">Hold to Record</div>
+                                    <div class="mode-option active">Tap to Record</div>
+                                </div>
+                                
+                                <div class="thread-suggestion">
+                                    <div>
+                                        <div class="suggestion-label">Suggested Thread</div>
+                                        <div class="suggestion-thread">Personal Reflections</div>
+                                    </div>
+                                    <div class="confidence-badge">92%</div>
+                                </div>
+                                
+                                <div class="transcription-area">
+                                    <div class="transcription-text">
+                                        Today was really productive. I managed to finish the voice entry feature design and the team seemed excited about it. 
+                                        <span class="partial-text">The implementation should be straightforward with WhisperKit and...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="recording-time">00:24</div>
+                                
+                                <div class="waveform-container">
+                                    <div class="waveform-bars">
+                                        <div class="waveform-bar" style="height: 20px;"></div>
+                                        <div class="waveform-bar" style="height: 35px;"></div>
+                                        <div class="waveform-bar" style="height: 45px;"></div>
+                                        <div class="waveform-bar" style="height: 30px;"></div>
+                                        <div class="waveform-bar" style="height: 40px;"></div>
+                                        <div class="waveform-bar" style="height: 25px;"></div>
+                                        <div class="waveform-bar" style="height: 35px;"></div>
+                                        <div class="waveform-bar" style="height: 50px;"></div>
+                                        <div class="waveform-bar" style="height: 40px;"></div>
+                                        <div class="waveform-bar" style="height: 30px;"></div>
+                                        <div class="waveform-bar" style="height: 45px;"></div>
+                                        <div class="waveform-bar" style="height: 35px;"></div>
+                                        <div class="waveform-bar" style="height: 25px;"></div>
+                                        <div class="waveform-bar" style="height: 40px;"></div>
+                                        <div class="waveform-bar" style="height: 30px;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="recording-controls">
+                                    <div class="control-button">⏸</div>
+                                    <div class="record-button recording">
+                                        <div class="stop-icon"></div>
+                                    </div>
+                                    <div class="control-button">🗑</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Active recording state showing real-time transcription with partial results in gray. Waveform visualization provides audio feedback. Thread suggestion appears based on content analysis.
+                </div>
+            </div>
+            
+            <!-- Model Download -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">2. First-Time Model Download</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">Back</span>
+                            <span class="nav-title">Voice Entry Setup</span>
+                            <span class="nav-button"></span>
+                        </div>
+                        <div class="content-area">
+                            <div class="voice-entry-container">
+                                <div class="model-status">
+                                    <div class="model-status-title">Downloading Voice Model</div>
+                                    <div class="model-status-text">
+                                        ThreadJournal needs to download the Whisper Small model (39 MB) for on-device voice transcription. This is a one-time download.
+                                    </div>
+                                    <div class="download-progress">
+                                        <div class="download-progress-bar"></div>
+                                    </div>
+                                    <div class="download-info">
+                                        <span>17.5 MB of 39 MB</span>
+                                        <span>45%</span>
+                                    </div>
+                                </div>
+                                
+                                <div style="padding: 16px; text-align: center;">
+                                    <h3 style="font-size: 20px; margin-bottom: 16px;">Voice Entry Features</h3>
+                                    <ul style="text-align: left; list-style: none; padding: 0;">
+                                        <li style="margin-bottom: 12px;">✅ Complete privacy - all processing on device</li>
+                                        <li style="margin-bottom: 12px;">✅ Works offline - no internet required</li>
+                                        <li style="margin-bottom: 12px;">✅ Multilingual support</li>
+                                        <li style="margin-bottom: 12px;">✅ Real-time transcription</li>
+                                        <li style="margin-bottom: 12px;">✅ Automatic thread suggestions</li>
+                                    </ul>
+                                </div>
+                                
+                                <div style="padding: 16px;">
+                                    <button style="width: 100%; padding: 16px; background: #E5E5EA; color: #999; border: none; border-radius: 12px; font-size: 17px; font-weight: 600;" disabled>
+                                        Downloading... Please Wait
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    First-time setup screen shown when user accesses voice entry without the model downloaded. Progress bar shows download status with file size information.
+                </div>
+            </div>
+            
+            <!-- Voice Settings -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">3. Voice Settings</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">Back</span>
+                            <span class="nav-title">Voice Settings</span>
+                            <span class="nav-button"></span>
+                        </div>
+                        <div class="content-area">
+                            <div class="settings-section">
+                                <div class="settings-header">Recording</div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Default Mode</span>
+                                    <span class="model-selector">Tap to Record</span>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Auto-stop Silence</span>
+                                    <div class="toggle-switch on">
+                                        <div class="toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Silence Threshold</span>
+                                    <span class="settings-value">3 seconds</span>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-header">Model Management</div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Current Model</span>
+                                    <span class="settings-value">Whisper Small</span>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Model Size</span>
+                                    <span class="settings-value">39 MB</span>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Language</span>
+                                    <span class="model-selector">Auto-detect</span>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label" style="color: #FF3B30;">Delete Model</span>
+                                    <span class="settings-value">›</span>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <div class="settings-header">Developer Options</div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Show Partial Results</span>
+                                    <div class="toggle-switch on">
+                                        <div class="toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Console Logging</span>
+                                    <div class="toggle-switch">
+                                        <div class="toggle-knob"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-label">Force 16kHz Resample</span>
+                                    <div class="toggle-switch">
+                                        <div class="toggle-knob"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Voice settings screen allowing users to configure recording preferences, manage models, and access developer options for debugging.
+                </div>
+            </div>
+            
+            <!-- Entry Point Integration -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">4. Thread Detail with Voice Entry</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">‹ Back</span>
+                            <span class="nav-title">Personal Reflections</span>
+                            <span class="nav-button">⋯</span>
+                        </div>
+                        <div class="content-area">
+                            <div style="padding-bottom: 80px;">
+                                <div style="margin-bottom: 24px;">
+                                    <div style="background: #E8F3FF; padding: 2px 10px; border-radius: 10px; display: inline-block; margin-bottom: 8px;">
+                                        <span style="font-size: 11px; color: #666; font-weight: 500;">Dec 28, 2024 • 9:15 AM</span>
+                                    </div>
+                                    <div style="font-size: 14px; line-height: 1.5;">
+                                        Started working on the voice entry feature today. The goal is to make journaling even more effortless.
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-bottom: 24px;">
+                                    <div style="background: #E8F3FF; padding: 2px 10px; border-radius: 10px; display: inline-block; margin-bottom: 8px;">
+                                        <span style="font-size: 11px; color: #666; font-weight: 500;">Dec 28, 2024 • 2:30 PM</span>
+                                    </div>
+                                    <div style="font-size: 14px; line-height: 1.5;">
+                                        Researched WhisperKit documentation. The framework looks well-designed and should integrate smoothly with our architecture.
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-bottom: 24px;">
+                                    <div style="background: #E8F3FF; padding: 2px 10px; border-radius: 10px; display: inline-block; margin-bottom: 8px;">
+                                        <span style="font-size: 11px; color: #666; font-weight: 500;">Dec 28, 2024 • 4:45 PM</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <span style="font-size: 12px; background: #F0F0F0; padding: 2px 8px; border-radius: 12px;">🎤 Voice Entry</span>
+                                    </div>
+                                    <div style="font-size: 14px; line-height: 1.5;">
+                                        Today was really productive. I managed to finish the voice entry feature design and the team seemed excited about it. The implementation should be straightforward with WhisperKit and we can ensure complete privacy by processing everything on-device.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Compose Bar with Voice Button -->
+                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: white; border-top: 0.5px solid #E5E5EA; padding: 12px;">
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="text" placeholder="What's on your mind?" style="flex: 1; padding: 8px 12px; background: #F2F2F7; border: none; border-radius: 20px; font-size: 16px;">
+                                    <button style="width: 36px; height: 36px; border-radius: 50%; background: #007AFF; border: none; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                        🎤
+                                    </button>
+                                    <button style="width: 36px; height: 36px; border-radius: 50%; background: #007AFF; border: none; color: white; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                                        ↑
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Thread detail view showing voice entry integration. Voice entries are marked with a microphone badge. The compose bar includes a microphone button for quick voice entry access.
+                </div>
+            </div>
+            
+            <!-- Error States -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">5. Error & Offline States</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">Cancel</span>
+                            <span class="nav-title">Voice Entry</span>
+                            <span class="nav-button"></span>
+                        </div>
+                        <div class="content-area">
+                            <div class="voice-entry-container">
+                                <div class="error-message">
+                                    <div class="error-text">
+                                        <strong>Microphone Access Required</strong><br>
+                                        Please enable microphone access in Settings to use voice entry.
+                                    </div>
+                                </div>
+                                
+                                <div style="text-align: center; padding: 40px 20px;">
+                                    <div style="font-size: 48px; margin-bottom: 16px;">🎤</div>
+                                    <h3 style="font-size: 20px; margin-bottom: 12px;">Voice Entry Unavailable</h3>
+                                    <p style="font-size: 16px; color: #666; margin-bottom: 24px;">
+                                        ThreadJournal needs microphone permission to transcribe your voice entries.
+                                    </p>
+                                    <button style="padding: 12px 24px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 17px; font-weight: 600;">
+                                        Open Settings
+                                    </button>
+                                </div>
+                                
+                                <div style="padding: 20px; background: #F8F8F8; border-radius: 12px; margin-top: 20px;">
+                                    <h4 style="font-size: 16px; margin-bottom: 8px;">Alternative States:</h4>
+                                    <ul style="font-size: 14px; color: #666; padding-left: 20px;">
+                                        <li>Model not downloaded</li>
+                                        <li>Model download failed</li>
+                                        <li>Insufficient storage space</li>
+                                        <li>Microphone in use by another app</li>
+                                        <li>Audio session interruption</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Error states for various failure scenarios including permission issues, model availability, and audio conflicts. Each state provides clear user guidance.
+                </div>
+            </div>
+            
+            <!-- Quick Entry with Voice -->
+            <div class="mockup-section">
+                <h2 class="mockup-title">6. Quick Entry Voice Mode</h2>
+                <div class="phone-container">
+                    <div class="phone-screen">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <span>●●●○</span>
+                        </div>
+                        <div class="navigation-bar">
+                            <span class="nav-button">Cancel</span>
+                            <span class="nav-title">Quick Entry</span>
+                            <span class="nav-button">Add</span>
+                        </div>
+                        <div class="content-area">
+                            <div class="voice-entry-container">
+                                <div style="padding: 12px; background: #FFF3CD; border-radius: 8px; margin-bottom: 16px;">
+                                    <div style="font-size: 14px; color: #856404;">
+                                        <strong>Quick Voice Entry</strong><br>
+                                        Speak your thought and it will be automatically added to the suggested thread.
+                                    </div>
+                                </div>
+                                
+                                <div class="thread-suggestion">
+                                    <div>
+                                        <div class="suggestion-label">AI Suggested Thread</div>
+                                        <div class="suggestion-thread">Work Projects</div>
+                                    </div>
+                                    <button style="padding: 4px 12px; background: white; border: 1px solid #007AFF; color: #007AFF; border-radius: 6px; font-size: 14px;">Change</button>
+                                </div>
+                                
+                                <div class="transcription-area" style="min-height: 200px;">
+                                    <div class="transcription-text">
+                                        Need to review the API documentation for the voice transcription service and ensure we're handling all edge cases properly.
+                                    </div>
+                                </div>
+                                
+                                <div style="padding: 16px;">
+                                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                                        <button style="flex: 1; padding: 12px; background: #F2F2F7; border: none; border-radius: 8px; font-size: 16px;">
+                                            ✏️ Edit Text
+                                        </button>
+                                        <button style="flex: 1; padding: 12px; background: #F2F2F7; border: none; border-radius: 8px; font-size: 16px;">
+                                            🎤 Re-record
+                                        </button>
+                                    </div>
+                                    
+                                    <button style="width: 100%; padding: 16px; background: #007AFF; color: white; border: none; border-radius: 12px; font-size: 17px; font-weight: 600;">
+                                        Add to Thread
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="description">
+                    Quick Entry mode with voice input. AI automatically suggests the most relevant thread based on the transcribed content. Users can edit the text or re-record before adding.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technical Implementation Notes -->
+        <div style="margin-top: 48px; padding: 24px; background: white; border-radius: 12px;">
+            <h2 style="font-size: 24px; margin-bottom: 16px;">Implementation Notes</h2>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">Audio Pipeline</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>AVAudioSession:</strong> Category: PlayAndRecord, allows background audio</li>
+                    <li><strong>AVAudioEngine:</strong> 44.1kHz sampling, mono channel, real-time buffer processing</li>
+                    <li><strong>Buffer Size:</strong> 1024 samples for low latency</li>
+                    <li><strong>VAD:</strong> 3-second silence threshold for auto-stop</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">WhisperKit Integration</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>Model:</strong> openai_whisper-small (39MB, multilingual)</li>
+                    <li><strong>Streaming:</strong> Partial results every 0.5 seconds</li>
+                    <li><strong>Performance:</strong> <1s to first partial on A16+ chips</li>
+                    <li><strong>Fallback:</strong> Queue for later if model not available</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">UI/UX Considerations</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>Recording Modes:</strong> Hold-to-record for short thoughts, tap-to-record for longer entries</li>
+                    <li><strong>Visual Feedback:</strong> Waveform animation and pulsing record button</li>
+                    <li><strong>Thread Suggestion:</strong> Show confidence score, allow manual override</li>
+                    <li><strong>Accessibility:</strong> Full VoiceOver support, haptic feedback</li>
+                </ul>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; margin-bottom: 12px;">Privacy & Security</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>On-Device Only:</strong> No audio or transcriptions sent to servers</li>
+                    <li><strong>Model Storage:</strong> Private app container, not in backups</li>
+                    <li><strong>Permissions:</strong> Microphone access required, clearly explained</li>
+                    <li><strong>Data Retention:</strong> Audio buffers cleared immediately after transcription</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

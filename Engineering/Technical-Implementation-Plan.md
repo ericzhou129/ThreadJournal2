@@ -15,6 +15,17 @@ ThreadJournal is a minimalist, local-first iOS journaling application that organ
 | **Maintainability** | Clean architecture, LLM-friendly code | Critical | ✓ Focus of this TIP |
 | **Portability** | iOS-first, potential iPad support | Low | ✓ SwiftUI enables this |
 
+### Voice Entry Design Philosophy
+**Simplified Approach**: The voice entry feature follows a "zero-configuration" philosophy:
+- **Bundled Model**: Whisper Small model (39MB) included in app bundle - works immediately
+- **No Settings**: No configuration needed - it just works out of the box
+- **Inline UI**: Recording happens directly in thread view with minimal UI
+- **Manual Stop Only**: Recording continues through pauses (no auto-stop except 5-min safety)
+- **Dual Stop Actions**: 
+  - Stop & Edit (✏️): Fills text field for editing
+  - Stop & Save (✓): Creates entry immediately
+- **2-Second Chunks**: Live transcription feedback every 2 seconds
+
 ### ADR-000: Scope & Constraints
 **Status**: Accepted  
 **Context**: Building a personal journaling app with strict architectural boundaries  
@@ -40,7 +51,26 @@ graph TB
     subgraph "Journaling Context"
         Thread[Thread Aggregate]
         Entry[Entry Entity]
+        QuickEntry[Quick Entry Service]
         Thread -->|contains| Entry
+        QuickEntry -->|creates| Entry
+    end
+    
+    subgraph "AI Context"
+        EmbeddingService[Embedding Service]
+        ThreadSuggestionService[Thread Suggestion Service]
+        AIConfiguration[AI Configuration]
+        EmbeddingService --> ThreadSuggestionService
+    end
+    
+    subgraph "Voice Context"
+        AudioCapture[Audio Capture Service]
+        TranscriptionService[Transcription Service]
+        ModelManager[Model Manager]
+        VoiceEntry[Voice Entry Service]
+        AudioCapture --> TranscriptionService
+        TranscriptionService --> ModelManager
+        VoiceEntry --> TranscriptionService
     end
     
     subgraph "Export Context"
@@ -53,11 +83,24 @@ graph TB
         UserPreferences[User Preferences]
         BiometricAuth[Biometric Authentication]
         TextSize[Text Size Settings]
+        APIKeyManager[API Key Manager]
+        VoiceSettings[Voice Settings]
+    end
+    
+    subgraph "Queue Context"
+        OfflineQueue[Offline Queue Service]
+        QueuedEntry[Queued Entry Entity]
+        OfflineQueue -->|manages| QueuedEntry
     end
     
     Thread -.->|exports to| ExportService
     BiometricAuth -.->|protects| Thread
     TextSize -.->|affects display of| Entry
+    QuickEntry -.->|uses| ThreadSuggestionService
+    ThreadSuggestionService -.->|requires| APIKeyManager
+    QuickEntry -.->|fallback to| OfflineQueue
+    VoiceEntry -.->|creates entries via| QuickEntry
+    VoiceEntry -.->|uses| ThreadSuggestionService
 ```
 
 ### Entity-Relationship Diagram
@@ -70,6 +113,7 @@ erDiagram
         Date createdAt "NOT NULL"
         Date updatedAt "NOT NULL"
         Date deletedAt "NULLABLE - for soft delete"
+        String embedding "NULLABLE - cached thread embedding"
     }
     
     Entry {
@@ -79,6 +123,7 @@ erDiagram
         Date timestamp "NOT NULL"
         Date deletedAt "NULLABLE - for soft delete"
         Date lastEditedAt "NULLABLE - for edit tracking"
+        String source "NOT NULL - manual/quick_entry"
     }
     
     CustomField {
@@ -102,6 +147,29 @@ erDiagram
         String value "NULLABLE"
     }
     
+    QueuedEntry {
+        UUID id PK
+        String content "NOT NULL"
+        Date timestamp "NOT NULL"
+        String suggestedThreadId "NULLABLE"
+        String status "NOT NULL - pending/processing/failed"
+        Int retryCount "NOT NULL - default 0"
+    }
+    
+    EmbeddingCache {
+        String contentHash PK
+        String embedding "NOT NULL - JSON array"
+        Date createdAt "NOT NULL"
+        Date lastAccessedAt "NOT NULL"
+    }
+    
+    AIConfiguration {
+        String provider "NOT NULL - openai/local"
+        String apiKey "NULLABLE - stored in keychain"
+        Bool enabled "NOT NULL - default false"
+        Float confidenceThreshold "NOT NULL - default 0.7"
+    }
+    
     Thread ||--o{ Entry : contains
     Thread ||--o{ CustomField : defines
     CustomField ||--o{ CustomFieldGroup : "parent of"
@@ -117,6 +185,12 @@ erDiagram
 - **Custom Field**: A structured data field that can be attached to entries
 - **Field Group**: A collection of related fields displayed together
 - **Field Value**: The data entered for a specific field on an entry
+- **Quick Entry**: Rapid thought capture with AI-powered thread routing
+- **Thread Suggestion**: AI recommendation for which thread should contain an entry
+- **Embedding**: Vector representation of text for similarity matching
+- **Confidence Score**: Numerical measure of AI suggestion certainty (0.0-1.0)
+- **Offline Queue**: Local storage for entries when network unavailable
+- **Thread Routing**: Process of determining target thread for an entry
 
 ## 3. Code Organization & Maintainability Guardrails
 
@@ -130,37 +204,58 @@ ThreadJournal/
 │   │   ├── Entry.swift
 │   │   ├── CustomField.swift
 │   │   ├── CustomFieldGroup.swift
-│   │   └── EntryFieldValue.swift
+│   │   ├── EntryFieldValue.swift
+│   │   ├── QueuedEntry.swift
+│   │   ├── ThreadSuggestion.swift
+│   │   ├── AIConfiguration.swift
+│   │   ├── VoiceTranscription.swift
+│   │   ├── VoiceSettings.swift
+│   │   └── WhisperModel.swift
 │   ├── UseCases/
 │   │   ├── CreateThreadUseCase.swift
 │   │   ├── AddEntryUseCase.swift
+│   │   ├── QuickEntryUseCase.swift
 │   │   ├── ExportThreadUseCase.swift
 │   │   ├── UpdateEntryUseCase.swift
 │   │   ├── DeleteEntryUseCase.swift
 │   │   ├── DeleteThreadUseCase.swift
 │   │   ├── CreateCustomFieldUseCase.swift
 │   │   ├── CreateFieldGroupUseCase.swift
-│   │   └── DeleteCustomFieldUseCase.swift
+│   │   ├── DeleteCustomFieldUseCase.swift
+│   │   ├── SuggestThreadUseCase.swift
+│   │   ├── ProcessOfflineQueueUseCase.swift
+│   │   ├── TranscribeAudioUseCase.swift
+│   │   ├── DownloadModelUseCase.swift
+│   │   └── CreateVoiceEntryUseCase.swift
 │   └── Repositories/       # Interfaces only
 │       ├── ThreadRepository.swift
-│       └── EntryRepository.swift
+│       ├── EntryRepository.swift
+│       ├── EmbeddingRepository.swift
+│       ├── OfflineQueueRepository.swift
+│       └── AudioRepository.swift
 │
 ├── Application/            # Use case orchestration
 │   ├── Presenters/
 │   │   ├── ThreadListPresenter.swift
 │   │   └── ThreadDetailPresenter.swift
+│   ├── Services/
+│   │   └── TranscriptionService.swift
 │   └── ViewModels/
 │       ├── ThreadListViewModel.swift
 │       ├── ThreadDetailViewModel.swift
 │       ├── CustomFieldsViewModel.swift
-│       └── FieldSelectorViewModel.swift
+│       ├── FieldSelectorViewModel.swift
+│       ├── QuickEntryViewModel.swift
+│       ├── VoiceEntryViewModel.swift
+│       └── VoiceSettingsViewModel.swift
 │
 ├── Interface/              # UI Layer (SwiftUI)
 │   ├── Screens/
 │   │   ├── ThreadListScreen.swift
 │   │   ├── ThreadDetailScreen.swift
 │   │   ├── SettingsScreen.swift
-│   │   └── CustomFieldsScreen.swift
+│   │   ├── CustomFieldsScreen.swift
+│   │   └── VoiceSettingsScreen.swift
 │   ├── Components/
 │   │   ├── ThreadListItem.swift
 │   │   ├── ThreadEntry.swift
@@ -168,18 +263,41 @@ ThreadJournal/
 │   │   ├── SettingsRow.swift
 │   │   ├── FieldSelector.swift
 │   │   ├── FieldInput.swift
-│   │   └── FieldTag.swift
+│   │   ├── FieldTag.swift
+│   │   ├── QuickEntryView.swift
+│   │   ├── ThreadSuggestionView.swift
+│   │   ├── OfflineQueueBadge.swift
+│   │   ├── VoiceEntryView.swift
+│   │   ├── VoiceRecordButton.swift
+│   │   ├── WaveformVisualizer.swift
+│   │   └── ModelDownloadView.swift
 │   └── Theme/
 │       └── DesignSystem.swift
 │
 └── Infrastructure/         # External dependencies
     ├── Persistence/
     │   ├── CoreDataThreadRepository.swift
+    │   ├── CoreDataOfflineQueueRepository.swift
     │   └── ThreadDataModel.xcdatamodeld
     ├── Export/
     │   └── CSVExporter.swift
-    └── Security/
-        └── BiometricAuthService.swift
+    ├── Security/
+    │   ├── BiometricAuthService.swift
+    │   └── APIKeyManager.swift
+    ├── AI/
+    │   ├── OpenAIEmbeddingService.swift
+    │   ├── ThreadSuggestionService.swift
+    │   ├── EmbeddingCache.swift
+    │   └── AIServiceConfiguration.swift
+    ├── Audio/
+    │   ├── AudioCaptureService.swift
+    │   └── AudioSessionManager.swift
+    ├── ML/
+    │   ├── ModelManager.swift
+    │   ├── WhisperKitService.swift
+    │   └── ModelDownloadService.swift
+    └── Queue/
+        └── OfflineQueueService.swift
 ```
 
 ### Dependency Rules (SOLID Enforcement)
@@ -410,11 +528,77 @@ protocol DeleteCustomFieldUseCase {
     func execute(threadId: UUID, fieldId: UUID) async throws
 }
 
+// Quick Entry Use Cases
+protocol QuickEntryUseCase {
+    func execute(content: String, suggestedThreadId: UUID?) async throws -> Entry
+}
+
+protocol SuggestThreadUseCase {
+    func execute(content: String, availableThreads: [Thread]) async throws -> ThreadSuggestion
+}
+
+protocol ProcessOfflineQueueUseCase {
+    func execute() async throws
+}
+
+// AI Service Protocols
+protocol EmbeddingService {
+    func generateEmbedding(text: String) async throws -> [Float]
+    func getCachedEmbedding(text: String) async -> [Float]?
+    func cacheEmbedding(text: String, embedding: [Float]) async
+}
+
+protocol ThreadSuggestionService {
+    func suggestThread(content: String, threads: [Thread]) async throws -> ThreadSuggestion
+    func updateThreadEmbeddings(_ threads: [Thread]) async throws
+}
+
+// Offline Queue Protocols
+protocol OfflineQueueRepository {
+    func enqueue(_ entry: QueuedEntry) async throws
+    func dequeue() async throws -> QueuedEntry?
+    func getQueueCount() async throws -> Int
+    func markProcessed(_ entryId: UUID) async throws
+    func markFailed(_ entryId: UUID, error: Error) async throws
+}
+
 // Export Protocol for future formats
 protocol ExportData {
     var filename: String { get }
     var data: Data { get }
     var mimeType: String { get }
+}
+
+// Voice Entry Protocols
+protocol AudioRepository {
+    func startRecording() async throws
+    func stopRecording() async throws -> Data
+    func pauseRecording() async throws
+    func resumeRecording() async throws
+    func getAudioLevel() -> Float
+    func isRecording() -> Bool
+    func getRecordingDuration() -> TimeInterval
+}
+
+protocol TranscriptionRepository {
+    func transcribe(audio: Data) async throws -> VoiceTranscription
+    func transcribeChunk(audio: Data) async throws -> String
+    func cancelTranscription() async
+}
+
+// Voice Entry Use Cases
+protocol TranscribeAudioUseCase {
+    func execute(audio: Data) async throws -> VoiceTranscription
+}
+
+protocol CreateVoiceEntryUseCase {
+    func execute(transcription: VoiceTranscription, threadId: UUID) async throws -> Entry
+}
+
+// Voice Entry Actions
+protocol VoiceEntryActions {
+    func stopAndEdit() async -> String  // Returns transcription for editing
+    func stopAndSave() async throws -> Entry  // Creates entry immediately
 }
 ```
 
@@ -430,6 +614,22 @@ protocol ThreadListViewModelProtocol: ObservableObject {
     
     func loadThreads() async
     func createThread(title: String) async
+}
+
+// QuickEntryViewModel.swift
+@MainActor
+protocol QuickEntryViewModelProtocol: ObservableObject {
+    var currentText: String { get set }
+    var suggestedThread: Thread? { get }
+    var isLoadingSuggestion: Bool { get }
+    var error: QuickEntryError? { get }
+    var offlineQueueCount: Int { get }
+    var isOffline: Bool { get }
+    
+    func onTextChanged() async
+    func submitEntry() async
+    func selectThread(_ thread: Thread)
+    func clearError()
 }
 
 // ThreadDetailViewModel.swift  
@@ -467,6 +667,37 @@ protocol ThreadDetailViewModelProtocol: ObservableObject {
     func confirmDeleteThread()
     func deleteThread() async
     func selectFields(_ fields: [CustomField])
+}
+
+// AIConfigurationViewModel.swift
+@MainActor
+protocol AIConfigurationViewModelProtocol: ObservableObject {
+    var isAIEnabled: Bool { get set }
+    var apiKey: String { get set }
+    var isValidatingKey: Bool { get }
+    var keyValidationResult: APIKeyValidationResult? { get }
+    var confidenceThreshold: Float { get set }
+    var selectedProvider: AIProvider { get set }
+    
+    func validateAPIKey() async
+    func saveConfiguration() async
+    func testConnection() async
+}
+
+// VoiceEntryViewModel.swift
+@MainActor
+protocol VoiceEntryViewModelProtocol: ObservableObject {
+    var isRecording: Bool { get }
+    var recordingTime: TimeInterval { get }
+    var audioLevel: Float { get }
+    var transcription: String { get }
+    var currentChunkText: String { get }  // Latest 2-second chunk
+    var error: VoiceEntryError? { get }
+    
+    func startRecording() async
+    func stopAndEdit() async -> String  // Fills text field
+    func stopAndSave() async throws  // Creates entry immediately
+    func cancelRecording() async
 }
 ```
 
@@ -1190,6 +1421,270 @@ struct LocationDataStorageStrategy {
 }
 ```
 
+## 6.3 AI Architecture and Quick Entry Implementation
+
+### AI Service Architecture
+```mermaid
+sequenceDiagram
+    participant User
+    participant QE as QuickEntryView
+    participant VM as QuickEntryViewModel
+    parameter STS as SuggestThreadUseCase
+    participant ES as EmbeddingService
+    participant TS as ThreadSuggestionService
+    participant Cache as EmbeddingCache
+    participant API as OpenAI API
+
+    User->>QE: Types content
+    QE->>VM: onTextChanged()
+    VM->>STS: execute(content, threads)
+    STS->>Cache: getCachedEmbedding(content)
+    alt Cache Hit
+        Cache-->>STS: embedding
+    else Cache Miss
+        STS->>ES: generateEmbedding(content)
+        ES->>API: POST /v1/embeddings
+        API-->>ES: embedding vector
+        ES->>Cache: cacheEmbedding(content, embedding)
+        ES-->>STS: embedding
+    end
+    STS->>TS: suggestThread(embedding, threads)
+    TS-->>STS: ThreadSuggestion
+    STS-->>VM: suggestion
+    VM-->>QE: Update UI with suggestion
+```
+
+### Quick Entry Data Models
+```swift
+// Domain/Entities/ThreadSuggestion.swift
+struct ThreadSuggestion {
+    let thread: Thread
+    let confidence: Float  // 0.0 - 1.0
+    let reasoning: String? // Optional explanation
+    
+    var isHighConfidence: Bool {
+        confidence >= 0.7
+    }
+}
+
+// Domain/Entities/QueuedEntry.swift
+struct QueuedEntry {
+    let id: UUID
+    let content: String
+    let timestamp: Date
+    let suggestedThreadId: UUID?
+    let status: QueueStatus
+    let retryCount: Int
+    let originalEmbedding: [Float]?
+}
+
+enum QueueStatus: String, CaseIterable {
+    case pending = "pending"
+    case processing = "processing"
+    case failed = "failed"
+    case completed = "completed"
+}
+
+// Domain/Entities/AIConfiguration.swift
+struct AIConfiguration {
+    let provider: AIProvider
+    let apiKey: String?
+    let isEnabled: Bool
+    let confidenceThreshold: Float
+    let maxRetries: Int
+    let timeoutSeconds: Int
+}
+
+enum AIProvider: String, CaseIterable {
+    case openai = "openai"
+    case local = "local"  // Future: CoreML
+}
+```
+
+### Embedding Cache Implementation
+```swift
+// Infrastructure/AI/EmbeddingCache.swift
+final class EmbeddingCache {
+    private let maxSize: Int = 100
+    private var cache: [String: CacheEntry] = [:]
+    private let queue = DispatchQueue(label: "embedding.cache", attributes: .concurrent)
+    
+    private struct CacheEntry {
+        let embedding: [Float]
+        let timestamp: Date
+        var accessCount: Int
+    }
+    
+    func getCachedEmbedding(for text: String) async -> [Float]? {
+        let key = text.sha256Hash
+        return await withUnsafeContinuation { continuation in
+            queue.async(flags: .barrier) {
+                if let entry = self.cache[key] {
+                    self.cache[key]?.accessCount += 1
+                    continuation.resume(returning: entry.embedding)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+    
+    func cacheEmbedding(_ embedding: [Float], for text: String) async {
+        let key = text.sha256Hash
+        let entry = CacheEntry(
+            embedding: embedding,
+            timestamp: Date(),
+            accessCount: 1
+        )
+        
+        await withUnsafeContinuation<Void, Never> { continuation in
+            queue.async(flags: .barrier) {
+                self.cache[key] = entry
+                self.evictLeastRecentlyUsedIfNeeded()
+                continuation.resume()
+            }
+        }
+    }
+    
+    private func evictLeastRecentlyUsedIfNeeded() {
+        guard cache.count > maxSize else { return }
+        
+        let sortedEntries = cache.sorted { lhs, rhs in
+            if lhs.value.accessCount != rhs.value.accessCount {
+                return lhs.value.accessCount < rhs.value.accessCount
+            }
+            return lhs.value.timestamp < rhs.value.timestamp
+        }
+        
+        let keysToRemove = sortedEntries.prefix(cache.count - maxSize).map { $0.key }
+        keysToRemove.forEach { cache.removeValue(forKey: $0) }
+    }
+}
+```
+
+### Thread Suggestion Algorithm
+```swift
+// Infrastructure/AI/ThreadSuggestionService.swift
+final class ThreadSuggestionServiceImpl: ThreadSuggestionService {
+    private let embeddingService: EmbeddingService
+    private let confidenceThreshold: Float = 0.7
+    
+    init(embeddingService: EmbeddingService) {
+        self.embeddingService = embeddingService
+    }
+    
+    func suggestThread(content: String, threads: [Thread]) async throws -> ThreadSuggestion {
+        guard content.count >= 10 else {
+            return ThreadSuggestion(
+                thread: findOtherThread(in: threads),
+                confidence: 0.0,
+                reasoning: "Content too short for analysis"
+            )
+        }
+        
+        let contentEmbedding = try await embeddingService.generateEmbedding(text: content)
+        
+        var bestMatch: Thread?
+        var bestSimilarity: Float = 0.0
+        
+        for thread in threads {
+            let threadEmbedding = try await getThreadEmbedding(thread)
+            let similarity = cosineSimilarity(contentEmbedding, threadEmbedding)
+            
+            if similarity > bestSimilarity {
+                bestSimilarity = similarity
+                bestMatch = thread
+            }
+        }
+        
+        guard let suggestedThread = bestMatch, bestSimilarity >= confidenceThreshold else {
+            return ThreadSuggestion(
+                thread: findOtherThread(in: threads),
+                confidence: bestSimilarity,
+                reasoning: "No thread match above threshold (\(confidenceThreshold))"
+            )
+        }
+        
+        return ThreadSuggestion(
+            thread: suggestedThread,
+            confidence: bestSimilarity,
+            reasoning: "High similarity to existing entries"
+        )
+    }
+    
+    private func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
+        guard a.count == b.count else { return 0.0 }
+        
+        let dotProduct = zip(a, b).map(*).reduce(0, +)
+        let magnitudeA = sqrt(a.map { $0 * $0 }.reduce(0, +))
+        let magnitudeB = sqrt(b.map { $0 * $0 }.reduce(0, +))
+        
+        guard magnitudeA > 0, magnitudeB > 0 else { return 0.0 }
+        
+        return dotProduct / (magnitudeA * magnitudeB)
+    }
+    
+    private func getThreadEmbedding(_ thread: Thread) async throws -> [Float] {
+        // Combine recent entries to represent thread
+        let recentEntries = thread.entries
+            .filter { !$0.isDeleted }
+            .sorted { $0.timestamp > $1.timestamp }
+            .prefix(5)
+        
+        let combinedContent = recentEntries
+            .map { $0.content }
+            .joined(separator: " ")
+        
+        return try await embeddingService.generateEmbedding(text: combinedContent)
+    }
+    
+    private func findOtherThread(in threads: [Thread]) -> Thread {
+        return threads.first { $0.title.lowercased() == "other" } ?? threads.first!
+    }
+}
+```
+
+### Offline Queue Processing
+```mermaid
+sequenceDiagram
+    participant App as App Lifecycle
+    participant PQ as ProcessQueueUseCase
+    participant QR as QueueRepository
+    participant QE as QuickEntryUseCase
+    participant TS as ThreadSuggestionService
+    participant TR as ThreadRepository
+
+    App->>PQ: App becomes active
+    PQ->>QR: getQueuedEntries(status: pending)
+    QR-->>PQ: [QueuedEntry]
+    
+    loop For each queued entry
+        PQ->>QR: markProcessing(entryId)
+        alt Has suggestedThreadId
+            PQ->>QE: execute(content, threadId)
+        else No suggestion
+            PQ->>TS: suggestThread(content, threads)
+            TS-->>PQ: ThreadSuggestion
+            PQ->>QE: execute(content, suggestion.threadId)
+        end
+        
+        alt Success
+            QE-->>PQ: Created entry
+            PQ->>QR: markCompleted(entryId)
+        else Failure
+            QE-->>PQ: Error
+            PQ->>QR: markFailed(entryId, error)
+        end
+    end
+```
+
+### Performance Considerations
+1. **Embedding Cache**: 100-entry LRU cache reduces API calls by ~80%
+2. **Debounced Suggestions**: 500ms delay prevents excessive API requests
+3. **Background Processing**: Queue processing happens on background threads
+4. **Request Deduplication**: Identical content reuses cached embeddings
+5. **Circuit Breaker**: AI service failures don't break quick entry
+
 ### Location Settings UI Integration
 The location settings are integrated into the existing Settings screen through the modified SettingsScreen.swift:
 
@@ -1608,6 +2103,100 @@ print("[ThreadJournal] Action: \(action) Success: \(success)")
 | Data theft from backup | **I**nformation disclosure | iOS file protection | Phase 3: Encryption |
 | Malicious CSV injection | **T**ampering | Escape quotes in CSV | - |
 | Shoulder surfing | **I**nformation disclosure | - | Phase 2: Hide on background |
+| API key exposure | **I**nformation disclosure | iOS Keychain storage | API key rotation |
+| AI service dependency | **D**enial of service | Offline queue fallback | Multiple provider support |
+| Embedding data leakage | **I**nformation disclosure | Local caching only | Encryption at rest |
+| Prompt injection | **T**ampering | Content sanitization | Input validation |
+
+## 12.1 Quick Entry Risk Assessment and Mitigation
+
+### High-Risk Areas
+
+#### Risk: AI Service Dependency and Costs
+**Impact**: High - Core feature unusable if AI service fails or becomes expensive  
+**Probability**: Medium - External API dependency  
+**Mitigation**:
+- Offline queue ensures no data loss
+- Fallback to "Other" thread when AI unavailable
+- User-controlled API keys limit cost exposure
+- Circuit breaker pattern prevents cascading failures
+- Local embedding caching reduces API calls by 80%
+
+#### Risk: Performance Degradation with Large Thread Collections
+**Impact**: Medium - Slow suggestions impact UX  
+**Probability**: Medium - Performance scales with thread count  
+**Mitigation**:
+- LRU embedding cache with 100-entry limit
+- 2-second timeout on AI suggestions
+- Background thread processing for heavy computation
+- Debounced input (500ms) reduces API load
+- Performance testing with 20+ threads
+
+#### Risk: API Key Security and Management
+**Impact**: High - Compromised keys could incur costs  
+**Probability**: Low - iOS Keychain provides strong security  
+**Mitigation**:
+- iOS Keychain storage (not UserDefaults)
+- No API keys stored in app backups
+- User-managed keys (not embedded in app)
+- API key validation before storage
+- Clear UI for enabling/disabling AI features
+
+#### Risk: Network Connectivity Issues
+**Impact**: Medium - Feature degradation in offline scenarios  
+**Probability**: High - Mobile connectivity varies  
+**Mitigation**:
+- Robust offline queue with persistence
+- Visual feedback for offline status
+- Automatic queue processing when online
+- Maximum queue size with overflow handling
+- Graceful degradation to manual thread selection
+
+#### Risk: AI Suggestion Accuracy
+**Impact**: Medium - Poor suggestions reduce feature value  
+**Probability**: Medium - AI models have inherent limitations  
+**Mitigation**:
+- Confidence threshold (70%) with fallback to "Other"
+- User can override suggestions manually
+- Thread embedding based on recent entries (5 max)
+- Content length validation (minimum 10 characters)
+- Continuous improvement through user feedback patterns
+
+### Risk Monitoring and Metrics
+
+```swift
+// Risk Monitoring Implementation
+struct QuickEntryMetrics {
+    let suggestionAccuracy: Float     // User acceptance rate
+    let averageResponseTime: TimeInterval  // AI suggestion latency
+    let cacheHitRate: Float          // Embedding cache effectiveness
+    let offlineQueueSize: Int        // Queue backlog indicator
+    let apiErrorRate: Float          // Service reliability
+}
+
+// Alert Thresholds
+struct RiskThresholds {
+    static let maxResponseTime: TimeInterval = 2.0
+    static let minCacheHitRate: Float = 0.6
+    static let maxQueueSize: Int = 25
+    static let maxApiErrorRate: Float = 0.1
+}
+```
+
+### Rollback Strategy
+
+1. **Immediate Rollback**: Disable AI features via settings toggle
+2. **Feature Flag**: Server-side disable if available in future
+3. **Graceful Degradation**: Quick entry works without AI (manual thread selection)
+4. **Data Safety**: All entries preserved in offline queue during issues
+
+### Testing Strategy for Risk Mitigation
+
+1. **Chaos Engineering**: Simulate network failures during entry creation
+2. **Load Testing**: Test with 20+ threads and rapid entry creation
+3. **Security Testing**: Verify API key storage and retrieval
+4. **Performance Testing**: Measure suggestion latency and cache effectiveness
+5. **Offline Testing**: Verify queue behavior across app restarts
 
 ## 13. Delivery Roadmap
 
@@ -1734,10 +2323,13 @@ func testPerformanceWith1000Entries() {
 - YES custom fields and field groups (added)
 - YES biometric authentication (added)
 - YES settings screen with text size control (added)
+- YES AI-powered quick entry with thread suggestions (added)
+- YES offline queue management (added)
+- YES API key management and configuration (added)
 - NO cloud sync or backup
 - NO encryption beyond iOS defaults
 - YES draft protection
-- YES performance for 100+ threads, 1000+ entries, 20 fields per thread
+- YES performance for 100+ threads, 1000+ entries, 20 fields per thread, AI suggestions <2s
 
 ### Folder Structure Enforcement
 - Domain layer: No UI imports allowed

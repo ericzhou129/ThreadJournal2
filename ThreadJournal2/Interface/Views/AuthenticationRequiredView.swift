@@ -24,7 +24,7 @@ struct AuthenticationRequiredView: View {
     var body: some View {
         ZStack {
             // Background - subtle blur effect
-            Color(.systemBackground)
+            UnToldTheme.shared.background
                 .ignoresSafeArea()
             
             // Simple loading state while authenticating

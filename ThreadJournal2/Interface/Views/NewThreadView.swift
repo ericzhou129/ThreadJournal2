@@ -108,7 +108,7 @@ struct NewThreadView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(UnToldTheme.shared.cardBackground)
         .overlay(
             Rectangle()
                 .fill(Color(.separator))
@@ -207,7 +207,7 @@ struct NewThreadView: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
-            .background(Color(.systemBackground))
+            .background(UnToldTheme.shared.cardBackground)
         }
     }
 }

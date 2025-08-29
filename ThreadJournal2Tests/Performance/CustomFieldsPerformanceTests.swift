@@ -153,7 +153,7 @@ final class CustomFieldsPerformanceTests: XCTestCase {
     // MARK: - Large Dataset Tests
     
     /// Tests performance with 1000 entries and 100 fields
-    func testLargeDatasetPerformance() {
+    func testLargeDatasetPerformance() async {
         // Setup: Create 100 fields
         let fields = createTestFields(count: 100)
         mockRepository.setCustomFields(fields, for: testThread.id)

@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Entry Feature - Design Mockup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f2f2f7;
+        }
+        .mockup-container {
+            max-width: 375px;
+            margin: 0 auto 40px;
+            background: white;
+            border-radius: 12px;
+            overflow: visible;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .screen {
+            padding: 20px;
+            min-height: 600px;
+            position: relative;
+            padding-bottom: 120px;
+        }
+        .badge {
+            position: absolute;
+            background: #007AFF;
+            color: white;
+            border-radius: 12px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .quick-entry-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            border: 1px solid #e5e5ea;
+            z-index: 100;
+        }
+        .quick-entry-header {
+            padding: 12px 16px 8px;
+            border-bottom: 1px solid #f2f2f7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .quick-entry-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1c1c1e;
+        }
+        .queue-badge {
+            background: #ff9500;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 16px;
+            text-align: center;
+        }
+        .quick-entry-input {
+            padding: 12px 16px;
+            border: none;
+            font-size: 16px;
+            line-height: 22px;
+            color: #1c1c1e;
+            resize: none;
+            outline: none;
+            min-height: 22px;
+            max-height: 132px;
+            overflow-y: auto;
+            background: transparent;
+            font-family: inherit;
+        }
+        .quick-entry-input::placeholder {
+            color: #8e8e93;
+        }
+        textarea.quick-entry-input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .quick-entry-footer {
+            padding: 8px 16px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .thread-suggestion {
+            font-size: 13px;
+            color: #8e8e93;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .ai-icon {
+            width: 12px;
+            height: 12px;
+            background: #34c759;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .send-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .send-button:disabled {
+            background: #c7c7cc;
+        }
+        .thread-list {
+            padding: 20px 0;
+        }
+        .thread-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f2f2f7;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .thread-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1c1c1e;
+            margin-bottom: 4px;
+        }
+        .thread-meta {
+            font-size: 13px;
+            color: #8e8e93;
+        }
+        .state-label {
+            margin: 20px auto 10px;
+            max-width: 375px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #8e8e93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .container-wrapper {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .reference-panel {
+            position: sticky;
+            float: right;
+            top: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 300px;
+            font-size: 13px;
+            line-height: 1.4;
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+        .reference-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1c1c1e;
+        }
+        .reference-item {
+            margin-bottom: 8px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .reference-item:hover {
+            background: #f2f2f7;
+        }
+        .code {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            background: #f2f2f7;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        h1 {
+            text-align: center;
+            color: #1c1c1e;
+            font-size: 28px;
+            font-weight: 700;
+            margin: 40px 0 20px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8e8e93;
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Quick Entry Feature Design</h1>
+    <p class="subtitle">AI-powered quick entry with automatic thread routing</p>
+    <p class="subtitle" style="font-size: 14px; color: #007AFF;">💡 The Quick Entry box floats at the bottom of the thread list screen, always accessible</p>
+    
+    <div class="reference-panel">
+        <div class="reference-title">Component References</div>
+        <div class="reference-item" onclick="copyToClipboard('Design:v1.2/QuickEntryContainer')">
+            <span class="code">Design:v1.2/QuickEntryContainer</span><br>
+            Floating quick entry box
+        </div>
+        <div class="reference-item" onclick="copyToClipboard('Design:v1.2/QuickEntryInput')">
+            <span class="code">Design:v1.2/QuickEntryInput</span><br>
+            Auto-expanding text input
+        </div>
+        <div class="reference-item" onclick="copyToClipboard('Design:v1.2/ThreadSuggestion')">
+            <span class="code">Design:v1.2/ThreadSuggestion</span><br>
+            AI-suggested thread indicator
+        </div>
+        <div class="reference-item" onclick="copyToClipboard('Design:v1.2/QueueBadge')">
+            <span class="code">Design:v1.2/QueueBadge</span><br>
+            Offline queue indicator
+        </div>
+        <div class="reference-item" onclick="copyToClipboard('Design:v1.2/QuickSendButton')">
+            <span class="code">Design:v1.2/QuickSendButton</span><br>
+            Quick entry send button
+        </div>
+    </div>
+
+    <div class="state-label">State 1: Default Quick Entry (Empty)</div>
+    <div class="mockup-container">
+        <div class="screen">
+            
+            <div class="thread-list">
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Work Thoughts</div>
+                        <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                    </div>
+                </div>
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Daily Reflections</div>
+                        <div class="thread-meta">15 entries • Updated yesterday</div>
+                    </div>
+                </div>
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Other</div>
+                        <div class="thread-meta">2 entries • Updated 3 days ago</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-entry-container" data-component="quick-entry-container">
+                <div class="quick-entry-header" data-component="quick-entry-header">
+                    <span class="quick-entry-title">Quick Entry</span>
+                </div>
+                <textarea class="quick-entry-input" data-component="quick-entry-input" 
+                          placeholder="What's on your mind?" rows="1"></textarea>
+                <div class="quick-entry-footer" data-component="quick-entry-footer">
+                    <div class="thread-suggestion" data-component="thread-suggestion">
+                        <span class="ai-icon"></span>
+                        <span>AI will suggest thread</span>
+                    </div>
+                    <button class="send-button" data-component="quick-send-button" disabled>↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="state-label">State 2: Typing with Thread Suggestion</div>
+    <div class="mockup-container">
+        <div class="screen">
+            
+            <div class="thread-list">
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Work Thoughts</div>
+                        <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                    </div>
+                </div>
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Daily Reflections</div>
+                        <div class="thread-meta">15 entries • Updated yesterday</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-entry-container" data-component="quick-entry-container">
+                <div class="quick-entry-header" data-component="quick-entry-header">
+                    <span class="quick-entry-title">Quick Entry</span>
+                </div>
+                <textarea class="quick-entry-input" data-component="quick-entry-input" rows="3">Had a great meeting with the product team today. We discussed the new features and everyone seemed excited about the roadmap.</textarea>
+                <div class="quick-entry-footer" data-component="quick-entry-footer">
+                    <div class="thread-suggestion" data-component="thread-suggestion">
+                        <span class="ai-icon"></span>
+                        <span>→ Work Thoughts</span>
+                    </div>
+                    <button class="send-button" data-component="quick-send-button">↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="state-label">State 3: Offline Queue with Badge</div>
+    <div class="mockup-container">
+        <div class="screen">
+            
+            <div class="thread-list">
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Work Thoughts</div>
+                        <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                    </div>
+                </div>
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Daily Reflections</div>
+                        <div class="thread-meta">15 entries • Updated yesterday</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-entry-container" data-component="quick-entry-container">
+                <div class="quick-entry-header" data-component="quick-entry-header">
+                    <span class="quick-entry-title">Quick Entry</span>
+                    <span class="queue-badge" data-component="queue-badge">2</span>
+                </div>
+                <textarea class="quick-entry-input" data-component="quick-entry-input" 
+                          placeholder="What's on your mind? (offline)" rows="1"></textarea>
+                <div class="quick-entry-footer" data-component="quick-entry-footer">
+                    <div class="thread-suggestion" data-component="thread-suggestion">
+                        <span style="color: #ff9500;">⚡</span>
+                        <span>Queued for processing</span>
+                    </div>
+                    <button class="send-button" data-component="quick-send-button" disabled>↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="state-label">State 4: Uncertain Thread Match</div>
+    <div class="mockup-container">
+        <div class="screen">
+            
+            <div class="thread-list">
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Work Thoughts</div>
+                        <div class="thread-meta">3 entries • Updated 2 hours ago</div>
+                    </div>
+                </div>
+                <div class="thread-item">
+                    <div>
+                        <div class="thread-title">Daily Reflections</div>
+                        <div class="thread-meta">15 entries • Updated yesterday</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-entry-container" data-component="quick-entry-container">
+                <div class="quick-entry-header" data-component="quick-entry-header">
+                    <span class="quick-entry-title">Quick Entry</span>
+                </div>
+                <textarea class="quick-entry-input" data-component="quick-entry-input" rows="2">Feeling grateful for the sunny weather today.</textarea>
+                <div class="quick-entry-footer" data-component="quick-entry-footer">
+                    <div class="thread-suggestion" data-component="thread-suggestion">
+                        <span class="ai-icon"></span>
+                        <span>→ Other</span>
+                    </div>
+                    <button class="send-button" data-component="quick-send-button">↑</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('Copied: ' + text);
+                // Visual feedback
+                event.target.style.background = '#007AFF';
+                event.target.style.color = 'white';
+                setTimeout(() => {
+                    event.target.style.background = '#f2f2f7';
+                    event.target.style.color = 'inherit';
+                }, 200);
+            });
+        }
+
+        // Auto-expand textarea simulation
+        document.querySelectorAll('.quick-entry-input').forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 132) + 'px';
+                
+                // Enable/disable send button
+                const sendButton = this.parentElement.querySelector('.send-button');
+                sendButton.disabled = this.value.trim().length === 0;
+            });
+        });
+    </script>
+</body>
+</html>

@@ -5,8 +5,15 @@ This document provides tickets for implementing ThreadJournal. All Claude Code a
 
 ## Architecture Alignment
 From the TIP, we have these bounded contexts and layers:
-- **Contexts**: Journaling Context, Export Context, Settings Context (Phase 2)
+- **Contexts**: Journaling Context, AI Context, Export Context, Settings Context, Queue Context
 - **Layers**: domain/, application/, interface/, infrastructure/
+
+## Active Epics
+- [Voice Entry Feature Epic](voice-entry-EPIC.md) - On-device voice transcription (TICKET-025 through TICKET-030)
+- [Quick Entry Feature Epic](quick-entry-EPIC.md) - AI-powered rapid thought capture (TICKET-031 through TICKET-040)
+- [Settings Configuration Epic](settings-configuration-EPIC.md) - User preferences and security
+- [Custom Fields Epic](templated-fields-EPIC.md) - Structured data entry
+- [Location Tracking Epic](location-tracking-EPIC.md) - Geographic context for entries
 
 ---
 
@@ -74,6 +81,283 @@ For a ticket to be considered "Done", ALL of the following must be satisfied:
 ✓ **Export Protocol**: Simple to add JSON later
 ✓ **Schema Versioning**: Migrations supported
 ✓ **Clean Architecture**: New features don't break existing
+
+---
+
+## Voice Entry Feature Tickets
+
+### TICKET-025: Simplified Audio Capture Service
+**Status**: TODO  
+**Priority**: High  
+**Size**: M  
+**Layer**: Infrastructure  
+
+#### Description
+Implement a streamlined audio capture service for inline voice recording. No settings or configuration needed - it just works. Recording continues through silences (no auto-stop).
+
+#### Technical Requirements
+- Configure AVAudioSession with PlayAndRecord category
+- Setup AVAudioEngine with 44.1kHz sampling rate, mono channel
+- Simple start/stop recording interface
+- Basic audio level metering for waveform visualization
+- Handle interruptions gracefully (pause/resume)
+- NO auto-stop on silence (people need time to think)
+- Safety timeout only after 5 minutes of complete silence
+
+#### Acceptance Criteria
+- [ ] Microphone permission requested on first use
+- [ ] Audio recording starts/stops immediately
+- [ ] Audio levels update in real-time for waveform
+- [ ] Recording continues through pauses and silences
+- [ ] Only stops when user manually presses stop button
+- [ ] Safety stop after 5 minutes of silence (edge case)
+- [ ] Interruptions auto-pause recording
+- [ ] Returns audio buffer for transcription
+
+#### Implementation Tasks
+1. Simplify existing `AudioCaptureService` in `Infrastructure/Audio/`
+2. Remove unnecessary configuration options
+3. Add permission handling in Info.plist
+4. Implement 2-second chunk buffering for transcription
+5. Add simple interruption handling
+
+#### Dependencies
+- None (foundational component)
+
+#### QA Test Criteria
+- Test microphone permission flow
+- Test interruption by phone call
+- Test recording start/stop responsiveness
+- Verify audio quality for transcription
+
+---
+
+### TICKET-026: WhisperKit Bundle Integration
+**Status**: TODO  
+**Priority**: High  
+**Size**: L  
+**Layer**: Infrastructure  
+
+#### Description
+Bundle WhisperKit with Whisper Small model directly in the app. No downloads or model management needed - works immediately on first launch.
+
+#### Technical Requirements
+- Add WhisperKit via Swift Package Manager
+- Bundle Whisper Small model (39MB) in app resources
+- Create simple `WhisperKitService` wrapper
+- Implement 2-second chunk transcription
+- Auto-detect language (multilingual model)
+- No auto-stop (user must manually stop)
+- Safety timeout at 5 minutes of silence
+
+#### Acceptance Criteria
+- [ ] WhisperKit integrated and model bundled
+- [ ] Transcription works on first launch (no setup)
+- [ ] 2-second chunks provide live feedback
+- [ ] Continues recording through silences (no auto-stop)
+- [ ] Safety stop only after 5 minutes of complete silence
+- [ ] Handles multiple languages automatically
+
+#### Implementation Tasks
+1. Add WhisperKit SPM dependency
+2. Add Whisper Small model to app bundle
+3. Create simple `WhisperKitService` in `Infrastructure/ML/`
+4. Implement chunk-based transcription (2-second intervals)
+5. Add silence detection for auto-stop
+
+#### Dependencies
+- TICKET-025 (Audio Capture Service)
+
+#### QA Test Criteria
+- Test first launch experience (no downloads)
+- Test transcription accuracy in English
+- Test at least 2 other languages
+- Verify 2-second chunk timing
+- Test recording continues through 30-second silence
+- Test 5-minute safety timeout works
+- Test manual stop button responsiveness
+
+---
+
+### TICKET-027: Inline Voice UI Integration
+**Status**: TODO  
+**Priority**: High  
+**Size**: M  
+**Layer**: Interface  
+
+#### Description
+Add voice recording UI directly to ThreadDetailView. Single button below text field, minimal waveform when recording with two stop options, no separate screens.
+
+#### Technical Requirements
+- Add full-width voice button below compose field
+- Show minimal waveform visualization during recording
+- Display live transcription preview above waveform
+- Two stop buttons on waveform: pencil (Stop & Edit) and checkmark (Stop & Save)
+- Stop & Edit: fills text field for editing before sending
+- Stop & Save: instantly creates entry in thread (no edit step)
+- Keep thread entries visible during recording
+- Brief green highlight on new entry when using Stop & Save
+- No modal screens or settings
+
+#### Acceptance Criteria
+- [ ] Voice button always visible below text field
+- [ ] Tapping button starts recording immediately
+- [ ] Waveform shows recording is active
+- [ ] Live transcription appears every 2 seconds
+- [ ] "Stop & Edit" button fills text field for editing
+- [ ] "Stop & Save" button creates entry immediately
+- [ ] Both stop buttons clearly visible but minimal
+- [ ] Thread remains scrollable during recording
+
+#### Implementation Tasks
+1. Modify `ThreadDetailViewFixed` to add voice button
+2. Create minimal `WaveformView` component
+3. Add transcription preview area
+4. Implement two-button stop UI (pencil and checkmark icons)
+5. Add logic for Stop & Edit (fills text field)
+6. Add logic for Stop & Save (creates entry directly)
+7. Add green highlight animation for saved entries
+8. Ensure recording continues through user pauses
+
+#### Dependencies
+- TICKET-025 (Audio Capture)
+- TICKET-026 (WhisperKit Integration)
+
+#### QA Test Criteria
+- Test UI transitions (text → recording → text)
+- Test with long transcriptions
+- Verify thread remains interactive
+- Test orientation changes while recording
+
+---
+
+### TICKET-028: Voice Recording State Management
+**Status**: TODO  
+**Priority**: Medium  
+**Size**: S  
+**Layer**: Application  
+
+#### Description
+Create simple state management for voice recording in ThreadDetailViewModel. Handle recording states, transcription updates, and two different stop behaviors.
+
+#### Technical Requirements
+- Add recording state to ThreadDetailViewModel
+- Handle start/stop recording logic
+- Update UI with transcription chunks every 2 seconds
+- Stop & Edit: fill compose field with transcription
+- Stop & Save: create entry directly without edit step
+- Manage audio service lifecycle
+- Track recording duration for 5-minute safety timeout
+
+#### Acceptance Criteria
+- [ ] Recording starts from voice button tap
+- [ ] Recording only stops via Stop & Edit or Stop & Save buttons
+- [ ] Transcription updates every 2 seconds during recording
+- [ ] Stop & Edit fills compose field for editing
+- [ ] Stop & Save creates entry immediately
+- [ ] No auto-stop during normal pauses (up to 5 minutes)
+- [ ] Proper cleanup on view dismissal
+- [ ] Error states handled gracefully
+
+#### Implementation Tasks
+1. Extend `ThreadDetailViewModel` with voice state
+2. Add recording start method
+3. Add stopAndEdit() method (fills text field)
+4. Add stopAndSave() method (creates entry)
+5. Handle transcription chunk updates
+6. Implement 5-minute safety timeout
+7. Add error handling
+
+#### Dependencies
+- TICKET-025 (Audio Capture)
+- TICKET-026 (WhisperKit Integration)
+- TICKET-027 (UI Integration)
+
+#### QA Test Criteria
+- Test state transitions
+- Test error scenarios
+- Verify memory cleanup
+- Test with view lifecycle events
+
+---
+
+### TICKET-029: Testing and Polish
+**Status**: TODO  
+**Priority**: Medium  
+**Size**: M  
+**Layer**: All  
+
+#### Description
+Comprehensive testing of the simplified voice entry feature. Ensure smooth experience with no configuration needed.
+
+#### Technical Requirements
+- Unit tests for audio capture service
+- Unit tests for transcription service
+- UI tests for voice button interaction
+- Performance testing on various devices
+- Polish animations and transitions
+
+#### Acceptance Criteria
+- [ ] 80% test coverage for voice components
+- [ ] UI transitions are smooth
+- [ ] Works on iPhone 12 and newer
+- [ ] Transcription accuracy >90%
+- [ ] No memory leaks
+
+#### Implementation Tasks
+1. Write unit tests for AudioCaptureService
+2. Write unit tests for WhisperKitService
+3. Create UI tests for voice flow
+4. Performance profiling
+5. Polish animations
+
+#### Dependencies
+- All other voice tickets
+
+#### QA Test Criteria
+- Test on iPhone 12, 14, 15
+- Test 5-minute recordings
+- Test with background noise
+- Verify transcription accuracy
+
+---
+
+### TICKET-030: Documentation and Release
+**Status**: TODO  
+**Priority**: Low  
+**Size**: S  
+**Layer**: Documentation  
+
+#### Description
+Update documentation to reflect the simplified voice entry approach. Prepare for release.
+
+#### Technical Requirements
+- Update README with voice entry section
+- Document zero-configuration approach
+- Add troubleshooting guide
+- Update app store description
+- Prepare release notes
+
+#### Acceptance Criteria
+- [ ] README includes voice entry usage
+- [ ] Troubleshooting covers common issues
+- [ ] App size increase documented (39MB)
+- [ ] Release notes highlight feature
+
+#### Implementation Tasks
+1. Update README-voice-entry.md
+2. Add to main README.md
+3. Create troubleshooting section
+4. Write release notes
+5. Update app metadata
+
+#### Dependencies
+- All implementation tickets
+
+#### QA Test Criteria
+- Review documentation accuracy
+- Test troubleshooting steps
+- Verify feature description
 
 ---
 

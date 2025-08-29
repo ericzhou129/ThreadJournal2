@@ -26,7 +26,7 @@ struct ThreadJournal2App: App {
                 
                 // Loading overlay while checking settings
                 if !authViewModel.hasCheckedSettings {
-                    Color(.systemBackground)
+                    UnToldTheme.shared.background
                         .ignoresSafeArea()
                         .overlay(ProgressView())
                 }
