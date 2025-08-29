@@ -294,24 +294,52 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     }
     
     private func convertToData(buffer: AVAudioPCMBuffer) throws -> Data {
-        guard let fileURL = FileManager.default.urls(
-            for: .cachesDirectory,
-            in: .userDomainMask
-        ).first?.appendingPathComponent("temp_audio.wav") else {
+        // Manually create WAV file with proper headers for Float32 PCM
+        guard let channelData = buffer.floatChannelData?[0] else {
             throw AudioCaptureError.noAudioData
         }
         
-        let file = try AVAudioFile(
-            forWriting: fileURL,
-            settings: buffer.format.settings
-        )
+        let frameCount = Int(buffer.frameLength)
+        let sampleRate = UInt32(buffer.format.sampleRate)
+        let channels = UInt16(buffer.format.channelCount)
+        let bitsPerSample: UInt16 = 32
+        let bytesPerSample = 4 // Float32 = 4 bytes
         
-        try file.write(from: buffer)
+        // Calculate sizes
+        let dataSize = frameCount * Int(channels) * bytesPerSample
+        let headerSize = 44
+        let totalSize = headerSize + dataSize - 8 // Minus 8 for RIFF header
         
-        let data = try Data(contentsOf: fileURL)
-        try? FileManager.default.removeItem(at: fileURL)
+        var wavData = Data()
         
-        return data
+        // RIFF header
+        wavData.append(contentsOf: "RIFF".data(using: .ascii)!)
+        wavData.append(contentsOf: withUnsafeBytes(of: UInt32(totalSize).littleEndian) { Data($0) })
+        wavData.append(contentsOf: "WAVE".data(using: .ascii)!)
+        
+        // fmt chunk
+        wavData.append(contentsOf: "fmt ".data(using: .ascii)!)
+        wavData.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Data($0) }) // fmt chunk size
+        wavData.append(contentsOf: withUnsafeBytes(of: UInt16(3).littleEndian) { Data($0) }) // IEEE Float format
+        wavData.append(contentsOf: withUnsafeBytes(of: channels.littleEndian) { Data($0) })
+        wavData.append(contentsOf: withUnsafeBytes(of: sampleRate.littleEndian) { Data($0) })
+        let byteRate = sampleRate * UInt32(channels) * UInt32(bytesPerSample)
+        wavData.append(contentsOf: withUnsafeBytes(of: byteRate.littleEndian) { Data($0) })
+        let blockAlign = channels * UInt16(bytesPerSample)
+        wavData.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Data($0) })
+        wavData.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Data($0) })
+        
+        // data chunk
+        wavData.append(contentsOf: "data".data(using: .ascii)!)
+        wavData.append(contentsOf: withUnsafeBytes(of: UInt32(dataSize).littleEndian) { Data($0) })
+        
+        // Append Float32 audio samples
+        for i in 0..<frameCount {
+            let sample = channelData[i]
+            wavData.append(contentsOf: withUnsafeBytes(of: sample) { Data($0) })
+        }
+        
+        return wavData
     }
     
     private func setupNotifications() {

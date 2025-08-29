@@ -229,46 +229,30 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             
             print("WhisperKitService: Audio validation - min: \(minValue), max: \(maxValue), RMS: \(rms)")
             
+            // Check for invalid audio data (infinity, NaN, or extreme values)
+            if rms.isInfinite || rms.isNaN {
+                print("WhisperKitService: ERROR - Invalid audio data (RMS is \(rms))")
+                throw WhisperKitServiceError.invalidAudioData
+            }
+            
+            // Check for unrealistic audio values (audio should typically be between -1 and 1)
+            if abs(maxValue) > 10.0 || abs(minValue) > 10.0 {
+                print("WhisperKitService: ERROR - Audio values out of range (min: \(minValue), max: \(maxValue))")
+                throw WhisperKitServiceError.invalidAudioData
+            }
+            
             // Check if audio is silent (very low RMS indicates silence)
             if rms < 0.001 {
                 print("WhisperKitService: WARNING - Audio appears to be silent (RMS: \(rms))")
+                // Don't throw error for silence, just warn
             }
             
             return floatArray
         }
         
-        print("WhisperKitService: WAV parsing failed, attempting fallback to raw Float32 interpretation")
-        
-        // Fallback: Try to interpret as raw Float32 data
-        guard audioData.count % MemoryLayout<Float>.size == 0 else {
-            print("WhisperKitService: ERROR - Audio data size (\(audioData.count)) is not a multiple of Float size (\(MemoryLayout<Float>.size))")
-            throw WhisperKitServiceError.invalidAudioData
-        }
-        
-        let floatArray = audioData.withUnsafeBytes { bytes in
-            Array(bytes.bindMemory(to: Float.self))
-        }
-        
-        print("WhisperKitService: Interpreted as raw Float32 data: \(floatArray.count) samples")
-        
-        guard !floatArray.isEmpty else {
-            print("WhisperKitService: ERROR - No audio samples extracted")
-            throw WhisperKitServiceError.invalidAudioData
-        }
-        
-        // Validate the audio data
-        let maxValue = floatArray.max() ?? 0.0
-        let minValue = floatArray.min() ?? 0.0
-        let rms = sqrt(floatArray.map { $0 * $0 }.reduce(0, +) / Float(floatArray.count))
-        
-        print("WhisperKitService: Audio validation - min: \(minValue), max: \(maxValue), RMS: \(rms)")
-        
-        // Check if audio is silent (very low RMS indicates silence)
-        if rms < 0.001 {
-            print("WhisperKitService: WARNING - Audio appears to be silent (RMS: \(rms))")
-        }
-        
-        return floatArray
+        // If WAV parsing fails, it's an error - don't try raw interpretation
+        print("WhisperKitService: ERROR - Failed to parse WAV data. Audio data must be in proper WAV format.")
+        throw WhisperKitServiceError.invalidAudioData
     }
     
     /// Extracts Float32 PCM data from a WAV file
