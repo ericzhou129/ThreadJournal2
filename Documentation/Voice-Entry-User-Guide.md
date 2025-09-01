@@ -18,7 +18,7 @@ ThreadJournal's voice entry feature transforms your spoken words into journal en
 
 #### Tap-to-Record Mode (Recommended)
 1. **Tap the microphone button once** to start recording
-2. **Speak naturally** - you'll see your words appear in real-time
+2. **Speak naturally** - your words will be transcribed when you stop recording
 3. **Tap the stop button** when finished
 4. **Choose your action**: Stop & Edit or Stop & Save
 
@@ -46,7 +46,7 @@ ThreadJournal's voice entry feature transforms your spoken words into journal en
 
 ### During Recording
 - **Waveform Display**: Shows audio levels to confirm your microphone is working
-- **Real-time Text**: Watch your words appear as you speak (partial results)
+- **Transcription**: Your spoken words are converted to text when you stop recording
 - **Recording Timer**: Shows how long you've been recording
 - **Audio Level Indicator**: Visual confirmation that audio is being captured
 
@@ -125,11 +125,11 @@ Voice entry supports 99+ languages with automatic detection:
 - **Update**: Ensure you have the latest iOS version
 - **Length**: Try shorter recordings (under 2 minutes)
 
-#### "Partial results not showing"
-- **Wait**: Allow 1-2 seconds for first results to appear
+#### "Transcription not appearing"
+- **Wait**: Transcription appears after you stop recording
 - **Network**: Feature works offline, no internet required
-- **Device**: Older devices may have slower partial results
-- **Restart**: Try stopping and starting the recording
+- **Device**: Older devices may have slower transcription processing
+- **Restart**: Try restarting the recording if no transcription appears
 
 ### Performance Tips
 
@@ -141,7 +141,7 @@ Voice entry supports 99+ languages with automatic detection:
 
 #### For Optimal Performance (iPhone 13+)
 - **Longer recordings**: Can handle 5-minute recordings smoothly
-- **Real-time results**: Expect immediate partial transcription
+- **Complete transcription**: Full transcription after recording stops
 - **Multi-tasking**: Can use other apps while processing in background
 - **Quality**: Higher transcription accuracy on newer devices
 
@@ -206,7 +206,7 @@ A: Yes, voice entry works completely offline, including in airplane mode.
 ### Privacy Questions
 
 **Q: Is my voice data stored anywhere?**
-A: No, audio is processed in real-time and immediately deleted. Only the transcribed text is saved.
+A: No, audio is processed when recording stops and immediately deleted. Only the transcribed text is saved.
 
 **Q: Can ThreadJournal hear my conversations?**
 A: No, microphone access is only active during deliberate recording sessions initiated by you.

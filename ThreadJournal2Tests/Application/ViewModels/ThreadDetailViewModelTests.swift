@@ -521,7 +521,7 @@ final class ThreadDetailViewModelTests: XCTestCase {
     func testVoiceRecordingAvailability_WithServices() {
         // Given
         let mockAudioService = MockAudioCaptureService()
-        let mockTranscriptionService = MockWhisperKitService()
+        let mockTranscriptionService = MockWhisperKitServiceViewModel()
         let mockExporter = MockExporter()
         let exportThreadUseCase = ExportThreadUseCase(
             repository: mockRepository,
@@ -623,8 +623,34 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
         return 10.0
     }
     
-    func getLatestChunk() -> Data? {
-        return nil // Mock returns nil for simplicity
+}
+
+private class MockWhisperKitServiceViewModel: WhisperKitServiceProtocol {
+    var shouldInitializeSucceed = true
+    var mockTranscription = "Mock transcription"
+    var isInitialized = false
+    
+    func initialize() async throws {
+        if shouldInitializeSucceed {
+            isInitialized = true
+        } else {
+            throw WhisperKitServiceError.initializationFailed("Mock initialization failure")
+        }
+    }
+    
+    func transcribeAudio(audio: Data) async throws -> String {
+        if !isInitialized {
+            throw WhisperKitServiceError.notInitialized
+        }
+        if audio.isEmpty {
+            throw WhisperKitServiceError.invalidAudioData
+        }
+        
+        return mockTranscription
+    }
+    
+    func cancelTranscription() async {
+        // Mock cancellation
     }
 }
 

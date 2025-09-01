@@ -17,7 +17,6 @@ import WhisperKit
 
 protocol WhisperKitServiceProtocol {
     func initialize() async throws
-    func transcribeChunk(audio: Data) async throws -> String
     func transcribeAudio(audio: Data) async throws -> String
     func cancelTranscription() async
     var isInitialized: Bool { get }
@@ -123,7 +122,8 @@ final class WhisperKitService: WhisperKitServiceProtocol {
     
     // MARK: - Transcription Methods
     
-    func transcribeChunk(audio: Data) async throws -> String {
+    
+    func transcribeAudio(audio: Data) async throws -> String {
         guard let whisperKit = whisperKit else {
             throw WhisperKitServiceError.notInitialized
         }
@@ -139,14 +139,13 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             // Log audio array details
             print("WhisperKitService: Transcribing audio array with \(audioArray.count) samples")
             
-            // Perform transcription with streaming support
+            // Perform transcription for full audio
             let transcriptionResult = try await whisperKit.transcribe(
                 audioArray: audioArray,
                 decodeOptions: DecodingOptions(
                     task: .transcribe,
                     language: "en", // Force English to prevent language detection issues
                     temperatureFallbackCount: 3,
-                    sampleLength: 224, // Optimal for 2-second chunks
                     usePrefillPrompt: false,
                     skipSpecialTokens: true,
                     withoutTimestamps: false // Enable for word-level timing
@@ -189,12 +188,6 @@ final class WhisperKitService: WhisperKitServiceProtocol {
             print("WhisperKitService: Transcription error: \(error)")
             throw WhisperKitServiceError.transcriptionFailed(error.localizedDescription)
         }
-    }
-    
-    func transcribeAudio(audio: Data) async throws -> String {
-        // For full audio transcription, use the same method as chunk transcription
-        // WhisperKit handles longer audio automatically
-        return try await transcribeChunk(audio: audio)
     }
     
     func cancelTranscription() async {
@@ -480,7 +473,8 @@ final class MockWhisperKitService: WhisperKitServiceProtocol {
         _isInitialized = true
     }
     
-    func transcribeChunk(audio: Data) async throws -> String {
+    
+    func transcribeAudio(audio: Data) async throws -> String {
         guard _isInitialized else {
             throw WhisperKitServiceError.notInitialized
         }
@@ -495,10 +489,6 @@ final class MockWhisperKitService: WhisperKitServiceProtocol {
         let words = ["Hello", "world", "this", "is", "a", "test", "transcription"]
         let wordCount = min(audio.count / 1000, words.count)
         return Array(words.prefix(wordCount)).joined(separator: " ")
-    }
-    
-    func transcribeAudio(audio: Data) async throws -> String {
-        return try await transcribeChunk(audio: audio)
     }
     
     func cancelTranscription() async {

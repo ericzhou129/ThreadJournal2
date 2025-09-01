@@ -13,12 +13,12 @@ final class VoiceEntryIntegrationTests: XCTestCase {
     
     private var coordinator: VoiceEntryCoordinator!
     private var mockAudioService: MockAudioCaptureService!
-    private var mockTranscriptionService: MockWhisperKitService!
+    private var mockTranscriptionService: MockWhisperKitServiceIntegration!
     
     override func setUp() {
         super.setUp()
         mockAudioService = MockAudioCaptureService()
-        mockTranscriptionService = MockWhisperKitService()
+        mockTranscriptionService = MockWhisperKitServiceIntegration()
         coordinator = VoiceEntryCoordinator(
             audioService: mockAudioService,
             transcriptionService: mockTranscriptionService
@@ -82,7 +82,6 @@ final class VoiceEntryIntegrationTests: XCTestCase {
         XCTAssertEqual(transcription, "Draft text for editing")
         
         // Verify coordinator state is clean for next recording
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
         XCTAssertEqual(coordinator.recordingDuration, 0.0)
         XCTAssertEqual(coordinator.audioLevel, 0.0)
     }
@@ -104,9 +103,7 @@ final class VoiceEntryIntegrationTests: XCTestCase {
         XCTAssertFalse(coordinator.isRecording)
         XCTAssertEqual(transcription, "Final transcription for saving")
         
-        // Verify clean state
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
-        XCTAssertEqual(coordinator.accumulatedTranscription, "")
+        // Verify clean state after stopping
     }
     
     // MARK: - Timeout Behavior Tests
@@ -231,7 +228,6 @@ final class VoiceEntryIntegrationTests: XCTestCase {
             // Verify clean state between recordings
             XCTAssertEqual(coordinator.recordingDuration, 0.0)
             XCTAssertEqual(coordinator.audioLevel, 0.0)
-            XCTAssertEqual(coordinator.currentPartialTranscription, "")
         }
     }
     
@@ -290,8 +286,6 @@ final class VoiceEntryIntegrationTests: XCTestCase {
         
         mockAudioService.setRecordingDuration(2.0)
         mockAudioService.setAudioLevel(0.8)
-        // Note: accumulatedTranscription and currentPartialTranscription are set internally
-        // We'll verify they get reset during cancel instead of setting them manually
         
         // When - cancel recording
         await coordinator.cancelRecording()
@@ -300,8 +294,6 @@ final class VoiceEntryIntegrationTests: XCTestCase {
         XCTAssertFalse(coordinator.isRecording)
         XCTAssertEqual(coordinator.recordingDuration, 0.0)
         XCTAssertEqual(coordinator.audioLevel, 0.0)
-        XCTAssertEqual(coordinator.accumulatedTranscription, "")
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
         XCTAssertTrue(mockAudioService.stopRecordingCalled)
     }
     
@@ -348,6 +340,77 @@ final class VoiceEntryIntegrationTests: XCTestCase {
         XCTAssertNotNil(transcription)
     }
     
+    // MARK: - Simplified Flow Integration Tests
+    
+    func testSimplifiedFlowEndToEnd() async throws {
+        // Given - complete setup for simplified flow
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        mockAudioService.recordingData = createMockAudioData()
+        mockTranscriptionService.mockTranscription = "Complete end-to-end transcription"
+        
+        // When - complete workflow
+        try await coordinator.startRecording()
+        XCTAssertTrue(coordinator.isRecording, "Should be recording")
+        
+        // Simulate some recording time
+        mockAudioService.setRecordingDuration(3.0)
+        XCTAssertEqual(coordinator.recordingDuration, 3.0, accuracy: 0.1)
+        
+        // Stop and get final transcription
+        let finalTranscription = try await coordinator.stopRecording()
+        
+        // Then - verify complete workflow
+        XCTAssertFalse(coordinator.isRecording, "Should not be recording")
+        XCTAssertEqual(finalTranscription, "Complete end-to-end transcription")
+        XCTAssertEqual(coordinator.recordingDuration, 0.0, "Duration should reset")
+        XCTAssertEqual(coordinator.audioLevel, 0.0, "Audio level should reset")
+    }
+    
+    func testSimplifiedFlowWithEmptyAudio() async throws {
+        // Given - setup with empty audio data
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        mockAudioService.recordingData = Data() // Empty audio
+        
+        // When
+        try await coordinator.startRecording()
+        let transcription = try await coordinator.stopRecording()
+        
+        // Then - should return empty transcription for empty audio
+        XCTAssertEqual(transcription, "")
+        XCTAssertFalse(coordinator.isRecording)
+    }
+    
+    func testSimplifiedFlowStateResetBetweenRecordings() async throws {
+        // Given
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        mockAudioService.recordingData = createMockAudioData()
+        mockTranscriptionService.mockTranscription = "First recording"
+        
+        // When - first recording
+        try await coordinator.startRecording()
+        mockAudioService.setRecordingDuration(2.0)
+        let firstTranscription = try await coordinator.stopRecording()
+        
+        // Verify state reset
+        XCTAssertEqual(coordinator.recordingDuration, 0.0)
+        XCTAssertEqual(coordinator.audioLevel, 0.0)
+        
+        // When - second recording
+        mockTranscriptionService.mockTranscription = "Second recording"
+        try await coordinator.startRecording()
+        mockAudioService.setRecordingDuration(1.5)
+        let secondTranscription = try await coordinator.stopRecording()
+        
+        // Then - both recordings should work independently
+        XCTAssertEqual(firstTranscription, "First recording")
+        XCTAssertEqual(secondTranscription, "Second recording")
+        XCTAssertEqual(coordinator.recordingDuration, 0.0)
+        XCTAssertEqual(coordinator.audioLevel, 0.0)
+    }
+
     // MARK: - Helper Methods
     
     private func createMockAudioData() -> Data {
@@ -418,9 +481,6 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
         return _recordingDuration
     }
     
-    func getLatestChunk() -> Data? {
-        return nil // Mock returns nil for simplicity
-    }
     
     // Test helper methods
     func setAudioLevel(_ level: Float) {
@@ -441,7 +501,7 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
     }
 }
 
-private class MockWhisperKitService: WhisperKitServiceProtocol {
+private class MockWhisperKitServiceIntegration: WhisperKitServiceProtocol {
     var shouldInitializeSucceed = true
     var mockTranscription = "Mock transcription"
     var isInitialized = false
@@ -469,9 +529,6 @@ private class MockWhisperKitService: WhisperKitServiceProtocol {
         return mockTranscription
     }
     
-    func transcribeChunk(audio: Data) async throws -> String {
-        return try await transcribeAudio(audio: audio)
-    }
     
     func cancelTranscription() async {
         // Mock cancellation

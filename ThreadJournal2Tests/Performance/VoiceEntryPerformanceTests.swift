@@ -13,12 +13,12 @@ final class VoiceEntryPerformanceTests: XCTestCase {
     
     private var coordinator: VoiceEntryCoordinator!
     private var mockAudioService: MockAudioCaptureService!
-    private var mockTranscriptionService: MockWhisperKitService!
+    private var mockTranscriptionService: MockWhisperKitServicePerformance!
     
     override func setUp() {
         super.setUp()
         mockAudioService = MockAudioCaptureService()
-        mockTranscriptionService = MockWhisperKitService()
+        mockTranscriptionService = MockWhisperKitServicePerformance()
         coordinator = VoiceEntryCoordinator(
             audioService: mockAudioService,
             transcriptionService: mockTranscriptionService
@@ -416,9 +416,6 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
         return max(_recordingDuration, Date().timeIntervalSince(startTime))
     }
     
-    func getLatestChunk() -> Data? {
-        return nil // Mock returns nil for simplicity
-    }
     
     // Test helper methods
     func setAudioLevel(_ level: Float) {
@@ -430,7 +427,7 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
     }
 }
 
-private class MockWhisperKitService: WhisperKitServiceProtocol {
+private class MockWhisperKitServicePerformance: WhisperKitServiceProtocol {
     var shouldInitializeSucceed = true
     var mockTranscription = "Mock transcription for performance testing"
     var isInitialized = false
@@ -464,9 +461,6 @@ private class MockWhisperKitService: WhisperKitServiceProtocol {
         return mockTranscription
     }
     
-    func transcribeChunk(audio: Data) async throws -> String {
-        return try await transcribeAudio(audio: audio)
-    }
     
     func cancelTranscription() async {
         // Mock cancellation with brief delay

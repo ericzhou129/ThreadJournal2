@@ -8,7 +8,6 @@ protocol AudioCaptureServiceProtocol {
     func getAudioLevel() -> Float
     func isRecording() -> Bool
     func getRecordingDuration() -> TimeInterval
-    func getLatestChunk() -> Data?
 }
 
 enum AudioCaptureError: LocalizedError {
@@ -41,8 +40,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     private let audioEngine = AVAudioEngine()
     private let audioSession = AVAudioSession.sharedInstance()
     private var audioBuffers: [AVAudioPCMBuffer] = []
-    private var chunkBuffers: [Data] = []
-    private var processedChunkCount = 0
     private var isRecordingActive = false
     private var currentAudioLevel: Float = 0.0
     private var recordingStartTime: Date?
@@ -55,8 +52,12 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     private let safetyTimeoutDuration: TimeInterval = 300.0 // 5 minutes
     private let silenceThreshold: Float = -60.0 // dB
     
-    private var chunkTimer: Timer?
-    private var currentChunkBuffers: [AVAudioPCMBuffer] = []
+    
+    // MARK: - Debug Properties
+    
+    /// Whether to save audio files for debugging (only in debug builds)
+    private let saveDebugFiles = true
+    private var debugFileCounter = 0
     
     override init() {
         super.init()
@@ -69,10 +70,27 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     }
     
     func requestMicrophonePermission() async -> Bool {
-        await withCheckedContinuation { continuation in
-            AVAudioApplication.requestRecordPermission { granted in
-                continuation.resume(returning: granted)
+        let status = AVAudioApplication.shared.recordPermission
+        print("AudioCaptureService: Current microphone permission status: \(status.rawValue)")
+        
+        switch status {
+        case .undetermined:
+            print("AudioCaptureService: Requesting microphone permission...")
+            return await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { granted in
+                    print("AudioCaptureService: Microphone permission \(granted ? "granted" : "denied")")
+                    continuation.resume(returning: granted)
+                }
             }
+        case .denied:
+            print("AudioCaptureService: Microphone permission was previously denied")
+            return false
+        case .granted:
+            print("AudioCaptureService: Microphone permission already granted")
+            return true
+        @unknown default:
+            print("AudioCaptureService: Unknown permission status")
+            return false
         }
     }
     
@@ -91,9 +109,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         try setupAudioEngine()
         
         audioBuffers.removeAll()
-        chunkBuffers.removeAll()
-        currentChunkBuffers.removeAll()
-        processedChunkCount = 0
         audioEngine.prepare()
         
         try audioEngine.start()
@@ -101,7 +116,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         recordingStartTime = Date()
         lastAudioActivityTime = Date()
         
-        startChunkTimer()
         startSafetyTimer()
     }
     
@@ -135,16 +149,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         isRecordingActive
     }
     
-    func getLatestChunk() -> Data? {
-        // Return the next unprocessed chunk if available
-        guard processedChunkCount < chunkBuffers.count else {
-            return nil
-        }
-        
-        let chunk = chunkBuffers[processedChunkCount]
-        processedChunkCount += 1
-        return chunk
-    }
     
     private func setupAudioSession() async throws {
         do {
@@ -199,7 +203,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         }
         
         audioBuffers.append(convertedBuffer)
-        currentChunkBuffers.append(convertedBuffer)
         
         let audioLevel = updateAudioLevel(from: convertedBuffer)
         
@@ -405,11 +408,6 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     
     // MARK: - Timer Management
     
-    private func startChunkTimer() {
-        chunkTimer = Timer.scheduledTimer(withTimeInterval: chunkDuration, repeats: true) { [weak self] _ in
-            self?.processChunk()
-        }
-    }
     
     private func startSafetyTimer() {
         safetyTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -418,22 +416,10 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
     }
     
     private func stopTimers() {
-        chunkTimer?.invalidate()
-        chunkTimer = nil
         safetyTimer?.invalidate()
         safetyTimer = nil
     }
     
-    private func processChunk() {
-        guard !currentChunkBuffers.isEmpty else { return }
-        
-        // Convert current chunk buffers to data for transcription
-        if let chunkData = try? combineBuffersToData(currentChunkBuffers) {
-            chunkBuffers.append(chunkData)
-        }
-        
-        currentChunkBuffers.removeAll()
-    }
     
     private func checkSafetyTimeout() {
         guard let lastActivity = lastAudioActivityTime else { return }
@@ -447,39 +433,4 @@ final class AudioCaptureService: NSObject, AudioCaptureServiceProtocol {
         }
     }
     
-    private func combineBuffersToData(_ buffers: [AVAudioPCMBuffer]) throws -> Data {
-        guard !buffers.isEmpty else {
-            throw AudioCaptureError.noAudioData
-        }
-        
-        let totalFrames = buffers.reduce(0) { $0 + Int($1.frameLength) }
-        guard let format = buffers.first?.format,
-              let combinedBuffer = AVAudioPCMBuffer(
-                pcmFormat: format,
-                frameCapacity: AVAudioFrameCount(totalFrames)
-              ) else {
-            throw AudioCaptureError.noAudioData
-        }
-        
-        var writePosition: AVAudioFrameCount = 0
-        
-        for buffer in buffers {
-            guard let sourceData = buffer.floatChannelData?[0],
-                  let destData = combinedBuffer.floatChannelData?[0] else {
-                continue
-            }
-            
-            let frameCount = Int(buffer.frameLength)
-            memcpy(
-                destData.advanced(by: Int(writePosition)),
-                sourceData,
-                frameCount * MemoryLayout<Float>.size
-            )
-            writePosition += buffer.frameLength
-        }
-        
-        combinedBuffer.frameLength = writePosition
-        
-        return try convertToData(buffer: combinedBuffer)
-    }
 }

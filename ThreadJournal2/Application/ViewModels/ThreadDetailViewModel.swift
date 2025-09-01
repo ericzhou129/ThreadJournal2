@@ -58,11 +58,6 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Current voice recording state
     @Published private(set) var isVoiceRecording = false
     
-    /// Accumulated transcription from voice recording
-    @Published private(set) var voiceTranscription = ""
-    
-    /// Partial transcription being processed
-    @Published private(set) var partialVoiceTranscription = ""
     
     /// Audio level for waveform visualization
     @Published private(set) var voiceAudioLevel: Float = 0.0
@@ -454,15 +449,6 @@ final class ThreadDetailViewModel: ObservableObject {
     /// Sets up observers for voice coordinator state changes
     private func setupVoiceObservers() {
         guard let coordinator = voiceCoordinator else { return }
-        
-        // Observe transcription updates
-        coordinator.$accumulatedTranscription
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$voiceTranscription)
-        
-        coordinator.$currentPartialTranscription
-            .receive(on: DispatchQueue.main)
-            .assign(to: &$partialVoiceTranscription)
         
         coordinator.$audioLevel
             .receive(on: DispatchQueue.main)

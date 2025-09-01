@@ -8,7 +8,7 @@ ThreadJournal v2.0 introduces an revolutionary voice entry feature that transfor
 
 - **Instant Voice-to-Text**: Start speaking immediately - no downloads, no setup, no waiting
 - **Complete Privacy**: All voice processing happens on your device using advanced Core ML models
-- **Real-time Transcription**: See your words appear as you speak with live partial results
+- **Complete Transcription**: Your spoken words are converted to text when you stop recording
 - **99+ Languages**: Automatic language detection supports virtually any language
 - **Smart Actions**: Choose "Stop & Edit" to refine your thoughts or "Stop & Save" for instant entries
 - **Professional Quality**: Powered by OpenAI's Whisper model optimized for iOS devices
@@ -20,7 +20,7 @@ ThreadJournal v2.0 introduces an revolutionary voice entry feature that transfor
 - **Bundled AI Model**: 39MB Whisper Small model included in app for offline transcription
 - **Dual Recording Modes**: Tap-to-record or hold-to-record based on your preference
 - **Real-time Audio Visualization**: Waveform display shows recording activity
-- **Intelligent Processing**: Live partial results update as you speak
+- **Intelligent Processing**: Complete transcription when recording stops
 - **Safety Features**: 5-minute maximum recording with automatic stop
 
 #### Enhanced User Experience
@@ -31,7 +31,7 @@ ThreadJournal v2.0 introduces an revolutionary voice entry feature that transfor
 
 #### Performance & Privacy
 - **On-Device Processing**: No data leaves your device - complete transcription privacy
-- **Optimized Performance**: First partial results in under 1 second on supported devices
+- **Optimized Performance**: Complete transcription in under 2 seconds on supported devices
 - **Memory Efficient**: Intelligent memory management for extended recording sessions
 - **Battery Conscious**: Optimized processing minimizes battery impact
 
@@ -49,7 +49,7 @@ ThreadJournal v2.0 introduces an revolutionary voice entry feature that transfor
 - **WhisperKit Integration**: Advanced Core ML-based speech recognition
 - **Clean Architecture**: Voice services follow established domain/application/infrastructure layers
 - **Dependency Injection**: Testable, modular voice entry components
-- **Real-time Coordination**: VoiceEntryCoordinator manages audio capture and transcription
+- **Coordinated Processing**: VoiceEntryCoordinator manages audio capture and transcription
 - **Audio Pipeline**: Professional-grade audio capture with configurable quality settings
 
 #### Testing & Quality Assurance
@@ -91,7 +91,7 @@ ThreadJournal v2.0 maintains our commitment to absolute privacy:
 
 ### 🌟 Performance Metrics
 
-- **Transcription Latency**: <1 second to first partial result on iPhone 12+
+- **Transcription Latency**: <2 seconds for complete transcription on iPhone 12+
 - **Accuracy Rate**: 95%+ for clear speech in optimal conditions
 - **Memory Usage**: <50MB additional during active recording
 - **Battery Impact**: <5% drain for 10-minute recording session

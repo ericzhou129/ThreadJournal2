@@ -118,7 +118,7 @@ Implement a streamlined audio capture service for inline voice recording. No set
 1. Simplify existing `AudioCaptureService` in `Infrastructure/Audio/`
 2. Remove unnecessary configuration options
 3. Add permission handling in Info.plist
-4. Implement 2-second chunk buffering for transcription
+4. Implement single transcription on stop
 5. Add simple interruption handling
 
 #### Dependencies
@@ -145,7 +145,7 @@ Integrate WhisperKit for on-device speech recognition. Implemented with Path B a
 - Add WhisperKit via Swift Package Manager
 - Use openai_whisper-small model (~216MB) with auto-download on first use
 - Create `WhisperKitService` wrapper with real WhisperKit implementation
-- Implement 2-second chunk transcription
+- Implement single transcription when recording stops
 - Auto-detect language (multilingual model supports 99 languages)
 - No auto-stop (user must manually stop)
 - Safety timeout at 5 minutes of silence
@@ -155,7 +155,7 @@ Integrate WhisperKit for on-device speech recognition. Implemented with Path B a
 - [x] WhisperKit integrated via SPM
 - [x] Model downloads automatically on first use
 - [x] Transcription works offline after initial download
-- [x] 2-second chunks provide live feedback
+- [x] Single transcription provides final result when recording stops
 - [x] Continues recording through silences (no auto-stop)
 - [x] Safety stop only after 5 minutes of complete silence
 - [x] Handles multiple languages automatically
@@ -164,7 +164,7 @@ Integrate WhisperKit for on-device speech recognition. Implemented with Path B a
 1. ✅ Add WhisperKit SPM dependency to project.pbxproj
 2. ✅ Implement automatic model download on first use (Path B)
 3. ✅ Create `WhisperKitService` in `Infrastructure/ML/` with real WhisperKit
-4. ✅ Implement chunk-based transcription (2-second intervals)
+4. ✅ Implement single transcription on recording stop
 5. ✅ Configure for ANE optimization
 6. ✅ Handle transcription result array properly
 
@@ -175,7 +175,7 @@ Integrate WhisperKit for on-device speech recognition. Implemented with Path B a
 - Test first launch experience (no downloads)
 - Test transcription accuracy in English
 - Test at least 2 other languages
-- Verify 2-second chunk timing
+- Verify single transcription accuracy
 - Test recording continues through 30-second silence
 - Test 5-minute safety timeout works
 - Test manual stop button responsiveness
@@ -194,7 +194,7 @@ Add voice recording UI directly to ThreadDetailView. Single button below text fi
 #### Technical Requirements
 - Add full-width voice button below compose field
 - Show minimal waveform visualization during recording
-- Display live transcription preview above waveform
+- Display recording status and waveform visualization
 - Two stop buttons on waveform: pencil (Stop & Edit) and checkmark (Stop & Save)
 - Stop & Edit: fills text field for editing before sending
 - Stop & Save: instantly creates entry in thread (no edit step)
@@ -206,7 +206,7 @@ Add voice recording UI directly to ThreadDetailView. Single button below text fi
 - [ ] Voice button always visible below text field
 - [ ] Tapping button starts recording immediately
 - [ ] Waveform shows recording is active
-- [ ] Live transcription appears every 2 seconds
+- [ ] Transcription appears after user stops recording
 - [ ] "Stop & Edit" button fills text field for editing
 - [ ] "Stop & Save" button creates entry immediately
 - [ ] Both stop buttons clearly visible but minimal
@@ -241,12 +241,12 @@ Add voice recording UI directly to ThreadDetailView. Single button below text fi
 **Layer**: Application  
 
 #### Description
-Create simple state management for voice recording in ThreadDetailViewModel. Handle recording states, transcription updates, and two different stop behaviors.
+Create simple state management for voice recording in ThreadDetailViewModel. Handle recording states, final transcription processing, and two different stop behaviors.
 
 #### Technical Requirements
 - Add recording state to ThreadDetailViewModel
 - Handle start/stop recording logic
-- Update UI with transcription chunks every 2 seconds
+- Process final transcription when recording stops
 - Stop & Edit: fill compose field with transcription
 - Stop & Save: create entry directly without edit step
 - Manage audio service lifecycle
@@ -255,7 +255,7 @@ Create simple state management for voice recording in ThreadDetailViewModel. Han
 #### Acceptance Criteria
 - [ ] Recording starts from voice button tap
 - [ ] Recording only stops via Stop & Edit or Stop & Save buttons
-- [ ] Transcription updates every 2 seconds during recording
+- [ ] Final transcription processed when recording stops
 - [ ] Stop & Edit fills compose field for editing
 - [ ] Stop & Save creates entry immediately
 - [ ] No auto-stop during normal pauses (up to 5 minutes)
@@ -267,7 +267,7 @@ Create simple state management for voice recording in ThreadDetailViewModel. Han
 2. Add recording start method
 3. Add stopAndEdit() method (fills text field)
 4. Add stopAndSave() method (creates entry)
-5. Handle transcription chunk updates
+5. Handle final transcription processing
 6. Implement 5-minute safety timeout
 7. Add error handling
 

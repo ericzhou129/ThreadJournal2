@@ -37,7 +37,7 @@ Comprehensive test coverage analysis for the voice entry feature implementation 
 - **Test Count**: 15 tests
 - **Coverage Areas**:
   - ✅ Service initialization
-  - ✅ Chunk transcription (2-second)
+  - ✅ Complete transcription
   - ✅ Full transcription
   - ✅ Empty audio handling
   - ✅ Large audio processing
@@ -55,7 +55,7 @@ Comprehensive test coverage analysis for the voice entry feature implementation 
 - **Test Count**: 6 tests
 - **Coverage Areas**:
   - ✅ Service coordination
-  - ✅ 2-second chunk processing
+  - ✅ Single transcription processing
   - ✅ Transcription accumulation
   - ✅ Stop & Edit workflow
   - ✅ Stop & Save workflow

@@ -818,38 +818,19 @@ extension ThreadDetailViewFixed {
     
     private var recordingUIView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Live transcription preview
+            // Recording status
             VStack(alignment: .leading, spacing: 4) {
-                Text("Live transcription")
+                Text("Recording in progress")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if !viewModel.voiceTranscription.isEmpty {
-                            Text(viewModel.voiceTranscription)
-                                .font(.system(size: 16))
-                                .foregroundColor(.primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        
-                        if !viewModel.partialVoiceTranscription.isEmpty {
-                            Text(viewModel.partialVoiceTranscription)
-                                .font(.system(size: 16))
-                                .foregroundColor(.secondary)
-                                .italic()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        
-                        if viewModel.voiceTranscription.isEmpty && viewModel.partialVoiceTranscription.isEmpty {
-                            Text("Listening...")
-                                .font(.system(size: 16))
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Listening...")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(minHeight: 60, maxHeight: 120)
+                .frame(minHeight: 60)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(

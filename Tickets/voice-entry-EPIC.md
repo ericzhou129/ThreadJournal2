@@ -14,11 +14,11 @@ Enable users to create journal entries through voice dictation, making journalin
 As a ThreadJournal user, I want to speak my journal entries instead of typing them, so that I can capture thoughts more quickly and naturally, especially when typing is inconvenient.
 
 ## Success Criteria
-- [ ] Users can record voice and see real-time transcription
+- [ ] Users can record voice and receive complete transcription when stopping
 - [ ] All processing happens on-device (no cloud calls)
 - [ ] Recording continues through pauses (no auto-stop)
 - [ ] Two stop options: Stop & Edit and Stop & Save
-- [ ] <2 second latency to transcription chunks on modern devices (A16+)
+- [ ] <2 second latency for complete transcription on modern devices (A16+)
 - [ ] Multilingual transcription support
 - [ ] Model bundled with app (no download needed)
 - [ ] Voice entries integrate seamlessly with existing thread system
@@ -29,7 +29,7 @@ As a ThreadJournal user, I want to speak my journal entries instead of typing th
 1. **WhisperKit Integration**: Use WhisperKit framework for Core ML-based transcription
 2. **Model**: Whisper Small multilingual (39MB) bundled with app
 3. **Audio Pipeline**: AVAudioSession (PlayAndRecord) → AVAudioEngine → WhisperKit
-4. **Chunked Transcription**: 2-second chunks for live feedback
+4. **Complete Transcription**: Single transcription when recording stops
 5. **No Auto-Stop**: Recording continues through pauses (5-minute safety limit)
 6. **Dual Stop Options**: Stop & Edit (fill text field) or Stop & Save (instant entry)
 
@@ -53,7 +53,7 @@ As a ThreadJournal user, I want to speak my journal entries instead of typing th
 - **TICKET-026**: WhisperKit Bundle Integration
   - WhisperKit SPM dependency
   - Bundle Whisper Small model in app
-  - 2-second chunk transcription
+  - Complete transcription on stop
   - No download needed
 
 ### Phase 3: UI Implementation
@@ -127,7 +127,7 @@ As a ThreadJournal user, I want to speak my journal entries instead of typing th
 2. **Recording Flow**
    - Microphone permission requested
    - Recording starts/stops correctly
-   - Partial results appear in <1s
+   - Complete transcription appears when recording stops
    - Final transcription is accurate
 
 3. **Thread Integration**
@@ -168,7 +168,7 @@ See [Design Mockup](../Design/voice-entry-mockup.html) for detailed designs.
 3. **Visual Feedback**
    - Waveform animation during recording
    - Pulsing record button
-   - Real-time transcription display
+   - Final transcription display
 
 ## Implementation Timeline
 

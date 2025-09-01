@@ -51,40 +51,40 @@ final class WhisperKitServiceTests: XCTestCase {
     
     // MARK: - Transcription Tests
     
-    func testTranscribeChunkWithValidAudio() async throws {
+    func testTranscribeAudioWithValidAudio() async throws {
         // Given
         try await mockService.initialize()
         let audioData = Data(repeating: 0x01, count: 1000)
         
         // When
-        let transcription = try await mockService.transcribeChunk(audio: audioData)
+        let transcription = try await mockService.transcribeAudio(audio: audioData)
         
         // Then
         XCTAssertFalse(transcription.isEmpty, "Transcription should not be empty")
         XCTAssertEqual(transcription, "Hello", "Mock should return expected transcription")
     }
     
-    func testTranscribeChunkWithLargerAudio() async throws {
+    func testTranscribeAudioWithLargerAudio() async throws {
         // Given
         try await mockService.initialize()
         let audioData = Data(repeating: 0x01, count: 5000)
         
         // When
-        let transcription = try await mockService.transcribeChunk(audio: audioData)
+        let transcription = try await mockService.transcribeAudio(audio: audioData)
         
         // Then
         XCTAssertFalse(transcription.isEmpty, "Transcription should not be empty")
         XCTAssertTrue(transcription.contains("Hello world"), "Should return multiple words for larger audio")
     }
     
-    func testTranscribeChunkNotInitialized() async {
+    func testTranscribeAudioNotInitialized() async {
         // Given
         XCTAssertFalse(mockService.isInitialized)
         let audioData = Data(repeating: 0x01, count: 1000)
         
         // When/Then
         do {
-            _ = try await mockService.transcribeChunk(audio: audioData)
+            _ = try await mockService.transcribeAudio(audio: audioData)
             XCTFail("Should throw notInitialized error")
         } catch WhisperKitServiceError.notInitialized {
             // Expected
@@ -93,14 +93,14 @@ final class WhisperKitServiceTests: XCTestCase {
         }
     }
     
-    func testTranscribeChunkWithEmptyAudio() async {
+    func testTranscribeAudioWithEmptyAudio() async {
         // Given
         try? await mockService.initialize()
         let emptyAudio = Data()
         
         // When/Then
         do {
-            _ = try await mockService.transcribeChunk(audio: emptyAudio)
+            _ = try await mockService.transcribeAudio(audio: emptyAudio)
             XCTFail("Should throw invalidAudioData error")
         } catch WhisperKitServiceError.invalidAudioData {
             // Expected
@@ -109,17 +109,17 @@ final class WhisperKitServiceTests: XCTestCase {
         }
     }
     
-    func testTranscribeAudioUsesChunkMethod() async throws {
+    func testTranscribeAudioConsistentResults() async throws {
         // Given
         try await mockService.initialize()
         let audioData = Data(repeating: 0x01, count: 1000)
         
         // When
-        let chunkResult = try await mockService.transcribeChunk(audio: audioData)
-        let audioResult = try await mockService.transcribeAudio(audio: audioData)
+        let firstResult = try await mockService.transcribeAudio(audio: audioData)
+        let secondResult = try await mockService.transcribeAudio(audio: audioData)
         
         // Then
-        XCTAssertEqual(chunkResult, audioResult, "transcribeAudio should use same logic as transcribeChunk")
+        XCTAssertEqual(firstResult, secondResult, "transcribeAudio should produce consistent results")
     }
     
     // MARK: - Cancellation Tests
@@ -152,10 +152,10 @@ final class WhisperKitServiceTests: XCTestCase {
     
     // MARK: - Performance Tests
     
-    func testTranscribeChunkPerformance() async throws {
+    func testTranscribeAudioPerformance() async throws {
         // Given
         try await mockService.initialize()
-        let audioData = Data(repeating: 0x01, count: 2000) // 2-second chunk equivalent
+        let audioData = Data(repeating: 0x01, count: 2000) // Audio data for performance testing
         
         // When/Then
         measure {
@@ -163,7 +163,7 @@ final class WhisperKitServiceTests: XCTestCase {
             
             Task {
                 do {
-                    _ = try await mockService.transcribeChunk(audio: audioData)
+                    _ = try await mockService.transcribeAudio(audio: audioData)
                     expectation.fulfill()
                 } catch {
                     XCTFail("Transcription failed: \(error)")
@@ -185,7 +185,7 @@ final class WhisperKitServiceTests: XCTestCase {
         let transcriptions = try await withThrowingTaskGroup(of: String.self) { group in
             for _ in 0..<requestCount {
                 group.addTask {
-                    try await self.mockService.transcribeChunk(audio: audioData)
+                    try await self.mockService.transcribeAudio(audio: audioData)
                 }
             }
             

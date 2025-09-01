@@ -50,7 +50,7 @@ protocol AudioCaptureServiceProtocol {
 
 **`getAudioLevel() -> Float`**
 - Returns current audio input level (0.0 to 1.0)
-- Used for real-time audio visualization
+- Used for audio visualization during recording
 - Returns 0.0 when not recording
 - Updates at ~10Hz during recording
 
@@ -75,7 +75,6 @@ Protocol for speech recognition and transcription.
 ```swift
 protocol WhisperKitServiceProtocol {
     func initialize() async throws
-    func transcribeChunk(audio: Data) async throws -> String
     func transcribeAudio(audio: Data) async throws -> String
     func cancelTranscription() async
     var isInitialized: Bool { get }
@@ -90,17 +89,11 @@ protocol WhisperKitServiceProtocol {
 - Sets up Core ML pipeline for transcription
 - Throws `WhisperKitServiceError` if initialization fails
 
-**`transcribeChunk(audio: Data) async throws -> String`**
-- Transcribes a short audio chunk (typically 2 seconds)
-- Returns partial transcription results
-- Used for real-time transcription updates
-- Optimized for low-latency processing
-
 **`transcribeAudio(audio: Data) async throws -> String`**
 - Transcribes complete audio data
 - Returns final, complete transcription
 - Used for processing entire recordings
-- May provide higher accuracy than chunks
+- Provides complete and accurate transcription
 
 **`cancelTranscription() async`**
 - Cancels any ongoing transcription operations
@@ -127,8 +120,7 @@ Main coordination service that orchestrates audio capture and transcription.
 final class VoiceEntryCoordinator: ObservableObject {
     
     // MARK: - Published Properties
-    @Published private(set) var accumulatedTranscription = ""
-    @Published private(set) var currentPartialTranscription = ""  
+    @Published private(set) var transcription = ""
     @Published private(set) var audioLevel: Float = 0.0
     @Published private(set) var recordingDuration: TimeInterval = 0.0
     @Published private(set) var isRecording = false
@@ -144,17 +136,11 @@ final class VoiceEntryCoordinator: ObservableObject {
 
 #### Published Properties
 
-**`accumulatedTranscription: String`**
-- Completed transcription segments
-- Updated every 2 seconds during recording
-- Final confirmed text that won't change
-- Used for displaying stable transcription
-
-**`currentPartialTranscription: String`**
-- Current partial transcription being processed
-- Updates in real-time during speech
-- May change as more audio is processed
-- Combined with accumulated for full display
+**`transcription: String`**
+- Complete transcription result
+- Available after recording stops
+- Final confirmed text
+- Used for displaying complete transcription
 
 **`audioLevel: Float`**
 - Current microphone input level (0.0 to 1.0)
@@ -191,7 +177,7 @@ final class VoiceEntryCoordinator: ObservableObject {
 **`stopRecording() async throws -> String`**
 - Ends recording and returns final transcription
 - Processes any remaining audio data
-- Combines accumulated and final transcription
+- Returns complete transcription result
 - Returns complete transcribed text
 
 **`cancelRecording() async`**
@@ -201,10 +187,10 @@ final class VoiceEntryCoordinator: ObservableObject {
 - Used when user cancels or errors occur
 
 **`fullTranscription: String`**
-- Computed property combining all transcription
-- Returns accumulated + current partial text
-- Used for real-time display updates
-- Always returns current complete state
+- Returns the complete transcription result
+- Available after recording completion
+- Used for final transcription display
+- Returns the complete transcribed text
 
 ## UI Components
 
@@ -264,7 +250,7 @@ WaveformVisualizer(
 ```
 
 #### Features
-- Real-time audio level display
+- Audio level display during recording
 - Smooth animations
 - Visual feedback for recording state
 - Customizable colors and sizing
@@ -418,7 +404,7 @@ extension VoiceEntryCoordinator {
 ### Resource Optimization
 
 - Audio capture uses optimized sample rates
-- Transcription processes chunks for responsiveness  
+- Transcription processes complete audio for accuracy
 - Memory usage is monitored and limited
 - Safety timeouts prevent runaway recordings
 
@@ -443,7 +429,6 @@ Speech recognition behavior can be tuned:
 
 ```swift
 struct TranscriptionConfiguration {
-    let chunkDuration: TimeInterval = 2.0
     let language: String? = nil // Auto-detect
     let enableTimestamps: Bool = false
     let enableWordConfidence: Bool = false
@@ -457,7 +442,7 @@ struct TranscriptionConfiguration {
 - Voice commands for navigation
 - Custom vocabulary management
 - Multiple language model support
-- Real-time translation capabilities
+- Complete transcription translation capabilities
 - Audio export functionality
 
 ### Extensibility Design

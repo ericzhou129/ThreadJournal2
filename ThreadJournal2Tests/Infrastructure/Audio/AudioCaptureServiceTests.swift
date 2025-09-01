@@ -15,8 +15,13 @@ final class AudioCaptureServiceTests: XCTestCase {
         if sut.isRecording() {
             // Note: Can't use await in synchronous tearDown, 
             // tests should properly clean up their own recordings
-            Task {
-                try? await sut.stopRecording()
+            Task { [weak sut] in
+                do {
+                    _ = try await sut?.stopRecording()
+                } catch {
+                    // Ignore cleanup errors
+                    print("Failed to stop recording during cleanup: \(error)")
+                }
             }
         }
         sut = nil
@@ -33,7 +38,7 @@ final class AudioCaptureServiceTests: XCTestCase {
     
     // MARK: - Permission Tests
     
-    func testMicrophonePermissionRequest() async {
+    func testMicrophonePermissionRequest() async throws {
         // This test would require mocking AVAudioApplication
         // For now, we'll test the method exists and returns a Bool
         let hasPermission = await sut.requestMicrophonePermission()
@@ -164,7 +169,7 @@ final class AudioCaptureServiceTests: XCTestCase {
         }
     }
     
-    func testStopRecordingWithoutStartingThrows() async {
+    func testStopRecordingWithoutStartingThrows() async throws {
         do {
             _ = try await sut.stopRecording()
             XCTFail("Expected AudioCaptureError.audioEngineNotRunning")

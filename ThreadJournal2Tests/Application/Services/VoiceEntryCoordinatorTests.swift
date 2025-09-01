@@ -13,12 +13,12 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
     
     private var coordinator: VoiceEntryCoordinator!
     private var mockAudioService: MockAudioCaptureService!
-    private var mockTranscriptionService: MockWhisperKitService!
+    private var mockTranscriptionService: MockWhisperKitServiceCoordinator!
     
     override func setUp() {
         super.setUp()
         mockAudioService = MockAudioCaptureService()
-        mockTranscriptionService = MockWhisperKitService()
+        mockTranscriptionService = MockWhisperKitServiceCoordinator()
         coordinator = VoiceEntryCoordinator(
             audioService: mockAudioService,
             transcriptionService: mockTranscriptionService
@@ -35,8 +35,6 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
     // MARK: - Initialization Tests
     
     func testInitialState() {
-        XCTAssertEqual(coordinator.accumulatedTranscription, "")
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
         XCTAssertEqual(coordinator.audioLevel, 0.0)
         XCTAssertEqual(coordinator.recordingDuration, 0.0)
         XCTAssertFalse(coordinator.isRecording)
@@ -55,8 +53,6 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
         // Then
         XCTAssertTrue(coordinator.isRecording)
         XCTAssertTrue(mockAudioService.startRecordingCalled)
-        XCTAssertEqual(coordinator.accumulatedTranscription, "")
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
     }
     
     func testStartRecording_AudioServiceFailure() async {
@@ -78,6 +74,7 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
         await startRecordingSuccessfully()
         let testAudioData = "test audio data".data(using: .utf8)!
         mockAudioService.recordingData = testAudioData
+        mockTranscriptionService.mockTranscription = "Test transcription"
         
         // When
         let result = try await coordinator.stopRecording()
@@ -85,7 +82,7 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
         // Then
         XCTAssertFalse(coordinator.isRecording)
         XCTAssertTrue(mockAudioService.stopRecordingCalled)
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
+        XCTAssertEqual(result, "Test transcription")
     }
     
     func testCancelRecording() async {
@@ -98,26 +95,76 @@ final class VoiceEntryCoordinatorTests: XCTestCase {
         // Then
         XCTAssertFalse(coordinator.isRecording)
         XCTAssertTrue(mockAudioService.stopRecordingCalled)
-        XCTAssertEqual(coordinator.accumulatedTranscription, "")
-        XCTAssertEqual(coordinator.currentPartialTranscription, "")
         XCTAssertEqual(coordinator.audioLevel, 0.0)
         XCTAssertEqual(coordinator.recordingDuration, 0.0)
     }
     
-    // MARK: - Full Transcription Tests
+    // MARK: - Simplified Flow Tests
     
-    func testFullTranscription_Empty() {
-        // Given/When
-        let fullTranscription = coordinator.fullTranscription
+    func testSimplifiedTranscriptionFlow() async throws {
+        // Given
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        let testAudioData = "test audio data".data(using: .utf8)!
+        mockAudioService.recordingData = testAudioData
+        mockTranscriptionService.mockTranscription = "Final transcription result"
+        
+        // When - start and immediately stop recording
+        try await coordinator.startRecording()
+        XCTAssertTrue(coordinator.isRecording)
+        
+        let transcription = try await coordinator.stopRecording()
+        
+        // Then - should get final transcription only
+        XCTAssertFalse(coordinator.isRecording)
+        XCTAssertEqual(transcription, "Final transcription result")
+        XCTAssertTrue(mockAudioService.stopRecordingCalled)
+    }
+    
+    func testTranscriptionServiceInitializationOnStart() async throws {
+        // Given
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        mockTranscriptionService.isInitialized = false
+        
+        // When
+        try await coordinator.startRecording()
         
         // Then
-        XCTAssertEqual(fullTranscription, "")
+        XCTAssertTrue(mockTranscriptionService.isInitialized)
+        XCTAssertTrue(coordinator.isRecording)
+        
+        // Cleanup
+        mockAudioService.recordingData = Data()
+        _ = try await coordinator.stopRecording()
     }
+    
+    func testTranscriptionFailureHandling() async throws {
+        // Given
+        mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
+        let testAudioData = "test audio data".data(using: .utf8)!
+        mockAudioService.recordingData = testAudioData
+        mockTranscriptionService.shouldFailTranscription = true
+        
+        // When
+        try await coordinator.startRecording()
+        
+        // Then - should throw transcription error
+        do {
+            _ = try await coordinator.stopRecording()
+            XCTFail("Expected transcription error")
+        } catch {
+            XCTAssertFalse(coordinator.isRecording)
+        }
+    }
+    
     
     // MARK: - Helper Methods
     
     private func startRecordingSuccessfully() async {
         mockAudioService.shouldStartRecordingSucceed = true
+        mockTranscriptionService.shouldInitializeSucceed = true
         try? await coordinator.startRecording()
     }
 }
@@ -164,9 +211,6 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
         return _recordingDuration
     }
     
-    func getLatestChunk() -> Data? {
-        return nil // Mock returns nil for simplicity
-    }
     
     // Helper methods for tests
     func setAudioLevel(_ level: Float) {
@@ -175,5 +219,42 @@ private class MockAudioCaptureService: AudioCaptureServiceProtocol {
     
     func setRecordingDuration(_ duration: TimeInterval) {
         _recordingDuration = duration
+    }
+}
+
+private class MockWhisperKitServiceCoordinator: WhisperKitServiceProtocol {
+    var shouldInitializeSucceed = true
+    var shouldFailTranscription = false
+    var mockTranscription = "Mock transcription"
+    var isInitialized = false
+    
+    func initialize() async throws {
+        if shouldInitializeSucceed {
+            isInitialized = true
+        } else {
+            throw WhisperKitServiceError.initializationFailed("Mock initialization failure")
+        }
+    }
+    
+    func transcribeAudio(audio: Data) async throws -> String {
+        if !isInitialized {
+            throw WhisperKitServiceError.notInitialized
+        }
+        if audio.isEmpty {
+            throw WhisperKitServiceError.invalidAudioData
+        }
+        if shouldFailTranscription {
+            throw WhisperKitServiceError.transcriptionFailed("Mock transcription failure")
+        }
+        
+        // Return different transcriptions based on audio size for testing
+        if audio.count > 5000 {
+            return "This is a longer transcription for larger audio files: \(mockTranscription)"
+        }
+        return mockTranscription
+    }
+    
+    func cancelTranscription() async {
+        // Mock cancellation
     }
 }

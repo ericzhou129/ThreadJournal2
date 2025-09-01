@@ -25,7 +25,7 @@ ThreadJournal is a minimalist, local-first iOS journaling application that organ
 - **Dual Stop Actions**: 
   - Stop & Edit (✏️): Fills text field for editing
   - Stop & Save (✓): Creates entry immediately
-- **2-Second Chunks**: Live transcription feedback every 2 seconds
+- **Single Transcription**: Audio is transcribed once when recording stops
 - **Apple Neural Engine**: Optimized for ANE for efficient on-device processing
 - **Privacy First**: All processing happens on-device, no cloud services required
 
@@ -583,7 +583,6 @@ protocol AudioRepository {
 
 protocol TranscriptionRepository {
     func transcribe(audio: Data) async throws -> VoiceTranscription
-    func transcribeChunk(audio: Data) async throws -> String
     func cancelTranscription() async
 }
 
@@ -692,7 +691,6 @@ protocol VoiceEntryViewModelProtocol: ObservableObject {
     var recordingTime: TimeInterval { get }
     var audioLevel: Float { get }
     var transcription: String { get }
-    var currentChunkText: String { get }  // Latest 2-second chunk
     var error: VoiceEntryError? { get }
     
     func startRecording() async

@@ -13,7 +13,7 @@ ThreadJournal's voice entry feature enables users to create journal entries usin
 
 ### User Experience
 - **Two Recording Modes**: Tap-to-record and hold-to-record
-- **Real-time Feedback**: Live partial transcription results
+- **Complete Transcription**: Full transcription when recording stops
 - **Smart Actions**: Stop & Edit vs Stop & Save options
 - **Audio Visualization**: Waveform display during recording
 - **Safety Limits**: 5-minute maximum recording duration
@@ -72,14 +72,14 @@ Voice Entry System
 
 1. **Recording**: User taps microphone → AudioCaptureService starts recording
 2. **Processing**: Audio buffer → WhisperKit → Transcription
-3. **Display**: Partial results shown in real-time
+3. **Display**: Complete transcription shown when recording stops
 4. **Save**: Final transcription → Entry creation → Thread
 
 ## Features
 
 ### Core Functionality
 - ✅ On-device transcription (no cloud calls)
-- ✅ Real-time partial results
+- ✅ Complete transcription results
 - ✅ Multilingual support (Whisper Small model)
 - ✅ Voice Activity Detection (3s silence threshold)
 - ✅ Thread suggestion integration
@@ -98,7 +98,7 @@ Voice Entry System
 - **Name**: openai_whisper-small
 - **Size**: 39MB (bundled in app)
 - **Languages**: 99+ languages with automatic detection
-- **Performance**: <1s to first partial result on A16+ devices
+- **Performance**: <2s for complete transcription on A16+ devices
 - **Format**: Core ML (.mlmodelc) optimized for iOS
 
 ### Bundle Location
@@ -120,7 +120,7 @@ ThreadJournal2.app/openai_whisper-small/
 ## Performance Guidelines
 
 ### Target Metrics
-- **Latency**: <1 second to first partial result
+- **Latency**: <2 seconds for complete transcription
 - **Memory**: <50MB additional during recording
 - **Battery**: <5% drain for 10-minute recording
 - **Accuracy**: 95%+ for clear speech
@@ -249,7 +249,7 @@ let transcription = try await coordinator.stopRecording()
 
 ### Phase 3
 - [ ] Offline punctuation enhancement
-- [ ] Real-time translation
+- [ ] Complete transcription translation
 - [ ] Voice commands
 - [ ] Audio export
 
@@ -272,7 +272,7 @@ let transcription = try await coordinator.stopRecording()
 ### Debug Settings
 Enable in Developer Settings:
 - Console logging for transcription
-- Partial result display
+- Final transcription display
 - Audio level monitoring
 - Model performance metrics
 
